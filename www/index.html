@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title></title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app locked">
+<header class="mobile-header">
+<button class="hamburger" id="menu-toggle" aria-label="menu"><i data-icon="menu"></i></button>
+<span class="brand-name" data-i18n="app.title"></span>
+<div style="width:40px"></div>
+</header>
+<div class="backdrop" id="backdrop"></div>
+<aside class="sidebar hidden" id="sidebar">
+<div class="brand">
+<i data-icon="box" class="brand-icon"></i>
+<span data-i18n="app.title"></span>
+</div>
+<nav class="nav">
+<button class="nav-btn active" data-tab="vault"><i data-icon="lock"></i><span data-i18n="nav.tokens"></span></button>
+<button class="nav-btn" data-tab="send"><i data-icon="send"></i><span data-i18n="nav.send"></span></button>
+<button class="nav-btn" data-tab="logs"><i data-icon="archive"></i><span data-i18n="nav.archive"></span></button>
+<button class="nav-btn" data-tab="presence"><i data-icon="circle"></i><span data-i18n="nav.presence"></span></button>
+<button class="nav-btn" data-tab="voice"><i data-icon="volume"></i><span data-i18n="nav.voice"></span></button>
+<button class="nav-btn" data-tab="cleaner"><i data-icon="trash"></i><span data-i18n="nav.cleaner"></span></button>
+<button class="nav-btn" data-tab="settings"><i data-icon="settings"></i><span data-i18n="nav.settings"></span></button>
+</nav>
+<div class="nav-spacer"></div>
+<button class="nav-btn nav-btn--ghost" id="lk-side"><i data-icon="lock"></i><span data-i18n="nav.lock"></span></button>
+</aside>
+<main class="main">
+<!-- UNLOCK -->
+<section id="unlock" class="centered">
+<div class="hero">
+<h1 id="ut" data-i18n="unlock.create_title"></h1>
+<p id="ud" class="muted" data-i18n="unlock.create_desc"></p>
+</div>
+<div class="card">
+<div class="field">
+<label class="label" data-i18n="unlock.master_password"></label>
+<input type="password" id="pw">
+</div>
+<div class="field" id="cf">
+<label class="label" data-i18n="unlock.repeat_password"></label>
+<input type="password" id="pw2">
+</div>
+<button class="btn btn-primary btn-block" id="sb" data-i18n="unlock.create"></button>
+<div class="error hidden" id="em"></div>
+</div>
+</section>
+<div id="main-content" class="hidden">
+<!-- VAULT -->
+<section id="vs">
+<div class="page-header">
+<h1 data-i18n="vault.title"></h1>
+<button class="btn btn-primary" id="ab"><i data-icon="plus"></i><span data-i18n="vault.add"></span></button>
+</div>
+<div id="af" class="card hidden">
+<div class="field">
+<label class="label" data-i18n="vault.name"></label>
+<input type="text" id="bn" data-i18n-placeholder="vault.name_placeholder" placeholder="">
+</div>
+<div class="field">
+<label class="label" data-i18n="vault.token"></label>
+<input type="password" class="mono" id="bt" data-i18n-placeholder="vault.token_placeholder" placeholder="">
+</div>
+<div class="error hidden" id="fe"></div>
+<div class="btn-row">
+<button class="btn btn-primary" id="sv" data-i18n="vault.save"></button>
+<button class="btn btn-ghost" id="ca" data-i18n="vault.close"></button>
+</div>
+</div>
+<div id="bl" class="cards"></div>
+</section>
+<!-- SEND -->
+<section id="snd" class="hidden">
+<div class="page-header"><h1 data-i18n="send.title"></h1></div>
+<div class="card">
+<div class="field">
+<label class="label" data-i18n="send.bot"></label>
+<select id="bot-select"><option value="" data-i18n-key="select.bot"></option></select>
+</div>
+<div class="field">
+<label class="label" data-i18n="send.destination"></label>
+<div class="seg">
+<button class="seg-btn active" id="mode-auto" data-i18n="send.from_servers"></button>
+<button class="seg-btn" id="mode-manual" data-i18n="send.manual_id"></button>
+</div>
+</div>
+<div id="auto-target">
+<div class="field">
+<label class="label" data-i18n="send.guild"></label>
+<select id="guild-select" disabled><option data-i18n-key="select.bot_first"></option></select>
+</div>
+<div class="field">
+<label class="label" data-i18n="send.channel"></label>
+<select id="chan-select" disabled><option data-i18n-key="select.server"></option></select>
+</div>
+</div>
+<div id="manual-target" class="hidden">
+<div class="field">
+<label class="label" data-i18n="send.channel_id"></label>
+<input type="text" class="mono" id="manual-chan" data-i18n-placeholder="send.channel_id_placeholder" placeholder="">
+</div>
+</div>
+</div>
+<div class="card">
+<div class="field">
+<label class="label" data-i18n="send.content"></label>
+<textarea id="msg-content" data-i18n-placeholder="send.content_placeholder" placeholder=""></textarea>
+</div>
+<div class="field">
+<label class="label" data-i18n="send.attachment"></label>
+<input type="file" id="file-upload" accept="image/*,video/*">
+<div class="file-preview" id="file-preview"><img id="file-preview-img" alt=""></div>
+</div>
+<label class="check-row" for="voice-message-on">
+<input type="checkbox" id="voice-message-on">
+<span data-i18n="send.voice_message"></span>
+</label>
+<div id="voice-message-form" class="hidden">
+<div class="seg" id="voice-mode-seg">
+<button class="seg-btn active" id="voice-mode-upload" data-i18n="send.voice_upload"></button>
+<button class="seg-btn" id="voice-mode-record" data-i18n="send.voice_record"></button>
+</div>
+<div id="voice-upload-form">
+<div class="field">
+<label class="label" data-i18n="send.voice_file"></label>
+<input type="file" id="voice-file" accept=".ogg,.opus,audio/ogg,audio/opus">
+<audio id="voice-file-preview" controls class="hidden" style="width:100%;margin-top:8px"></audio>
+</div>
+</div>
+<div id="voice-record-form" class="hidden">
+<div class="btn-row">
+<button class="btn btn-ghost" id="voice-record-btn" data-i18n="send.voice_start"></button>
+<button class="btn btn-ghost hidden" id="voice-record-stop" data-i18n="send.voice_stop"></button>
+</div>
+<div class="muted small" id="voice-record-status"></div>
+<audio id="voice-record-preview" controls class="hidden" style="width:100%;margin-top:8px"></audio>
+</div>
+<div class="field">
+<label class="label" data-i18n="send.voice_waveform"></label>
+<select id="voice-waveform-mode">
+<option value="auto" data-i18n-key="send.waveform_auto"></option>
+<option value="constant" data-i18n-key="send.waveform_constant"></option>
+<option value="none" data-i18n-key="send.waveform_none"></option>
+</select>
+<p class="muted small" style="margin-top:6px" data-i18n="send.voice_waveform_note"></p>
+</div>
+<div class="field">
+<label class="label" data-i18n="send.voice_filename"></label>
+<input type="text" id="voice-filename" data-i18n-placeholder="send.voice_filename_placeholder" placeholder="">
+</div>
+</div>
+<label class="check-row" for="embed-on">
+<input type="checkbox" id="embed-on">
+<span data-i18n="send.embed"></span>
+</label>
+<div id="embed-form" class="hidden">
+<div class="field"><label class="label" data-i18n="send.embed_title"></label><input id="e-title" maxlength="256"></div>
+<div class="field"><label class="label" data-i18n="send.embed_title_url"></label><input id="e-url"></div>
+<div class="field"><label class="label" data-i18n="send.embed_desc"></label><textarea id="e-desc" maxlength="4096"></textarea></div>
+<div class="btn-row">
+<div class="field" style="flex:1">
+<label class="label" data-i18n="send.embed_color"></label>
+<input type="color" id="e-color" value="#2563eb">
+</div>
+<div class="field" style="flex:2">
+<label class="label" data-i18n="send.embed_timestamp"></label>
+<select id="e-ts">
+<option value="" data-i18n-key="send.ts_none"></option>
+<option value="now" data-i18n-key="send.ts_now"></option>
+</select>
+</div>
+</div>
+<div class="field"><label class="label" data-i18n="send.embed_author_name"></label><input id="e-aname" maxlength="256"></div>
+<div class="field"><label class="label" data-i18n="send.embed_author_icon"></label><input id="e-aicon"></div>
+<div class="field"><label class="label" data-i18n="send.embed_image"></label><input id="e-img"></div>
+<div class="field"><label class="label" data-i18n="send.embed_thumbnail"></label><input id="e-thumb"></div>
+<div class="field"><label class="label" data-i18n="send.embed_footer"></label><input id="e-footer" maxlength="2048"></div>
+<div class="field"><label class="label" data-i18n="send.embed_footer_icon"></label><input id="e-ficon"></div>
+<div class="field">
+<label class="label" data-i18n="send.embed_fields"></label>
+<div id="e-fields"></div>
+<button class="btn btn-ghost btn-block" id="e-addfield" data-i18n="send.embed_add_field"></button>
+</div>
+</div>
+<div class="field">
+<label class="label" data-i18n="send.preview"></label>
+<div class="preview" id="preview"></div>
+</div>
+<button class="btn btn-primary btn-block" id="send-btn" data-i18n="send.send"></button>
+<div class="error hidden" id="send-error"></div>
+</div>
+</section>
+<!-- LOGS -->
+<section id="logs" class="hidden">
+<div class="page-header"><h1 data-i18n="logs.title"></h1></div>
+<div class="card">
+<div class="field">
+<label class="label" data-i18n="logs.bot"></label>
+<select id="log-bot-select"><option value="" data-i18n-key="select.bot"></option></select>
+</div>
+<div class="field">
+<label class="label" data-i18n="logs.guild"></label>
+<select id="log-guild-select" disabled><option data-i18n-key="select.bot_first"></option></select>
+</div>
+<div class="field">
+<label class="label" data-i18n="logs.channel"></label>
+<select id="log-chan-select" disabled><option data-i18n-key="select.server"></option></select>
+</div>
+<div class="btn-row">
+<button class="btn btn-primary" id="fetch-logs-btn" disabled data-i18n="logs.load_rest"></button>
+<button class="btn btn-ghost" id="fetch-archive-btn" disabled data-i18n="logs.load_archive"></button>
+</div>
+<div class="error hidden" id="log-error"></div>
+<p class="muted small" style="margin-top:12px" data-i18n="logs.info"></p>
+</div>
+<div class="card feed">
+<div id="log-feed">
+<div class="muted center" data-i18n="logs.select_channel"></div>
+</div>
+</div>
+</section>
+<!-- PRESENCE -->
+<section id="presence" class="hidden">
+<div class="page-header"><h1 data-i18n="presence.title"></h1></div>
+<div class="info-card">
+<div class="info-title"><i data-icon="info"></i><span data-i18n="presence.info_title"></span></div>
+<p data-i18n="presence.info_desc"></p>
+</div>
+<div class="card">
+<div class="field">
+<label class="label" data-i18n="presence.bot"></label>
+<select id="presence-bot-select"><option value="" data-i18n-key="select.bot"></option></select>
+</div>
+<div class="field">
+<label class="label" data-i18n="presence.status"></label>
+<select id="presence-status">
+<option value="online" data-i18n-key="presence.online"></option>
+<option value="idle" data-i18n-key="presence.idle"></option>
+<option value="dnd" data-i18n-key="presence.dnd"></option>
+<option value="invisible" data-i18n-key="presence.invisible"></option>
+</select>
+</div>
+<div class="field">
+<label class="label" data-i18n="presence.activity"></label>
+<input id="presence-activity" data-i18n-placeholder="presence.activity_placeholder" placeholder="">
+</div>
+<div class="btn-row">
+<button class="btn btn-primary" id="set-presence" disabled data-i18n="presence.apply"></button>
+<button class="btn btn-ghost" id="disconnect-presence" disabled data-i18n="presence.disconnect"></button>
+</div>
+<div class="error hidden" id="presence-error"></div>
+</div>
+<div class="card">
+<label class="label" data-i18n="presence.sessions"></label>
+<div id="sessions-list" class="muted small" data-i18n="presence.no_sessions"></div>
+</div>
+</section>
+<!-- VOICE -->
+<section id="voice" class="hidden">
+<div class="page-header"><h1 data-i18n="voice.title"></h1></div>
+<div class="info-card">
+<div class="info-title"><i data-icon="info"></i><span data-i18n="voice.info_title"></span></div>
+<p data-i18n="voice.info_desc"></p>
+</div>
+<div class="card">
+<div class="field">
+<label class="label" data-i18n="voice.bot"></label>
+<select id="voice-bot-select"><option value="" data-i18n-key="select.bot"></option></select>
+</div>
+<div class="field">
+<label class="label" data-i18n="voice.guild"></label>
+<select id="voice-guild-select" disabled><option data-i18n-key="select.bot_first"></option></select>
+</div>
+<div class="field">
+<label class="label" data-i18n="voice.channel"></label>
+<select id="voice-chan-select" disabled><option data-i18n-key="select.server"></option></select>
+</div>
+<div class="field">
+<label class="label" data-i18n="voice.auto_leave"></label>
+<input type="number" id="voice-auto-leave" value="0" min="0" max="1440">
+</div>
+<label class="check-row" for="voice-self-mute">
+<input type="checkbox" id="voice-self-mute">
+<span data-i18n="voice.self_mute"></span>
+</label>
+<label class="check-row" for="voice-self-deaf">
+<input type="checkbox" id="voice-self-deaf">
+<span data-i18n="voice.self_deaf"></span>
+</label>
+<div class="btn-row">
+<button class="btn btn-primary" id="voice-join" disabled data-i18n="voice.join"></button>
+<button class="btn btn-ghost" id="voice-leave" disabled data-i18n="voice.leave"></button>
+<button class="btn btn-ghost" id="voice-refresh" data-i18n="voice.refresh"></button>
+</div>
+<div class="error hidden" id="voice-error"></div>
+</div>
+<div class="card">
+<div class="card-title" data-i18n="voice.status"></div>
+<div id="voice-status" class="muted small"></div>
+</div>
+<div class="card">
+<div class="card-title" data-i18n="voice.playback_title"></div>
+<p class="muted small" data-i18n="voice.playback_desc"></p>
+<div class="field">
+<label class="label" data-i18n="voice.playback_file"></label>
+<input type="file" id="voice-play-file" accept="audio/*,.mp3,.wav,.ogg,.opus,.m4a,.flac">
+</div>
+<div class="btn-row">
+<button class="btn btn-primary" id="voice-play" disabled data-i18n="voice.play"></button>
+<button class="btn btn-ghost" id="voice-stop" disabled data-i18n="voice.stop_playback"></button>
+</div>
+<div class="muted small" id="voice-play-status" style="margin-top:8px"></div>
+</div>
+</section>
+<!-- CLEANER -->
+<section id="cleaner" class="hidden">
+<div class="page-header"><h1 data-i18n="cleaner.title"></h1></div>
+<div class="warn-card">
+<div class="warn-title"><i data-icon="alert"></i><span data-i18n="cleaner.warning"></span></div>
+<p data-i18n-html="cleaner.warning_desc"></p>
+</div>
+<div class="card">
+<div class="field">
+<label class="label" data-i18n="cleaner.bot"></label>
+<select id="clean-bot-select"><option value="" data-i18n-key="select.bot"></option></select>
+</div>
+<div class="field">
+<label class="label" data-i18n="cleaner.guild"></label>
+<select id="clean-guild-select" disabled><option data-i18n-key="select.bot_first"></option></select>
+</div>
+<div class="field">
+<label class="label" data-i18n="cleaner.channel"></label>
+<select id="clean-chan-select" disabled><option data-i18n-key="select.server"></option></select>
+</div>
+<div class="field">
+<label class="label" data-i18n="cleaner.selected"></label>
+<code id="clean-target" class="mono"></code>
+</div>
+</div>
+<div class="card">
+<div class="card-title" data-i18n="cleaner.clone_title"></div>
+<p class="muted small" data-i18n="cleaner.clone_desc"></p>
+<button class="btn btn-danger btn-block" id="clone-channel" data-i18n="cleaner.clone"></button>
+</div>
+<div class="card">
+<div class="card-title" data-i18n="cleaner.delete_all_title"></div>
+<p class="muted small" data-i18n="cleaner.delete_all_desc"></p>
+<button class="btn btn-danger btn-block" id="clean-messages" data-i18n="cleaner.delete_all"></button>
+<div class="progress-bar hidden" id="clean-progress"><div class="progress-fill"></div></div>
+<div class="progress-text hidden" id="clean-progress-text"></div>
+</div>
+</section>
+<!-- SETTINGS -->
+<section id="ss" class="hidden">
+<div class="page-header"><h1 data-i18n="settings.title"></h1></div>
+<div class="card">
+<div class="card-title" data-i18n="settings.autolock"></div>
+<p class="muted small" data-i18n="settings.autolock_desc"></p>
+<div class="seg" id="als">
+<button class="seg-btn" data-v="0" data-i18n="settings.never"></button>
+<button class="seg-btn" data-v="1" data-i18n="settings.min_1"></button>
+<button class="seg-btn active" data-v="5" data-i18n="settings.min_5"></button>
+<button class="seg-btn" data-v="15" data-i18n="settings.min_15"></button>
+</div>
+</div>
+<div class="card">
+<div class="card-title" data-i18n="settings.language"></div>
+<p class="muted small" data-i18n="settings.language_desc"></p>
+<select id="lang-select"></select>
+</div>
+<div class="card">
+<div class="card-title" data-i18n="settings.theme"></div>
+<p class="muted small" data-i18n="settings.theme_desc"></p>
+<div class="seg" id="theme-seg">
+<button class="seg-btn" data-v="light" data-i18n="settings.light"></button>
+<button class="seg-btn" data-v="dark" data-i18n="settings.dark"></button>
+<button class="seg-btn active" data-v="auto" data-i18n="settings.auto"></button>
+</div>
+</div>
+<div class="card">
+<div class="card-title" data-i18n="settings.master_password"></div>
+<p class="muted small" data-i18n="settings.master_password_desc"></p>
+<button class="btn btn-ghost btn-block" id="cpw-open" data-i18n="settings.change_master_password"></button>
+</div>
+<div class="card">
+<div class="card-title danger" data-i18n="settings.danger_zone"></div>
+<p class="muted small" data-i18n="settings.danger_desc"></p>
+<button class="btn btn-danger btn-block" id="ds" data-i18n="settings.reset_vault"></button>
+</div>
+<div class="footer-info" data-i18n="settings.footer"></div>
+</section>
+</div>
+</main>
+</div>
+<!-- MODALS -->
+<div class="modal hidden" id="user-modal">
+<div class="modal-content">
+<button class="close-modal" id="close-modal"><i data-icon="x"></i></button>
+<div id="modal-view-profile">
+<h3 data-i18n="modal.user_profile"></h3>
+<div id="profile-details" class="profile-details"></div>
+<div class="modal-field" style="margin-top:12px">
+<label class="label" data-i18n="modal.user_id"></label>
+<div class="id-row">
+<code id="modal-uid"></code>
+<button class="btn btn-ghost btn-small" id="copy-uid" data-i18n="modal.copy"></button>
+</div>
+</div>
+<p class="muted small" data-i18n-html="modal.nick_note"></p>
+<div class="modal-actions">
+<button class="btn btn-ghost" id="btn-nick" data-i18n="modal.change_nick"></button>
+<button class="btn btn-ghost" id="btn-timeout" data-i18n="modal.timeout"></button>
+<button class="btn btn-danger" id="btn-kick" data-i18n="modal.kick"></button>
+<button class="btn btn-danger" id="btn-ban" data-i18n="modal.ban"></button>
+</div>
+</div>
+<div id="modal-view-nick" class="hidden">
+<h3 data-i18n="modal.nick_title"></h3>
+<p class="muted small" data-i18n-html="modal.nick_desc"></p>
+<div class="field"><input type="text" id="nick-input" data-i18n-placeholder="modal.nick_placeholder" placeholder=""></div>
+<div class="modal-actions">
+<button class="btn btn-ghost" id="nick-cancel" data-i18n="common.cancel"></button>
+<button class="btn btn-primary" id="nick-save" data-i18n="common.save"></button>
+</div>
+</div>
+<div id="modal-view-timeout" class="hidden">
+<h3 data-i18n="modal.timeout_title"></h3>
+<p class="muted small" data-i18n-html="modal.timeout_desc"></p>
+<div class="field"><input type="number" id="timeout-input" data-i18n-placeholder="modal.timeout_placeholder" placeholder="" min="1" max="40320"></div>
+<div class="modal-actions">
+<button class="btn btn-ghost" id="timeout-cancel" data-i18n="common.cancel"></button>
+<button class="btn btn-danger" id="timeout-save" data-i18n="common.apply"></button>
+</div>
+</div>
+</div>
+</div>
+<div class="modal hidden" id="generic-input-modal">
+<div class="modal-content">
+<button class="close-modal" id="gi-close"><i data-icon="x"></i></button>
+<h3 id="gi-title"></h3>
+<p class="muted small" id="gi-desc"></p>
+<div class="field"><input type="text" id="gi-input"></div>
+<div class="modal-actions">
+<button class="btn btn-ghost" id="gi-cancel" data-i18n="common.cancel"></button>
+<button class="btn btn-primary" id="gi-ok" data-i18n="common.confirm"></button>
+</div>
+</div>
+</div>
+<div class="modal hidden" id="generic-confirm-modal">
+<div class="modal-content">
+<button class="close-modal" id="gc-close"><i data-icon="x"></i></button>
+<h3 id="gc-title"></h3>
+<p class="muted small" id="gc-desc"></p>
+<div class="modal-actions">
+<button class="btn btn-ghost" id="gc-cancel" data-i18n="common.cancel"></button>
+<button class="btn btn-danger" id="gc-ok" data-i18n="common.confirm"></button>
+</div>
+</div>
+</div>
+<div class="modal hidden" id="info-modal">
+<div class="modal-content">
+<button class="close-modal" id="info-close"><i data-icon="x"></i></button>
+<h3 id="info-title"></h3>
+<p class="muted small" id="info-desc"></p>
+<div class="info-box" id="info-body"></div>
+<button class="btn btn-primary btn-block" id="info-copy" data-i18n="modal.copy"></button>
+</div>
+</div>
+<div class="modal hidden" id="change-pw-modal">
+<div class="modal-content">
+<button class="close-modal" id="cpw-close"><i data-icon="x"></i></button>
+<h3 data-i18n="settings.change_master_password"></h3>
+<p class="muted small" data-i18n="settings.change_pw_desc"></p>
+<div class="field">
+<label class="label" data-i18n="settings.current_pw"></label>
+<input type="password" id="cpw-old">
+</div>
+<div class="field">
+<label class="label" data-i18n="settings.new_pw"></label>
+<input type="password" id="cpw-new">
+</div>
+<div class="field">
+<label class="label" data-i18n="settings.repeat_pw"></label>
+<input type="password" id="cpw-new2">
+</div>
+<div class="error hidden" id="cpw-error"></div>
+<div class="modal-actions">
+<button class="btn btn-ghost" id="cpw-cancel" data-i18n="common.cancel"></button>
+<button class="btn btn-primary" id="cpw-save" data-i18n="common.save"></button>
+</div>
+</div>
+</div>
+<div class="toast hidden" id="tt"></div>
+<script type="module" src="app.js"></script>
+</body>
+</html>
