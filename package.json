@@ -1,24 +1,92 @@
 {
   "dependencies": {
+    "@discordjs/voice": "^0.19.2",
+    "@snazzah/davey": "^0.1.12",
     "buffer": "^6.0.3",
     "ffmpeg-static": "^5.3.0",
     "fluent-ffmpeg": "^2.1.3",
     "opusscript": "^0.1.1",
+    "prism-media": "^1.3.5",
     "tweetnacl": "^1.0.3",
     "ws": "^8.21.3"
   },
+  "devDependencies": {
+    "electron": "^28.3.3",
+    "electron-builder": "^24.9.1"
+  },
   "name": "discord-manager",
   "version": "1.0.0",
-  "description": "",
-  "main": "bridge.js",
+  "description": "Discord Bot Manager - Native Desktop App",
+  "main": "electron/main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node bridge.js",
+    "dev": "electron .",
+    "build": "electron-builder --win nsis",
+    "build:portable": "electron-builder --win portable",
+    "pack": "electron-builder --dir",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "build": {
+    "appId": "com.discordmanager.app",
+    "productName": "Discord Manager",
+    "copyright": "Copyright © 2024",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build-resources"
+    },
+    "files": [
+      "bridge.js",
+      "electron/**/*",
+      "www/**/*",
+      "node_modules/**/*",
+      "package.json",
+      "!node_modules/.cache",
+      "!**/*.map"
+    ],
+    "extraResources": [
+      {
+        "from": "node_modules/ffmpeg-static/",
+        "to": "ffmpeg/",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/@discordjs/voice/**/*",
+      "node_modules/opusscript/**/*",
+      "node_modules/prism-media/**/*",
+      "node_modules/tweetnacl/**/*",
+      "www/locales/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Discord Manager"
+    }
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/CarbonWalls/discord-botmanager.git"
   },
-  "keywords": [],
+  "keywords": [
+    "discord",
+    "bot",
+    "manager"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
