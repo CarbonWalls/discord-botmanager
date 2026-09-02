@@ -4,6 +4,9 @@ const path = require('path');
 const fs = require('fs');
 const isDev = !app.isPackaged;
 
+// Disable the default Electron menu (File/Edit/View/Window/Help)
+Menu.setApplicationMenu(null);
+
 let mainWindow = null;
 let bridgeProcess = null;
 let bridgePort = 8787;
@@ -180,7 +183,7 @@ function createWindow() {
     minWidth: 900,
     minHeight: 600,
     title: 'Discord Manager',
-    icon: getResourcePath('build-resources/icon.png'),
+    icon: getResourcePath(`build-resources/icon${process.platform === 'win32' ? '.ico' : '.png'}`),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -216,6 +219,13 @@ function createWindow() {
   
   // Load the app via the bridge HTTP server so relative API URLs work correctly
   const bridgeUrl = `http://127.0.0.1:${bridgePort}/`;
+  
+  // Clear cache to ensure new UI loads (especially important in dev)
+  if (isDev) {
+    mainWindow.webContents.session.clearCache()
+      .then(() => mainWindow.webContents.session.clearStorageData())
+      .catch(e => console.warn('[Electron] Failed to clear cache:', e.message));
+  }
   
   if (fs.existsSync(path.join(getWwwPath(), 'index.html'))) {
     mainWindow.loadURL(bridgeUrl);
