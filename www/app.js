@@ -2497,6 +2497,7 @@ let voiceChannel = null;
 
 let voiceCurrentlyInChannel = false;
 let voiceCurrentlyPlaying = false;
+let voiceOperationInProgress = false;
 
 let voicePlayFile = null;
 
@@ -2670,6 +2671,7 @@ async function ensureVoiceJoined() {
 }
 
 document.getElementById('voice-join').onclick = async () => {
+  if (voiceOperationInProgress) return;
   const err = document.getElementById('voice-error');
 
   err.classList.add('hidden');
@@ -2677,6 +2679,7 @@ document.getElementById('voice-join').onclick = async () => {
   const btn = document.getElementById('voice-join');
 
   btn.disabled = true;
+  voiceOperationInProgress = true;
 
   try {
     const wasIn = voiceCurrentlyInChannel;
@@ -2691,11 +2694,13 @@ document.getElementById('voice-join').onclick = async () => {
     err.classList.remove('hidden');
   } finally {
     btn.disabled = false;
+    voiceOperationInProgress = false;
     updateVoiceControls();
   }
 };
 
 document.getElementById('voice-leave').onclick = async () => {
+  if (voiceOperationInProgress) return;
   const err = document.getElementById('voice-error');
 
   err.classList.add('hidden');
@@ -2705,6 +2710,7 @@ document.getElementById('voice-leave').onclick = async () => {
   const btn = document.getElementById('voice-leave');
 
   btn.disabled = true;
+  voiceOperationInProgress = true;
 
   try {
     await gateway(`/${voiceBot.id}/voice/leave`, {});
@@ -2775,6 +2781,7 @@ if (voicePlayInput) {
 
 if (voicePlayBtn) {
   voicePlayBtn.onclick = async () => {
+    if (voiceOperationInProgress) return;
     const err = document.getElementById('voice-error');
 
     err.classList.add('hidden');
@@ -2785,6 +2792,7 @@ if (voicePlayBtn) {
     }
 
     voicePlayBtn.disabled = true;
+    voiceOperationInProgress = true;
 
     if (voicePlayStatus) voicePlayStatus.textContent = t('voice.play_preparing');
 
@@ -2841,6 +2849,7 @@ if (voicePlayBtn) {
         err.classList.remove('hidden');
       }
     } finally {
+      voiceOperationInProgress = false;
       updateVoiceControls();
     }
   };

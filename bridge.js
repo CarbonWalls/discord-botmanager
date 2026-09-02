@@ -379,7 +379,10 @@ const self_deaf = !!opts.self_deaf;
 
 clearVoiceAutoLeave(s);
 const current = s.voice?.state;
+
+// If already in the same channel, just update mute/deaf state and return
 if (current && current.guild_id === guild_id && current.channel_id === channel_id) {
+s.ws.send(JSON.stringify({ op: 4, d: { guild_id, channel_id, self_mute, self_deaf } }));
 scheduleVoiceAutoLeave(s, opts.auto_leave_seconds);
 return current;
 }
@@ -392,6 +395,13 @@ s.voiceGatewayAdapter = adapter;
 
 const adapter = s.voiceGatewayAdapter;
 
+// Prevent concurrent join attempts for same bot
+if (s._voiceJoining) {
+throw new Error('voice join already in progress');
+}
+s._voiceJoining = true;
+
+try {
 const waiter = new Promise((resolve, reject) => {
 const timeoutMs = Math.max(3000, parseInt(opts.timeout_ms || 12000, 10));
 const timer = setTimeout(() => {
@@ -437,6 +447,9 @@ s.voiceConnection = null;
 }
 throw e;
 }
+} finally {
+s._voiceJoining = false;
+}
 
 scheduleVoiceAutoLeave(s, opts.auto_leave_seconds);
 return state;
@@ -449,6 +462,13 @@ clearVoiceAutoLeave(s);
 const guild_id = s.voice?.state?.guild_id;
 if (!guild_id || !s.voice?.state?.channel_id) return null;
 
+// Prevent concurrent leave attempts
+if (s._voiceLeaving) {
+throw new Error('voice leave already in progress');
+}
+s._voiceLeaving = true;
+
+try {
 if (s.voiceConnection) {
 try { s.voiceConnection.destroy(); } catch {}
 s.voiceConnection = null;
@@ -473,6 +493,9 @@ s.voiceWaiters.push(entry);
 
 s.ws.send(JSON.stringify({ op: 4, d: { guild_id, channel_id: null, self_mute: false, self_deaf: false } }));
 return waiter;
+} finally {
+s._voiceLeaving = false;
+}
 }
 
 async function playVoice(botId, opts = {}) {
@@ -498,6 +521,13 @@ if (!s.voiceConnection) throw new Error('voice connection mancante');
 
 clearVoiceAutoLeave(s);
 
+// Prevent concurrent playback attempts
+if (s._voicePlaying) {
+throw new Error('playback already in progress');
+}
+s._voicePlaying = true;
+
+try {
 const { AudioPlayerStatus, createAudioPlayer, createAudioResource, StreamType } = require('@discordjs/voice');
 const { Readable } = require('stream');
 
@@ -543,19 +573,23 @@ inlineVolume: true
 });
 
 return new Promise((resolve, reject) => {
+const cleanup = () => { s._voicePlaying = false; };
 const onEnd = () => {
 s.audioPlayer.removeListener('error', onError);
 s.audioPlayer.removeListener('idle', onIdle);
+cleanup();
 resolve({ ok: true, packets: packets.length, duration_ms: packets.length * 20 });
 };
 const onError = (err) => {
 s.audioPlayer.removeListener('idle', onIdle);
 s.audioPlayer.removeListener('idle', onEnd);
+cleanup();
 reject(err);
 };
 const onIdle = () => {
 s.audioPlayer.removeListener('error', onError);
 s.audioPlayer.removeListener('idle', onEnd);
+cleanup();
 resolve({ ok: true, packets: packets.length, duration_ms: packets.length * 20 });
 };
 s.audioPlayer.once('error', onError);
@@ -563,6 +597,11 @@ s.audioPlayer.once('idle', onIdle);
 s.audioPlayer.once('idle', onEnd);
 s.audioPlayer.play(resource);
 });
+} finally {
+if (!s.audioPlayer || s.audioPlayer.state.status !== AudioPlayerStatus.Playing) {
+s._voicePlaying = false;
+}
+}
 }
 
 /* ===== gateway ===== */
