@@ -2,30 +2,39 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const dgram = require('dgram');
 const { spawn } = require('child_process');
-const ffmpegPath = require('ffmpeg-static');
+
+// Support Electron bundled ffmpeg via env var, fallback to ffmpeg-static
+let ffmpegPath;
+if (process.env.FFMPEG_PATH && fs.existsSync(process.env.FFMPEG_PATH)) {
+  ffmpegPath = process.env.FFMPEG_PATH;
+} else {
+  try { ffmpegPath = require('ffmpeg-static'); } catch (e) { ffmpegPath = 'ffmpeg'; }
+}
 
 let WebSocket;
 try { WebSocket = require('ws'); } catch (e) { WebSocket = null; }
 
-const PORT = 8787;
-const WWW = path.join(__dirname, 'www');
-const DATA_DIR = path.join(__dirname, 'data', 'messages');
-const VOICE_DIR = path.join(__dirname, 'data', 'voice');
-const LOCALES_DIR = path.join(WWW, 'locales');
+const { createAudioPlayer, createAudioResource, AudioPlayerStatus, StreamType, joinVoiceChannel, getVoiceConnection } = require('@discordjs/voice');
+const { Davey } = require('@snazzah/davey');
+
+// Configuration - support Electron env vars
+const PORT = parseInt(process.env.PORT, 10) || 8787;
+const WWW = process.env.WWW_DIR || path.join(__dirname, 'www');
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data', 'messages');
+const VOICE_DIR = process.env.VOICE_DIR || path.join(__dirname, 'data', 'voice');
+const LOCALES_DIR = process.env.LOCALES_DIR || path.join(WWW, 'locales');
 const API = 'https://discord.com/api/v10';
 const GATEWAY_URL = 'wss://gateway.discord.gg/?v=10&encoding=json';
 const INTENTS = (1 << 0) | (1 << 9) | (1 << 15) | (1 << 7);
-const VOICE_MODES = ['aead_aes256_gcm_rtpsize', 'aead_aes256_gcm'];
 
 const MIME = {
-'.html': 'text/html',
-'.js': 'text/javascript',
-'.css': 'text/css',
-'.svg': 'image/svg+xml',
-'.json': 'application/json',
-'.ico': 'image/x-icon',
+  '.html': 'text/html',
+  '.js': 'text/javascript',
+  '.css': 'text/css',
+  '.svg': 'image/svg+xml',
+  '.json': 'application/json',
+  '.ico': 'image/x-icon',
 };
 
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -70,7 +79,7 @@ const ff = spawn(ffmpegPath, [
 '-map', '0:a:0',
 '-c:a', 'libopus',
 '-ar', '48000',
-'-ac', '2',
+'-ac', '1',
 '-b:a', '64k',
 '-frame_duration', '20',
 '-f', 'ogg',
@@ -287,256 +296,76 @@ leaveVoice(session.botId).catch(() => {});
 }, secs * 1000);
 }
 
-function stopPlayback(session, silent = false) {
-const vc = session?.voiceConnection;
-if (!vc) return;
-if (vc.playTimer) clearInterval(vc.playTimer);
-vc.playTimer = null;
-vc.playing = false;
-if (!silent) console.log(`[voice] playback stopped bot ${session.botId}`);
-}
-
 function cleanupVoice(session) {
-stopPlayback(session, true);
-const vc = session?.voiceConnection;
-if (!vc) return;
-if (vc.heartbeatTimer) clearInterval(vc.heartbeatTimer);
-if (vc.ws) { try { vc.ws.close(); } catch {} }
-if (vc.udp) { try { vc.udp.close(); } catch {} }
+if (session.voiceConnection) {
+try { session.voiceConnection.destroy(); } catch {}
 session.voiceConnection = null;
 }
+if (session.voiceGatewayAdapter) {
+session.voiceGatewayAdapter.destroyVoiceAdapter();
+session.voiceGatewayAdapter = null;
+}
+if (session.audioPlayer) {
+try { session.audioPlayer.stop(); } catch {}
+session.audioPlayer = null;
+}
+session.voice = session.voice || {};
+session.voice.state = null;
+session.voice.server = null;
+session.voice.pendingServer = null;
+}
 
-function udpDiscovery(ip, port, ssrc) {
-return new Promise((resolve, reject) => {
-const socket = dgram.createSocket('udp4');
-const req = Buffer.alloc(74);
-req.writeUInt16BE(0x1, 0);
-req.writeUInt16BE(70, 2);
-req.writeUInt32BE(ssrc, 4);
-const timer = setTimeout(() => {
-try { socket.close(); } catch {}
-reject(new Error('udp discovery timeout'));
-}, 8000);
-socket.once('message', (msg) => {
-clearTimeout(timer);
+function stopPlayback(session) {
+if (session.audioPlayer) {
+try { session.audioPlayer.stop(); } catch {}
+}
+}
+
+/* ===== @discordjs/voice gateway adapter ===== */
+function createVoiceGatewayAdapter(session) {
+let voiceAdapterMethods = null;
+let libraryMethods = null;
+
+function adapterCreator(methods) {
+libraryMethods = methods;
+return {
+sendPayload: (payload) => {
+if (!session.ws || session.ws.readyState !== WebSocket.OPEN) return false;
 try {
-const ipStr = msg.slice(8, msg.length - 2).toString('utf8').replace(/\0/g, '');
-const discoveredPort = msg.readUInt16BE(msg.length - 2);
-try { socket.close(); } catch {}
-resolve({ ip: ipStr, port: discoveredPort });
-} catch (e) {
-try { socket.close(); } catch {}
-reject(e);
+session.ws.send(JSON.stringify(payload));
+return true;
+} catch {
+return false;
 }
-});
-socket.on('error', (err) => {
-clearTimeout(timer);
-try { socket.close(); } catch {}
-reject(err);
-});
-socket.send(req, port, ip);
-});
+},
+destroy: () => {
+voiceAdapterMethods = null;
+libraryMethods = null;
 }
-
-function connectVoiceTransport(session) {
-return new Promise((resolve, reject) => {
-if (!WebSocket) return reject(new Error('modulo ws non installato (npm i ws)'));
-if (!session?.voice?.server?.endpoint) return reject(new Error('voice server mancante'));
-
-let settled = false;
-let heartbeatTimer = null;
-let udp = null;
-let ready = null;
-
-const endpoint = session.voice.server.endpoint.replace(/:80$/, '');
-const url = `wss://${endpoint}/?v=4&encoding=json`;
-console.log(`[voice] connessione a ${url} (bot ${session.botId})`);
-const vws = new WebSocket(url);
-
-const timeout = setTimeout(() => done(new Error('timeout connessione voice (20s)')), 20000);
-
-function done(err, value) {
-if (settled) return;
-settled = true;
-clearTimeout(timeout);
-if (heartbeatTimer) clearInterval(heartbeatTimer);
-if (udp) { try { udp.close(); } catch {} }
-if (err) {
-try { vws.close(); } catch {}
-reject(err);
-} else {
-resolve(value);
-}
-}
-
-vws.on('message', async (raw) => {
-let data;
-try { data = JSON.parse(raw.toString()); } catch { return; }
-
-if (data.op === 8) {
-heartbeatTimer = setInterval(() => {
-try {
-if (vws.readyState === WebSocket.OPEN) vws.send(JSON.stringify({ op: 3, d: Date.now() }));
-} catch {}
-}, Math.max(5000, Math.floor((data.d?.heartbeat_interval || 13750) * 0.75)));
-vws.send(JSON.stringify({
-op: 0,
-d: {
-server_id: session.voice.state.guild_id,
-user_id: session.user.id,
-session_id: session.voice.state.session_id,
-token: session.voice.server.token
-}
-}));
-}
-else if (data.op === 2) {
-ready = data.d;
-const mode = VOICE_MODES.find(m => ready.modes?.includes(m)) || null;
-if (!mode) {
-return done(new Error('modalità voice non supportata. disponibili: ' + (ready.modes || []).join(', ')));
-}
-console.log(`[voice] ready (ssrc=${ready.ssrc}), mode=${mode}`);
-try {
-const disc = await udpDiscovery(ready.ip, ready.port, ready.ssrc);
-udp = dgram.createSocket('udp4');
-udp.on('error', (err) => console.error('[voice] udp error:', err.message));
-vws.send(JSON.stringify({
-op: 1,
-d: {
-protocol: 'udp',
-data: { address: disc.ip, port: disc.port, mode }
-}
-}));
-} catch (e) {
-done(e);
-}
-}
-else if (data.op === 4) {
-if (!ready || !udp) return;
-if (!VOICE_MODES.includes(data.d.mode)) {
-return done(new Error('modalità voice non supportata: ' + data.d.mode));
-}
-session.voiceConnection = {
-guildId: session.voice.state.guild_id,
-ws: vws,
-udp,
-ip: ready.ip,
-port: ready.port,
-ssrc: ready.ssrc,
-secretKey: Buffer.from(data.d.secret_key),
-mode: data.d.mode,
-sequence: Math.floor(Math.random() * 0xffff),
-timestamp: Math.floor(Math.random() * 0xffffffff),
-nonceCounter: Math.floor(Math.random() * 0xffffffff),
-heartbeatTimer,
-ready: true,
-playing: false,
-playTimer: null
 };
-console.log(`[voice] transport pronto (bot ${session.botId}, mode=${data.d.mode})`);
-done(null, session.voiceConnection);
-}
-else if (data.op === 7) {
-console.warn(`[voice] il server ha richiesto reconnect (bot ${session.botId})`);
-if (session.voiceConnection?.ws === vws) cleanupVoice(session);
-done(new Error('voice reconnect richiesto: riprova'));
-}
-});
-
-vws.on('error', (err) => done(new Error('voice ws error: ' + err.message)));
-vws.on('close', (code, reason) => {
-if (session.voiceConnection?.ws === vws) cleanupVoice(session);
-done(new Error(`voice ws closed (code=${code}${reason && reason.length ? ', ' + reason.toString() : ''})`));
-});
-});
 }
 
-async function ensureVoiceUdp(session) {
-if (!session?.voice?.state?.guild_id || !session?.voice?.state?.channel_id) {
-throw new Error('bot non in canale vocale');
-}
-let waited = 0;
-while (!session.voice?.server?.endpoint && waited < 10000) {
-await sleep(100);
-waited += 100;
-}
-if (!session.voice?.server?.endpoint) throw new Error('voice server info mancanti');
-const existing = session.voiceConnection;
-if (existing && existing.ready && existing.guildId === session.voice.state.guild_id) return existing;
-cleanupVoice(session);
-await connectVoiceTransport(session);
-return session.voiceConnection;
-}
-
-function sendOpusPacket(session, opusPacket) {
-const vc = session.voiceConnection;
-if (!vc || !vc.ready || !vc.udp) return;
-
-vc.sequence = (vc.sequence + 1) & 0xffff;
-vc.timestamp = (vc.timestamp + 960) >>> 0;
-vc.nonceCounter = (vc.nonceCounter + 1) >>> 0;
-
-const nonce4 = Buffer.alloc(4);
-nonce4.writeUInt32BE(vc.nonceCounter, 0);
-const nonce = Buffer.concat([nonce4, Buffer.alloc(8)]);
-
-let header;
-if (vc.mode === 'aead_aes256_gcm_rtpsize') {
-header = Buffer.alloc(20);
-header[0] = 0x90;
-header[1] = 0x78;
-header.writeUInt16BE(vc.sequence, 2);
-header.writeUInt32BE(vc.timestamp, 4);
-header.writeUInt32BE(vc.ssrc, 8);
-header.writeUInt16BE(0xBEDE, 12);
-header.writeUInt16BE(1, 14);
-nonce4.copy(header, 16);
-} else if (vc.mode === 'aead_aes256_gcm') {
-header = Buffer.alloc(12);
-header[0] = 0x80;
-header[1] = 0x78;
-header.writeUInt16BE(vc.sequence, 2);
-header.writeUInt32BE(vc.timestamp, 4);
-header.writeUInt32BE(vc.ssrc, 8);
-} else {
-throw new Error('encryption mode non supportato: ' + vc.mode);
-}
-
-const cipher = crypto.createCipheriv('aes-256-gcm', vc.secretKey, nonce);
-cipher.setAAD(header);
-const encrypted = Buffer.concat([cipher.update(opusPacket), cipher.final(), cipher.getAuthTag()]);
-
-if (vc.mode === 'aead_aes256_gcm') {
-vc.udp.send(Buffer.concat([header, encrypted, nonce]), vc.port, vc.ip);
-} else {
-vc.udp.send(Buffer.concat([header, encrypted]), vc.port, vc.ip);
+// Called by our gateway handler when VOICE_SERVER_UPDATE arrives
+function onVoiceServerUpdate(data) {
+if (libraryMethods?.onVoiceServerUpdate) {
+libraryMethods.onVoiceServerUpdate(data);
 }
 }
 
-function startOpusPlayback(session, packets) {
-const vc = session.voiceConnection;
-if (!vc) return;
-stopPlayback(session, true);
-vc.playing = true;
-let i = 0;
-console.log(`[voice] avvio playback bot ${session.botId}: ${packets.length} pacchetti`);
-vc.playTimer = setInterval(() => {
-if (!session.voiceConnection || session.voiceConnection !== vc) {
-stopPlayback(session, true);
-return;
+// Called by our gateway handler when VOICE_STATE_UPDATE arrives
+function onVoiceStateUpdate(data) {
+if (libraryMethods?.onVoiceStateUpdate) {
+libraryMethods.onVoiceStateUpdate(data);
 }
-if (i >= packets.length) {
-stopPlayback(session);
-return;
 }
-try {
-sendOpusPacket(session, packets[i]);
-i++;
-} catch (e) {
-console.error('[voice] errore invio pacchetto:', e.message);
-stopPlayback(session);
+
+function destroyVoiceAdapter() {
+if (voiceAdapterMethods?.destroy) voiceAdapterMethods.destroy();
+voiceAdapterMethods = null;
+libraryMethods = null;
 }
-}, 20);
+
+return { adapterCreator, onVoiceServerUpdate, onVoiceStateUpdate, destroyVoiceAdapter };
 }
 
 async function joinVoice(botId, opts = {}) {
@@ -555,6 +384,14 @@ scheduleVoiceAutoLeave(s, opts.auto_leave_seconds);
 return current;
 }
 
+// Create voice gateway adapter if not exists
+if (!s.voiceGatewayAdapter) {
+const adapter = createVoiceGatewayAdapter(s);
+s.voiceGatewayAdapter = adapter;
+}
+
+const adapter = s.voiceGatewayAdapter;
+
 const waiter = new Promise((resolve, reject) => {
 const timeoutMs = Math.max(3000, parseInt(opts.timeout_ms || 12000, 10));
 const timer = setTimeout(() => {
@@ -570,7 +407,37 @@ s.voiceWaiters.push(entry);
 });
 
 s.ws.send(JSON.stringify({ op: 4, d: { guild_id, channel_id, self_mute, self_deaf } }));
+
 const state = await waiter;
+
+// Now create the @discordjs/voice connection
+try {
+const { joinVoiceChannel, VoiceConnectionStatus, entersState } = require('@discordjs/voice');
+
+s.voiceConnection = joinVoiceChannel({
+channelId: state.channel_id,
+guildId: state.guild_id,
+adapterCreator: adapter.adapterCreator,
+selfMute: self_mute,
+selfDeaf: self_deaf
+});
+
+await entersState(s.voiceConnection, VoiceConnectionStatus.Ready, 20000);
+
+console.log(`[voice] @discordjs/voice connection ready for bot ${botId} in guild ${state.guild_id}`);
+} catch (e) {
+console.error('[voice] @discordjs/voice join error:', e.message);
+if (s.voiceGatewayAdapter) {
+s.voiceGatewayAdapter.destroyVoiceAdapter();
+s.voiceGatewayAdapter = null;
+}
+if (s.voiceConnection) {
+try { s.voiceConnection.destroy(); } catch {}
+s.voiceConnection = null;
+}
+throw e;
+}
+
 scheduleVoiceAutoLeave(s, opts.auto_leave_seconds);
 return state;
 }
@@ -581,6 +448,15 @@ if (!s || s.ws.readyState !== WebSocket.OPEN) throw new Error('gateway non conne
 clearVoiceAutoLeave(s);
 const guild_id = s.voice?.state?.guild_id;
 if (!guild_id || !s.voice?.state?.channel_id) return null;
+
+if (s.voiceConnection) {
+try { s.voiceConnection.destroy(); } catch {}
+s.voiceConnection = null;
+}
+if (s.voiceGatewayAdapter) {
+s.voiceGatewayAdapter.destroyVoiceAdapter();
+s.voiceGatewayAdapter = null;
+}
 
 const waiter = new Promise((resolve, reject) => {
 const timer = setTimeout(() => {
@@ -618,12 +494,19 @@ timeout_ms: 12000
 }
 
 if (!s.voice?.state?.channel_id) throw new Error('bot non in canale vocale');
+if (!s.voiceConnection) throw new Error('voice connection mancante');
 
 clearVoiceAutoLeave(s);
-await ensureVoiceUdp(s);
-const vc = s.voiceConnection;
-if (!vc) throw new Error('voice connection mancante');
-if (vc.playing) throw new Error('playback già attivo');
+
+const { AudioPlayerStatus, createAudioPlayer, createAudioResource, StreamType } = require('@discordjs/voice');
+const { Readable } = require('stream');
+
+if (!s.audioPlayer) {
+s.audioPlayer = createAudioPlayer();
+s.voiceConnection.subscribe(s.audioPlayer);
+}
+
+if (s.audioPlayer.state.status === AudioPlayerStatus.Playing) throw new Error('playback già attivo');
 
 let b64 = String(opts.audio_base64 || '');
 if (b64.includes(',')) b64 = b64.split(',').pop();
@@ -642,8 +525,44 @@ try { fs.unlinkSync(tmp); } catch {}
 }
 
 if (!packets.length) throw new Error('nessun pacchetto audio estratto');
-startOpusPlayback(s, packets);
-return { ok: true, packets: packets.length, duration_ms: packets.length * 20 };
+
+const packetStream = new Readable({
+read() {
+if (this._index < packets.length) {
+this.push(packets[this._index++]);
+} else {
+this.push(null);
+}
+}
+});
+packetStream._index = 0;
+
+const resource = createAudioResource(packetStream, {
+inputType: StreamType.Opus,
+inlineVolume: true
+});
+
+return new Promise((resolve, reject) => {
+const onEnd = () => {
+s.audioPlayer.removeListener('error', onError);
+s.audioPlayer.removeListener('idle', onIdle);
+resolve({ ok: true, packets: packets.length, duration_ms: packets.length * 20 });
+};
+const onError = (err) => {
+s.audioPlayer.removeListener('idle', onIdle);
+s.audioPlayer.removeListener('idle', onEnd);
+reject(err);
+};
+const onIdle = () => {
+s.audioPlayer.removeListener('error', onError);
+s.audioPlayer.removeListener('idle', onEnd);
+resolve({ ok: true, packets: packets.length, duration_ms: packets.length * 20 });
+};
+s.audioPlayer.once('error', onError);
+s.audioPlayer.once('idle', onIdle);
+s.audioPlayer.once('idle', onEnd);
+s.audioPlayer.play(resource);
+});
 }
 
 /* ===== gateway ===== */
@@ -746,6 +665,9 @@ session.voice.server = session.voice.pendingServer;
 session.voice.pendingServer = null;
 }
 resolveVoiceWaiters(session, data.d);
+if (session.voiceGatewayAdapter?.onVoiceStateUpdate) {
+session.voiceGatewayAdapter.onVoiceStateUpdate(data.d);
+}
 }
 else if (data.t === 'VOICE_SERVER_UPDATE') {
 session.voice = session.voice || {};
@@ -753,6 +675,9 @@ if (session.voice?.state?.guild_id === data.d.guild_id) {
 session.voice.server = data.d;
 } else {
 session.voice.pendingServer = data.d;
+}
+if (session.voiceGatewayAdapter?.onVoiceServerUpdate) {
+session.voiceGatewayAdapter.onVoiceServerUpdate(data.d);
 }
 }
 }

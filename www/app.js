@@ -2746,8 +2746,28 @@ document.getElementById('voice-refresh').onclick = () => updateVoiceStatus();
 });
 
 if (voicePlayInput) {
-  voicePlayInput.addEventListener('change', () => {
+  voicePlayInput.addEventListener('change', async () => {
     voicePlayFile = voicePlayInput.files?.[0] || null;
+
+    const previewWrap = document.getElementById('voice-play-preview-wrap');
+    const previewAudio = document.getElementById('voice-play-preview');
+    const fileInfo = document.getElementById('voice-play-file-info');
+
+    if (voicePlayFile) {
+      previewAudio.src = URL.createObjectURL(voicePlayFile);
+      previewWrap.classList.remove('hidden');
+
+      const duration = await getAudioDuration(voicePlayFile);
+      const mins = Math.floor(duration / 60);
+      const secs = Math.floor(duration % 60);
+      const type = voicePlayFile.type || 'unknown';
+      const sizeKB = (voicePlayFile.size / 1024).toFixed(1);
+      fileInfo.textContent = `${voicePlayFile.name} · ${mins}:${secs.toString().padStart(2, '0')} · ${type} · ${sizeKB} KB`;
+    } else {
+      previewAudio.removeAttribute('src');
+      previewWrap.classList.add('hidden');
+      fileInfo.textContent = '';
+    }
 
     updateVoiceControls();
   });
@@ -2771,12 +2791,34 @@ if (voicePlayBtn) {
     try {
       await ensureVoiceJoined();
 
-      const audioBase64 = await readFileAsDataURL(voicePlayFile);
+      let audioBase64;
+      let filename = voicePlayFile.name;
+
+      const isOgg = /\.ogg$/i.test(filename) || /\.opus$/i.test(filename) || (voicePlayFile.type && voicePlayFile.type.toLowerCase().includes('ogg'));
+
+      if (!isOgg) {
+        if (voicePlayStatus) voicePlayStatus.textContent = t('voice.play_transcoding');
+        const fileBase64 = await readFileAsDataURL(voicePlayFile);
+        const transcodeRes = await gateway('/tools/transcode-voice', {
+          audio_base64: fileBase64,
+          filename: filename
+        });
+        audioBase64 = transcodeRes.audio_base64;
+        filename = transcodeRes.filename || 'voice-message.ogg';
+      } else {
+        audioBase64 = await readFileAsDataURL(voicePlayFile);
+      }
+
+      // Start playback - set playing state BEFORE awaiting so stop button works
+      voiceCurrentlyPlaying = true;
+      updateVoiceControls();
+
+      if (voicePlayStatus) voicePlayStatus.textContent = t('voice.play_playing');
 
       const res = await gateway(`/${voiceBot.id}/voice/play`, {
         guild_id: voiceGuild,
         channel_id: voiceChannel,
-        filename: voicePlayFile.name,
+        filename: filename,
         audio_base64: audioBase64,
         self_mute: document.getElementById('voice-self-mute').checked,
         self_deaf: document.getElementById('voice-self-deaf').checked
@@ -2785,10 +2827,6 @@ if (voicePlayBtn) {
       if (voicePlayStatus) {
         voicePlayStatus.textContent = `${t('voice.play_playing')} · ${Math.round((res.duration_ms || 0) / 1000)}s`;
       }
-
-      voiceCurrentlyPlaying = true;
-
-      updateVoiceControls();
 
       setTimeout(() => {
         voiceCurrentlyPlaying = false;
