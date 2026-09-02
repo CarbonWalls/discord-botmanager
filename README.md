@@ -81,6 +81,8 @@ the invite flow requests permission integer `70368744295424` (administrator-ish 
 
 ## installation
 
+### Web mode (original)
+
 ```bash
 git clone https://github.com/CarbonWalls/discord-botmanager.git
 cd bot-manager
@@ -89,6 +91,21 @@ node bridge.js
 ```
 
 then open **http://127.0.0.1:8787**.
+
+### Electron desktop app
+
+```bash
+git clone https://github.com/CarbonWalls/discord-botmanager.git
+cd bot-manager
+npm install
+npm run build        # creates NSIS installer in dist/
+# or
+npm run build:portable   # creates portable .exe in dist/
+```
+
+The Electron app bundles everything and runs the bridge internally on `http://127.0.0.1:8787`.
+
+> **Requires Node.js 18+** (global `fetch` is used)
 
 expected output:
 
@@ -243,6 +260,40 @@ colors are css custom properties in `www/styles.css` (`:root` for light, `[data-
 | `ffmpeg binary not found` | `ffmpeg-static` missing (`npm i ffmpeg-static`); the transcode endpoint additionally needs system `ffmpeg` on `PATH`. |
 | recording tab unsupported | the browser can't encode ogg/opus via `MediaRecorder` (use chrome/edge/firefox desktop). |
 | vault wiped after browser data cleanup | the vault lives in `localStorage` — clearing site data deletes it. keep your own token backups. |
+| **how to completely reset the app** | see **[Resetting App Data](#resetting-app-data)** below. |
+
+---
+
+## resetting app data
+
+To start completely fresh (as if newly installed):
+
+### Web mode
+1. Open the app at `http://127.0.0.1:8787`
+2. Open DevTools (`F12`) → **Application** tab → **Local Storage** → `http://127.0.0.1:8787`
+3. Right-click → **Clear** (or delete the `v` key specifically)
+4. Also clear **Session Storage** and **IndexedDB** if present
+5. Reload the page
+
+### Electron desktop app
+The app stores data in the OS user data directory:
+
+| OS | Path |
+|---|---|
+| Windows | `%APPDATA%\Discord Manager\` |
+| macOS | `~/Library/Application Support/Discord Manager/` |
+| Linux | `~/.config/Discord Manager/` |
+
+Delete the entire `Discord Manager` folder to reset everything (vault, settings, cached presence, message archives, voice temp files).
+
+**Or from within the app:**
+1. Open **Settings** → **Danger Zone** → **Reset Vault** (deletes tokens only)
+2. For a full reset, close the app and delete the folder above
+
+### Bridge server data
+The bridge also stores message archives and voice temp files in:
+- Web mode: `./data/messages/` and `./data/voice/` (relative to `bridge.js`)
+- Electron: inside the user data folder above (`data/messages/`, `data/voice/`)
 
 ---
 
