@@ -178,6 +178,10 @@
     "cleaner.title": "pulizia canale",
     "cleaner.warning": "attenzione",
     "cleaner.warning_desc": "queste azioni sono <b>irreversibili</b>. assicurati di aver selezionato il canale giusto.",
+    "cleaner.clone_confirm": "crea un canale identico e elimina l'originale. procedere?",
+    "cleaner.delete_confirm": "questa azione è irreversibile. procedere?",
+    "cleaner.cloned": "canale clonato",
+    "cleaner.deleted": "eliminati",
     "cleaner.bot": "bot",
     "cleaner.guild": "server",
     "cleaner.channel": "canale",
@@ -229,6 +233,9 @@
     "settings.reencrypting": "ricifro…",
     "settings.master_password_changed": "master password cambiata",
     "settings.current_pw_wrong": "password attuale errata",
+    "settings.reset_confirm": "cancella tutti i token. irreversibile.",
+    "settings.vault_deleted": "vault eliminato",
+    "settings.password_changed": "master password cambiata",
 
     "modal.user_profile": "profilo utente",
     "modal.user_id": "user id",
@@ -244,6 +251,7 @@
     "modal.timeout_desc": "il bot deve avere il permesso <b>modera membri</b> e ruolo superiore al target.",
     "modal.nick_placeholder": "nuovo nickname...",
     "modal.timeout_placeholder": "durata in minuti",
+    "modal.confirm": "conferma",
 
     "profile.no_roles": "nessun ruolo",
     "profile.created": "account creato",
@@ -268,6 +276,8 @@
     "common.applying": "applico…",
     "common.disconnecting": "disconnetto…",
     "common.unknown": "sconosciuto",
+    "common.connected": "connesso",
+    "common.disconnected": "disconnesso",
 
     "select.bot": "seleziona un bot",
     "select.bot_first": "seleziona prima un bot",
@@ -276,6 +286,9 @@
     "select.choose_channel": "scegli un canale",
     "select.loading": "carico…",
     "select.error": "errore",
+
+    "voice.select_bot": "seleziona un bot",
+    "voice.transport_ready": "trasporto vocale pronto",
 
     "error.min_password": "minimo 8 caratteri",
     "error.password_mismatch": "le password non coincidono",
@@ -290,6 +303,7 @@
     "error.perm_clone": "permesso negato: gestisci canali richiesto",
     "error.hierarchy": "ruolo del bot troppo basso rispetto al target",
     "error.owner": "impossibile moderare il proprietario del server",
-    "error.bulk_delete": "bulk delete limitato ai messaggi più recenti di 14 giorni"
+    "error.bulk_delete": "bulk delete limitato ai messaggi più recenti di 14 giorni",
+    "error.invalid_password": "password non valida"
   }
 }

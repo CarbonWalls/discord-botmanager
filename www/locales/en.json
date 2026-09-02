@@ -172,12 +172,17 @@
     "voice.stop_playback": "stop playback",
     "voice.play_select_file": "select an audio file.",
     "voice.play_preparing": "preparing…",
+    "voice.play_transcoding": "transcoding…",
     "voice.play_playing": "playing",
     "voice.play_stopped": "playback stopped",
 
     "cleaner.title": "channel cleaner",
     "cleaner.warning": "warning",
     "cleaner.warning_desc": "these actions are <b>irreversible</b>. make sure you selected the right channel.",
+    "cleaner.clone_confirm": "creates an identical channel and deletes the original. proceed?",
+    "cleaner.delete_confirm": "this action is irreversible. proceed?",
+    "cleaner.cloned": "channel cloned",
+    "cleaner.deleted": "deleted",
     "cleaner.bot": "bot",
     "cleaner.guild": "server",
     "cleaner.channel": "channel",
@@ -229,6 +234,9 @@
     "settings.reencrypting": "re-encrypting…",
     "settings.master_password_changed": "master password changed",
     "settings.current_pw_wrong": "current password is wrong",
+    "settings.reset_confirm": "delete all tokens. irreversible.",
+    "settings.vault_deleted": "vault deleted",
+    "settings.password_changed": "master password changed",
 
     "modal.user_profile": "user profile",
     "modal.user_id": "user id",
@@ -244,6 +252,7 @@
     "modal.timeout_desc": "the bot must have <b>moderate members</b> permission and a role higher than the target.",
     "modal.nick_placeholder": "new nickname...",
     "modal.timeout_placeholder": "duration in minutes",
+    "modal.confirm": "confirm",
 
     "profile.no_roles": "no roles",
     "profile.created": "account created",
@@ -268,6 +277,8 @@
     "common.applying": "applying…",
     "common.disconnecting": "disconnecting…",
     "common.unknown": "unknown",
+    "common.connected": "connected",
+    "common.disconnected": "disconnected",
 
     "select.bot": "select a bot",
     "select.bot_first": "select a bot first",
@@ -276,6 +287,9 @@
     "select.choose_channel": "choose a channel",
     "select.loading": "loading…",
     "select.error": "error",
+
+    "voice.select_bot": "select a bot",
+    "voice.transport_ready": "voice transport ready",
 
     "error.min_password": "minimum 8 characters",
     "error.password_mismatch": "passwords do not match",
@@ -290,6 +304,7 @@
     "error.perm_clone": "permission denied: manage channels required",
     "error.hierarchy": "bot role is lower than target",
     "error.owner": "cannot moderate the server owner",
-    "error.bulk_delete": "bulk delete limited to messages younger than 14 days"
+    "error.bulk_delete": "bulk delete limited to messages younger than 14 days",
+    "error.invalid_password": "invalid password"
   }
 }

@@ -178,6 +178,10 @@
     "cleaner.title": "频道清理",
     "cleaner.warning": "警告",
     "cleaner.warning_desc": "这些操作是<b>不可逆</b>的。确保你选择了正确的频道。",
+    "cleaner.clone_confirm": "创建一个相同频道并删除原频道。继续？",
+    "cleaner.delete_confirm": "此操作不可逆。继续？",
+    "cleaner.cloned": "频道已克隆",
+    "cleaner.deleted": "已删除",
     "cleaner.bot": "机器人",
     "cleaner.guild": "服务器",
     "cleaner.channel": "频道",
@@ -229,6 +233,9 @@
     "settings.reencrypting": "重新加密中…",
     "settings.master_password_changed": "主密码已更改",
     "settings.current_pw_wrong": "当前密码错误",
+    "settings.reset_confirm": "删除所有令牌。不可逆。",
+    "settings.vault_deleted": "保险库已删除",
+    "settings.password_changed": "主密码已更改",
 
     "modal.user_profile": "用户资料",
     "modal.user_id": "用户 id",
@@ -244,6 +251,7 @@
     "modal.timeout_desc": "机器人必须拥有<b>管理成员</b>权限，并且角色高于目标。",
     "modal.nick_placeholder": "新昵称...",
     "modal.timeout_placeholder": "时长（分钟）",
+    "modal.confirm": "确认",
 
     "profile.no_roles": "没有角色",
     "profile.created": "账号创建时间",
@@ -268,6 +276,8 @@
     "common.applying": "应用中…",
     "common.disconnecting": "断开中…",
     "common.unknown": "未知",
+    "common.connected": "已连接",
+    "common.disconnected": "已断开",
 
     "select.bot": "选择机器人",
     "select.bot_first": "请先选择机器人",
@@ -276,6 +286,9 @@
     "select.choose_channel": "选择频道",
     "select.loading": "加载中…",
     "select.error": "错误",
+
+    "voice.select_bot": "选择机器人",
+    "voice.transport_ready": "语音传输已就绪",
 
     "error.min_password": "至少 8 个字符",
     "error.password_mismatch": "两次密码不一致",
@@ -290,6 +303,7 @@
     "error.perm_clone": "权限不足：需要管理频道",
     "error.hierarchy": "机器人角色低于目标",
     "error.owner": "无法管理服务器所有者",
-    "error.bulk_delete": "批量删除仅限 14 天内的消息"
+    "error.bulk_delete": "批量删除仅限 14 天内的消息",
+    "error.invalid_password": "密码无效"
   }
 }
