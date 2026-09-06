@@ -715,6 +715,26 @@
   </div>
 </div>
 
+<div class="modal hidden" id="move-channel-modal">
+  <div class="modal-content">
+    <button class="close-modal" id="mc-close"><i data-icon="x"></i></button>
+    <h3 data-i18n="channels.move_title"></h3>
+    <p class="muted small" data-i18n="channels.move_desc"></p>
+    <div class="field">
+      <label class="label" data-i18n="channels.move_category"></label>
+      <select id="mc-category"></select>
+    </div>
+    <div class="field">
+      <label class="label" data-i18n="channels.move_position"></label>
+      <input type="number" id="mc-position" min="0" value="0">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="mc-cancel" data-i18n="common.cancel"></button>
+      <button class="btn btn-primary" id="mc-apply" data-i18n="common.apply"></button>
+    </div>
+  </div>
+</div>
+
 <div class="modal hidden" id="generic-input-modal">
   <div class="modal-content">
     <button class="close-modal" id="gi-close"><i data-icon="x"></i></button>

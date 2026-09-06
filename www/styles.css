@@ -1225,3 +1225,37 @@ a.embed-title:hover { text-decoration: underline; }
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/* ===== ANCHORED ACTION MENU (⋯) ===== */
+.action-menu-anchor { position: relative; display: inline-flex; }
+.ctx-menu {
+  position: fixed;
+  z-index: 160;
+  min-width: 180px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+}
+.ctx-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 11px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ctx-menu button:hover { background: var(--bg-hover); }
+.ctx-menu button.danger { color: var(--danger); }
+.ctx-menu button.danger:hover { background: rgba(229, 72, 77, .1); }

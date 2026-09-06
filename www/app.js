@@ -475,6 +475,7 @@ function updateUnlockTexts() {
 
 /* ===== modals ===== */
 let giCallback = null;
+let giOnClose = null;
 let gcCallback = null;
 let infoCopyText = null;
 function showInputModal(title, desc, placeholder, cb) {
@@ -488,6 +489,7 @@ function showInputModal(title, desc, placeholder, cb) {
 function closeInputModal() {
   document.getElementById('generic-input-modal').classList.add('hidden');
   giCallback = null;
+  if (giOnClose) { const f = giOnClose; giOnClose = null; f(); }
 }
 function showConfirmModal(title, desc, cb) {
   document.getElementById('gc-title').textContent = title;
@@ -523,6 +525,53 @@ document.getElementById('gi-ok').onclick = () => {
 document.getElementById('generic-input-modal').onclick = (e) => {
   if (e.target === e.currentTarget) closeInputModal();
 };
+// promise wrapper around the shared input modal (closeInputModal runs after
+// the callback, so nested callers must defer — hence setTimeout(…, 0))
+function promptInput(title, desc, placeholder, initial = '') {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      giOnClose = () => resolve(null);
+      showInputModal(title, desc, placeholder, (v) => resolve(String(v == null ? '' : v).trim()));
+      const inp = document.getElementById('gi-input');
+      inp.value = initial;
+      inp.focus();
+    }, 0);
+  });
+}
+// context menu opened by a ⋯ button; closes on any click outside or scroll
+function openCtxMenu(anchorBtn, items) {
+  closeCtxMenu();
+  const menu = document.createElement('div');
+  menu.className = 'ctx-menu';
+  for (const it of items) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    if (it.danger) b.classList.add('danger');
+    b.textContent = it.label;
+    b.onclick = (e) => { e.stopPropagation(); closeCtxMenu(); it.action(); };
+    menu.appendChild(b);
+  }
+  document.body.appendChild(menu);
+  const r = anchorBtn.getBoundingClientRect();
+  const mw = menu.offsetWidth, mh = menu.offsetHeight;
+  let left = Math.min(r.left, window.innerWidth - mw - 8);
+  let top = r.bottom + 4;
+  if (top + mh > window.innerHeight - 8) top = Math.max(8, r.top - mh - 4);
+  menu.style.left = Math.max(8, left) + 'px';
+  menu.style.top = top + 'px';
+}
+function closeCtxMenu() {
+  const existing = document.querySelector('.ctx-menu');
+  if (existing) existing.remove();
+}
+// single persistent outside-click handler: clicks inside the menu or on a
+// trigger button never close it (menu items close themselves)
+function ctxMenuOutside(e) {
+  if (e.target && e.target.closest && e.target.closest('.ctx-menu, .ctx-menu-trigger')) return;
+  closeCtxMenu();
+}
+document.addEventListener('click', ctxMenuOutside, true);
+document.addEventListener('touchstart', ctxMenuOutside, true);
 document.getElementById('gc-close').onclick = closeConfirmModal;
 document.getElementById('gc-cancel').onclick = closeConfirmModal;
 document.getElementById('gc-ok').onclick = () => {
@@ -3207,6 +3256,7 @@ channelsGs.onchange = async () => {
 };
 
 const CHANNEL_TYPE_ICONS = { 2: '🔊', 4: '📁', 5: '📢', 13: '🔊', 15: '💬' };
+let channelsCurrent = [];
 
 async function loadChannelsList() {
   const list = document.getElementById('channels-list');
@@ -3229,6 +3279,7 @@ async function loadChannelsList() {
       list.innerHTML = '<span class="muted small">' + esc(t('channels.no_channels')) + '</span>';
       return;
     }
+    channelsCurrent = sorted;
     list.innerHTML = sorted.map(c => {
       const icon = CHANNEL_TYPE_ICONS[c.type] || '#';
       const cat = c.parent_id ? sorted.find(x => x.id === c.parent_id) : null;
@@ -3238,82 +3289,29 @@ async function loadChannelsList() {
             <div class="bold small">${icon} ${esc(c.name)}${cat ? ` <span class="muted small">(${esc(cat.name)})</span>` : ''}</div>
             <div class="muted small mono" style="font-size:11px">${esc(c.id)} · type ${c.type}${c.nsfw ? ' · nsfw' : ''}</div>
           </div>
-          <button class="btn btn-ghost btn-small ch-backup" data-id="${c.id}">${esc(t('channels.backup'))}</button>
-          <button class="btn btn-ghost btn-small ch-clone" data-id="${c.id}">${esc(t('channels.clone'))}</button>
-          <button class="btn btn-danger btn-small ch-delete" data-id="${c.id}">${esc(t('channels.delete'))}</button>
+          <button class="btn btn-ghost btn-small ch-menu-btn ctx-menu-trigger" data-id="${c.id}" aria-haspopup="menu">⋯</button>
         </div>
       `;
     }).join('');
 
-    list.querySelectorAll('.ch-backup').forEach(btn => {
-      btn.onclick = async () => {
-        const id = btn.dataset.id;
-        btn.disabled = true;
-        btn.textContent = t('channels.backing_up');
-        try {
-          const res = await gateway('/backup/channel/' + id, { token: channelsToken });
-          tt(t('channels.backup_complete').replace('{count}', res.messageCount));
-        } catch (e) {
-          tt(e.message);
-        } finally {
-          btn.disabled = false;
-          btn.textContent = t('channels.backup');
-        }
-      };
+    const actionFor = (key) => ({
+      rename: () => channelRename(sorted.find(x => x.id === key)),
+      move: () => channelMove(sorted.find(x => x.id === key)),
+      clone: () => channelClone(key),
+      backup: () => channelBackup(key),
+      delete: () => channelDelete(key)
     });
 
-    list.querySelectorAll('.ch-clone').forEach(btn => {
+    list.querySelectorAll('.ch-menu-btn').forEach(btn => {
       btn.onclick = () => {
         const id = btn.dataset.id;
-        showConfirmModal(t('channels.clone_title'), t('channels.clone_confirm'), async () => {
-          btn.disabled = true;
-          btn.textContent = t('channels.cloning');
-          try {
-            const orig = await api('/channels/' + id);
-            const payload = {
-              name: orig.name + '-copy',
-              type: orig.type,
-              topic: orig.topic || '',
-              nsfw: orig.nsfw || false,
-              rate_limit_per_user: orig.rate_limit_per_user || 0,
-              parent_id: orig.parent_id || null,
-              permission_overwrites: orig.permission_overwrites || []
-            };
-            if (orig.bitrate) payload.bitrate = orig.bitrate;
-            if (orig.user_limit) payload.user_limit = orig.user_limit;
-            const newCh = await api('/guilds/' + channelsGuild + '/channels', {
-              method: 'POST',
-              body: JSON.stringify(payload)
-            });
-            tt(t('channels.cloned') + ': ' + newCh.name);
-            await loadChannelsList();
-          } catch (e) {
-            tt(friendlyError(e.message, 'clone'));
-          } finally {
-            btn.disabled = false;
-            btn.textContent = t('channels.clone');
-          }
-        });
-      };
-    });
-
-    list.querySelectorAll('.ch-delete').forEach(btn => {
-      btn.onclick = () => {
-        const id = btn.dataset.id;
-        showConfirmModal(t('channels.delete_title'), t('channels.delete_confirm'), async () => {
-          btn.disabled = true;
-          btn.textContent = t('channels.deleting');
-          try {
-            await api('/channels/' + id, { method: 'DELETE' });
-            tt(t('channels.deleted'));
-            await loadChannelsList();
-          } catch (e) {
-            tt(friendlyError(e.message, 'delete'));
-          } finally {
-            btn.disabled = false;
-            btn.textContent = t('channels.delete');
-          }
-        });
+        openCtxMenu(btn, [
+          { label: t('channels.rename'), action: actionFor(id).rename },
+          { label: t('channels.move'), action: actionFor(id).move },
+          { label: t('channels.clone'), action: actionFor(id).clone },
+          { label: t('channels.backup'), action: actionFor(id).backup },
+          { label: t('channels.delete'), danger: true, action: actionFor(id).delete }
+        ]);
       };
     });
   } catch (e) {
@@ -3321,6 +3319,115 @@ async function loadChannelsList() {
   } finally {
     selToken = old;
   }
+}
+
+async function channelRename(ch) {
+  if (!ch) return;
+  const name = await promptInput(t('channels.rename_title'), t('channels.rename_desc').replace('{name}', ch.name), t('channels.rename_placeholder'), ch.name);
+  if (!name || name === ch.name) return;
+  const old = selToken;
+  selToken = channelsToken;
+  try {
+    await api('/channels/' + ch.id, { method: 'PATCH', body: JSON.stringify({ name }) });
+    tt(t('channels.renamed'));
+    await loadChannelsList();
+  } catch (e) {
+    tt(friendlyError(e.message, 'rename'));
+  } finally { selToken = old; }
+}
+
+async function channelMove(ch) {
+  if (!ch) return;
+  const modal = document.getElementById('move-channel-modal');
+  const catSel = document.getElementById('mc-category');
+  const posIn = document.getElementById('mc-position');
+  const old = selToken;
+  selToken = channelsToken;
+  let cats = [];
+  try {
+    cats = await api('/guilds/' + channelsGuild + '/channels');
+  } catch (e) {
+    tt(e.message);
+    selToken = old;
+    return;
+  }
+  selToken = old;
+  cats = cats.filter(c => c.type === 4).sort((a, b) => (a.raw_position || 0) - (b.raw_position || 0));
+  catSel.innerHTML = `<option value="">${esc(t('channels.move_no_category'))}</option>` +
+    cats.map(c => `<option value="${esc(c.id)}"${c.id === ch.parent_id ? ' selected' : ''}>${esc(c.name)}</option>`).join('');
+  posIn.value = ch.raw_position || 0;
+  modal.classList.remove('hidden');
+  const apply = async () => {
+    modal.classList.add('hidden');
+    const payload = { position: parseInt(posIn.value, 10) || 0 };
+    const catVal = catSel.value || null;
+    if (catVal !== (ch.parent_id || null)) payload.parent_id = catVal;
+    const ot = selToken;
+    selToken = channelsToken;
+    try {
+      await api('/channels/' + ch.id, { method: 'PATCH', body: JSON.stringify(payload) });
+      tt(t('channels.moved'));
+      await loadChannelsList();
+    } catch (e) {
+      tt(friendlyError(e.message, 'move'));
+    } finally { selToken = ot; }
+  };
+  document.getElementById('mc-apply').onclick = apply;
+  document.getElementById('mc-cancel').onclick = () => modal.classList.add('hidden');
+  document.getElementById('mc-close').onclick = () => modal.classList.add('hidden');
+}
+
+const channelBusy = new Set();
+async function channelBackup(id) {
+  if (channelBusy.has(id)) return;
+  channelBusy.add(id);
+  try {
+    const res = await gateway('/backup/channel/' + id, { token: channelsToken });
+    tt(t('channels.backup_complete').replace('{count}', res.messageCount));
+  } catch (e) {
+    tt(e.message);
+  } finally {
+    channelBusy.delete(id);
+  }
+}
+
+function channelClone(id) {
+  showConfirmModal(t('channels.clone_title'), t('channels.clone_confirm'), async () => {
+    try {
+      const orig = await api('/channels/' + id);
+      const payload = {
+        name: orig.name + '-copy',
+        type: orig.type,
+        topic: orig.topic || '',
+        nsfw: orig.nsfw || false,
+        rate_limit_per_user: orig.rate_limit_per_user || 0,
+        parent_id: orig.parent_id || null,
+        permission_overwrites: orig.permission_overwrites || []
+      };
+      if (orig.bitrate) payload.bitrate = orig.bitrate;
+      if (orig.user_limit) payload.user_limit = orig.user_limit;
+      const newCh = await api('/guilds/' + channelsGuild + '/channels', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      tt(t('channels.cloned') + ': ' + newCh.name);
+      await loadChannelsList();
+    } catch (e) {
+      tt(friendlyError(e.message, 'clone'));
+    }
+  });
+}
+
+function channelDelete(id) {
+  showConfirmModal(t('channels.delete_title'), t('channels.delete_confirm'), async () => {
+    try {
+      await api('/channels/' + id, { method: 'DELETE' });
+      tt(t('channels.deleted'));
+      await loadChannelsList();
+    } catch (e) {
+      tt(friendlyError(e.message, 'delete'));
+    }
+  });
 }
 
 document.getElementById('channels-refresh').onclick = () => loadChannelsList();
