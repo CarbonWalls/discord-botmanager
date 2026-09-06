@@ -432,7 +432,6 @@
     "members.list_title": "lista membri",
     "members.no_members": "carica i membri per vederli qui.",
     "members.missing_intent": "questo bot non può elencare i membri: la SERVER MEMBERS INTENT non è abilitata per lui nel portale developer di discord (o il bot non ha il permesso).",
-    "members.need_connection": "il bot non è connesso al gateway — connettilo una volta (tab presenza o voce) e riprova.",
     "members.snapshot_note": "modalità snapshot",
     "members.snapshot_desc": "i membri sono stati caricati via rest: questa lista è uno snapshot e non si aggiorna in tempo reale. gli eventi live richiedono l'intent privilegiato GUILD_MEMBERS.",
     "members.roles": "ruoli",

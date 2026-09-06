@@ -432,7 +432,6 @@
     "members.list_title": "member list",
     "members.no_members": "load the members to see them here.",
     "members.missing_intent": "this bot cannot list members: the SERVER MEMBERS INTENT is not enabled for it in the discord developer portal (or the bot lacks the permission).",
-    "members.need_connection": "the bot is not connected to the gateway — connect it once (presence or voice tab) and try again.",
     "members.snapshot_note": "snapshot mode",
     "members.snapshot_desc": "members were fetched via rest: this list is a snapshot and does not update live. live member events need the privileged GUILD_MEMBERS intent.",
     "members.roles": "roles",

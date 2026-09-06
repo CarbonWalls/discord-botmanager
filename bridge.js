@@ -1508,10 +1508,13 @@ http.createServer(async (req, res) => {
   }
 
   // ===== guild members (paginated REST; needs the GUILD_MEMBERS intent enabled) =====
-  if ((m = p.match(/^\/gateway\/([^/]+)\/members\/([^/]+)$/)) && req.method === 'GET') {
-    const s = sessions.get(m[1]);
-    if (!s || s.ws.readyState !== WebSocket.OPEN) return json(res, 400, { error: 'bot not connected' });
-    const headers = { Authorization: `Bot ${s.token}`, 'User-Agent': 'DiscordBot (local-manager, 1.0)' };
+  if ((m = p.match(/^\/gateway\/([^/]+)\/members\/([^/]+)$/)) && req.method === 'POST') {
+    // the token travels in the body on purpose: a rest member list has no
+    // dependency on a live gateway session (the 403 gate is purely the
+    // privileged-intent portal toggle), so the tab works before connecting
+    const body = await readJson(req);
+    if (!body.token) return json(res, 400, { error: 'missing token' });
+    const headers = { Authorization: `Bot ${body.token}`, 'User-Agent': 'DiscordBot (local-manager, 1.0)' };
     try {
       const probe = await fetch(`${API}/guilds/${m[2]}/members?limit=1`, { headers });
       if (probe.status === 403) {

@@ -228,7 +228,7 @@ all routes on `http://127.0.0.1:8789`. every `/gateway/*` and `/discord/*` route
 | `POST` | `/gateway/:botId/presence` | `{ status, activity? }` | update presence (op 3) |
 | `POST` | `/gateway/:botId/disconnect` | – | close the session |
 | `GET` | `/gateway/status` | – | list sessions (user, presence, voice playing) |
-| `GET` | `/gateway/:botId/members/:guildId` | – | member list via rest pagination; returns `{ members, hasIntent }` |
+| `POST` | `/gateway/:botId/members/:guildId` | `{ token }` | member list via rest pagination; returns `{ members, hasIntent }`. needs no gateway session — the 403 gate is the portal intent |
 | `GET` | `/gateway/rate-limits` | – | live rate-limit buckets observed by the bridge |
 
 ### scheduler

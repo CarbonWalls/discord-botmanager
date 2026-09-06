@@ -3563,16 +3563,15 @@ document.getElementById('members-fetch').onclick = async () => {
   btn.textContent = t('common.loading');
 
   try {
-    const r = await fetch('/gateway/' + membersBot.id + '/members/' + membersGuild, { headers: { 'X-Client-Nonce': BRIDGE_NONCE } });
+    const r = await fetch('/gateway/' + membersBot.id + '/members/' + membersGuild, {
+      method: 'POST',
+      headers: { 'X-Client-Nonce': BRIDGE_NONCE, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: membersToken })
+    });
     const data = await r.json().catch(() => ({}));
     if (!r.ok) {
       if (r.status === 403) {
         err.textContent = t('members.missing_intent');
-        err.classList.remove('hidden');
-        return;
-      }
-      if (data.error === 'bot not connected') {
-        err.textContent = t('members.need_connection');
         err.classList.remove('hidden');
         return;
       }
