@@ -68,7 +68,7 @@ the invite flow requests permission integer `70368744295424` (administrator-ish 
 ### Web mode (original)
 
 ```bash
-git clone https://github.com/CarbonWalls/discord-botmanager.git
+git clone https://codeberg.org/72ubdjsjksknsbxb/bot-manager.git
 cd bot-manager
 npm install ws ffmpeg-static
 node bridge.js
@@ -79,7 +79,7 @@ then open **http://127.0.0.1:8789**.
 ### Electron desktop app
 
 ```bash
-git clone https://github.com/CarbonWalls/discord-botmanager.git
+git clone https://codeberg.org/72ubdjsjksknsbxb/bot-manager.git
 cd bot-manager
 npm install
 npm run build        # creates NSIS installer in dist/
