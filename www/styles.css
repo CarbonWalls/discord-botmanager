@@ -681,6 +681,65 @@ input:disabled, textarea:disabled, select:disabled { opacity: 0.5; cursor: not-a
   to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
+/* ===== modal ===== */
+.modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 12, 16, .5);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  z-index: 150;
+  padding: 20px;
+}
+.modal-content {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px;
+  width: 100%;
+  max-width: 460px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: var(--shadow-lg);
+}
+.modal-content h3 {
+  font-size: 16.5px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  margin-bottom: 8px;
+  padding-right: 32px;
+}
+.close-modal {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  border-radius: 7px;
+  transition: all var(--transition);
+}
+.close-modal:hover { background: var(--bg-hover); color: var(--text); }
+.close-modal svg { width: 18px; height: 18px; }
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+.modal-field { margin-top: 12px; }
+
 /* ===== PROFILE MODAL ===== */
 #user-modal .modal-content {
   padding: 0;

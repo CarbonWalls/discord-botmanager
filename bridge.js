@@ -1,3 +1,4 @@
+// VERSION: 2025-09-06-VOICE-DAVE-WORKING-v1
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -9,7 +10,9 @@ let ffmpegPath;
 if (process.env.FFMPEG_PATH && fs.existsSync(process.env.FFMPEG_PATH)) {
   ffmpegPath = process.env.FFMPEG_PATH;
 } else {
-  try { ffmpegPath = require('ffmpeg-static'); } catch (e) { ffmpegPath = 'ffmpeg'; }
+  try { ffmpegPath = require('ffmpeg-static'); } catch (e) { ffmpegPath = null; }
+  // ffmpeg-static can export null (no prebuilt binary for this platform) without throwing
+  if (!ffmpegPath) ffmpegPath = 'ffmpeg';
 }
 
 let WebSocket;
@@ -212,6 +215,30 @@ function readLocale(code) {
 
 /* ===== voice ===== */
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+// Standard Opus silence/DTX frame (as used by @discordjs/voice) sent while idle to keep the
+// voice session alive — Discord closes the connection (~10s) if no RTP arrives.
+const SILENCE_FRAME = Buffer.from([0xF8, 0xFF, 0xFE]);
+
+function maybeResolveVoiceJoin(session, guildId, channelId) {
+  const state = session.voice?.state;
+  const server = session.voice?.server;
+
+  if (
+    state?.guild_id === guildId &&
+    state?.channel_id === channelId &&
+    state?.session_id &&
+    server?.guild_id === guildId &&
+    server?.endpoint &&
+    server?.token
+  ) {
+    resolveVoiceWaiters(session, {
+      guild_id: guildId,
+      channel_id: channelId,
+      session_id: state.session_id,
+      voiceReady: true
+    });
+  }
+}
 
 function resolveVoiceWaiters(session, d) {
   if (!session.voiceWaiters || !session.voiceWaiters.length) return;
@@ -222,6 +249,52 @@ function resolveVoiceWaiters(session, d) {
     return true;
   });
 }
+
+function waitForVoiceCredentials(session, guildId, channelId, timeoutMs = 12000) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      session.voiceWaiters = (session.voiceWaiters || []).filter(w => w !== entry);
+      reject(new Error('voice credentials timeout'));
+    }, timeoutMs);
+
+    const entry = {
+      predicate: () => {
+        const state = session.voice?.state;
+        const server = session.voice?.server;
+
+        return (
+          state?.guild_id === guildId &&
+          state?.channel_id === channelId &&
+          state?.session_id &&
+          server?.guild_id === guildId &&
+          server?.endpoint &&
+          server?.token
+        );
+      },
+      resolve: () => {
+        clearTimeout(timer);
+        resolve({
+          state: session.voice.state,
+          server: session.voice.server
+        });
+      }
+    };
+
+    session.voiceWaiters = session.voiceWaiters || [];
+    session.voiceWaiters.push(entry);
+
+    // Check current state in case both events already arrived
+    if (entry.predicate()) {
+      clearTimeout(timer);
+      session.voiceWaiters = session.voiceWaiters.filter(w => w !== entry);
+      resolve({
+        state: session.voice.state,
+        server: session.voice.server
+      });
+    }
+  });
+}
+
 function clearVoiceAutoLeave(session) {
   if (session?.voice?.autoLeaveTimer) { clearTimeout(session.voice.autoLeaveTimer); session.voice.autoLeaveTimer = null; }
 }
@@ -238,6 +311,7 @@ function stopPlayback(session, silent = false) {
   if (vc.playTimer) clearInterval(vc.playTimer);
   vc.playTimer = null;
   vc.playing = false;
+  setSpeaking(session, false);
   if (!silent) console.log(`[voice] playback stopped bot ${session.botId}`);
 }
 function cleanupVoice(session) {
@@ -245,6 +319,7 @@ function cleanupVoice(session) {
   const vc = session?.voiceConnection;
   if (!vc) return;
   if (vc.heartbeatTimer) clearInterval(vc.heartbeatTimer);
+  if (vc.keepAliveTimer) { clearInterval(vc.keepAliveTimer); vc.keepAliveTimer = null; }
   if (vc.daveSession) {
     try { vc.daveSession.reset(); } catch {}
     vc.daveSession = null;
@@ -277,6 +352,35 @@ function udpDiscovery(ip, port, ssrc) {
   });
 }
 
+// UDP discovery performed on a PROVIDED socket (the same one used for RTP),
+// so the declared source port in Select Protocol matches where RTP actually comes from.
+function udpDiscoverOn(socket, ip, port, ssrc) {
+  return new Promise((resolve, reject) => {
+    const req = Buffer.alloc(74);
+    req.writeUInt16BE(0x1, 0);
+    req.writeUInt16BE(70, 2);
+    req.writeUInt32BE(ssrc, 4);
+    const timer = setTimeout(() => { cleanup(); reject(new Error('udp discovery timeout')); }, 8000);
+    const onMsg = (msg) => {
+      cleanup();
+      try {
+        const ipStr = msg.slice(8, msg.length - 2).toString('utf8').replace(/\0/g, '');
+        const discoveredPort = msg.readUInt16BE(msg.length - 2);
+        resolve({ ip: ipStr, port: discoveredPort });
+      } catch (e) { reject(e); }
+    };
+    const onErr = (err) => { cleanup(); reject(err); };
+    function cleanup() {
+      clearTimeout(timer);
+      socket.removeListener('message', onMsg);
+      socket.removeListener('error', onErr);
+    }
+    socket.once('message', onMsg);
+    socket.once('error', onErr);
+    socket.send(req, port, ip);
+  });
+}
+
 function connectVoiceTransport(session) {
   return new Promise((resolve, reject) => {
     if (!WebSocket) return reject(new Error('ws module not installed (npm i ws)'));
@@ -289,29 +393,37 @@ function connectVoiceTransport(session) {
     let ready = null;
     let daveSession = null;
     let daveReady = false;
+    let secretKey = null;
+    let encryptionMode = 'dave'; // track selected encryption mode
+    let daveProtocolVersion = 0; // negotiated DAVE protocol version (0 = transport-only)
+    const recognizedUserIds = new Set(); // user IDs seen via CLIENTS_CONNECT (op 11)
+    const davePendingTransitions = new Map(); // transition_id -> protocol_version
+    let lastSequence = -1; // last seq seen (binary or JSON) — sent as seq_ack in v8 heartbeat
 
     const endpoint = session.voice.server.endpoint.replace(/:(80|443)$/, '');
-    const url = `wss://${endpoint}/?v=4&encoding=json`;
+    const url = `wss://${endpoint}/?v=8&encoding=json`;
     console.log(`[voice] connecting to voice ws: ${url}`);
     console.log(`[voice] voice state: guild=${session.voice.state.guild_id} channel=${session.voice.state.channel_id} session_id=${session.voice.state.session_id}`);
     console.log(`[voice] voice server: endpoint=${session.voice.server.endpoint} token_len=${session.voice.server.token?.length}`);
     
     const vws = new WebSocket(url);
-    console.log('[voice] WebSocket created, readyState:', vws.readyState);
     const timeout = setTimeout(() => done(new Error('voice connect timeout (20s)')), 20000);
 
     function done(err, value) {
       if (settled) return;
       settled = true;
       clearTimeout(timeout);
-      if (heartbeatTimer) clearInterval(heartbeatTimer);
-      if (udp) { try { udp.close(); } catch {} }
-      if (err) { 
+      if (err) {
+        // Failure path: tear down everything we started.
+        if (heartbeatTimer) clearInterval(heartbeatTimer);
+        if (udp) { try { udp.close(); } catch {} }
         console.error(`[voice] connect failed: ${err.message}`);
-        try { vws.close(); } catch {} 
-        reject(err); 
+        try { vws.close(); } catch {}
+        reject(err);
+      } else {
+        // Success path: heartbeat + udp are handed off to session.voiceConnection.
+        resolve(value);
       }
-      else resolve(value);
     }
 
     vws.on('open', () => {
@@ -326,46 +438,95 @@ function connectVoiceTransport(session) {
       if (!settled) done(new Error(`voice ws closed: code=${code} reason=${reasonStr}`));
     });
 
+    // Client→server DAVE binary frame: [uint8 opcode][payload]  (NO sequence!)
+    function sendDaveBinary(opcode, payload) {
+      const frame = Buffer.alloc(1 + payload.length);
+      frame[0] = opcode;
+      payload.copy(frame, 1);
+      vws.send(frame);
+      return frame;
+    }
+
+    // Create/reinit the DAVE session and send a fresh key package (op 26).
+    function reinitDaveSession() {
+      if (!davey) return;
+      // NOTE: DAVESession's 3rd arg is the CHANNEL id (MLS group id), NOT the guild id.
+      const channelId = session.voice.state.channel_id;
+      if (daveSession) {
+        daveSession.reinit(daveProtocolVersion, session.user.id, channelId, session.voice.daveKeyPair);
+      } else {
+        daveSession = new davey.DAVESession(daveProtocolVersion, session.user.id, channelId, session.voice.daveKeyPair);
+      }
+      const keyPackage = daveSession.getSerializedKeyPackage();
+      const frame = sendDaveBinary(26, keyPackage);
+      console.log('[voice] Sent key package (op 26), bytes:', frame.length);
+    }
+
     function handleDaveBinary(buf) {
       if (!daveSession) return;
-      if (buf.length < 1) return;
-      const op = buf[0];
-      const payload = buf.subarray(1);
-      console.log(`[voice] binary recv op=${op}, payload length=${payload.length}`);
+      // Server→client binary: [sequence: uint16BE][opcode: uint8][payload]
+      if (buf.length < 3) return;
+      const sequence = buf.readUInt16BE(0);
+      const op = buf[2];
+      const payload = buf.subarray(3);
+      lastSequence = sequence;
+      console.log(`[voice] dave binary recv op=${op} seq=${sequence} (${payload.length}b)`);
 
       try {
         if (op === 25) {
+          // MLS_EXTERNAL_SENDER: install the external sender ONLY.
+          // Do NOT send another key package here (that is done once after op=4).
           daveSession.setExternalSender(payload);
           console.log('[voice] Set external sender (op 25)');
         }
         else if (op === 27) {
-          const operationType = payload[0];
+          // MLS_PROPOSALS: [optype:uint8][proposals...]
+          const operationType = payload.readUInt8(0);
           const proposals = payload.subarray(1);
-          const recognizedUserIds = [];
-          const result = daveSession.processProposals(operationType, proposals, recognizedUserIds);
+          const result = daveSession.processProposals(operationType, proposals, [...recognizedUserIds]);
           console.log('[voice] Processed proposals (op 27)', { operationType, hasCommit: !!result.commit, hasWelcome: !!result.welcome });
-          
-          if (result.commit || result.welcome) {
-            vws.send(JSON.stringify({
-              op: 28,
-              d: {
-                commit: result.commit ? result.commit.toString('base64') : undefined,
-                welcome: result.welcome ? result.welcome.toString('base64') : undefined
-              }
-            }));
-            console.log('[voice] Sent commit/welcome (op 28)');
+          if (result.commit) {
+            const payload28 = result.welcome ? Buffer.concat([result.commit, result.welcome]) : result.commit;
+            const frame = sendDaveBinary(28, payload28);
+            console.log('[voice] Sent commit/welcome (op 28), bytes:', frame.length);
+          }
+        }
+        else if (op === 29) {
+          // MLS_ANNOUNCE_COMMIT_TRANSITION: [transition_id:uint16BE][commit...]
+          const transitionId = payload.readUInt16BE(0);
+          const commit = payload.subarray(2);
+          try {
+            daveSession.processCommit(commit);
+            if (transitionId !== 0) {
+              davePendingTransitions.set(transitionId, daveProtocolVersion);
+              vws.send(JSON.stringify({ op: 23, d: { transition_id: transitionId } }));
+            }
+            console.log('[voice] Processed commit (op 29), transition:', transitionId, 'ready:', daveSession.ready);
+          } catch (e) {
+            console.warn('[voice] MLS commit errored:', e.message);
+            vws.send(JSON.stringify({ op: 31, d: { transition_id: transitionId } }));
+            reinitDaveSession();
           }
         }
         else if (op === 30) {
-          daveSession.processWelcome(payload);
-          console.log('[voice] Processed welcome (op 30), session ready:', daveSession.ready);
+          // MLS_WELCOME: [transition_id:uint16BE][welcome...]
+          const transitionId = payload.readUInt16BE(0);
+          const welcome = payload.subarray(2);
+          try {
+            daveSession.processWelcome(welcome);
+            if (transitionId !== 0) {
+              davePendingTransitions.set(transitionId, daveProtocolVersion);
+              vws.send(JSON.stringify({ op: 23, d: { transition_id: transitionId } }));
+            }
+            console.log('[voice] Processed welcome (op 30), transition:', transitionId, 'ready:', daveSession.ready);
+          } catch (e) {
+            console.warn('[voice] MLS welcome errored:', e.message);
+            vws.send(JSON.stringify({ op: 31, d: { transition_id: transitionId } }));
+            reinitDaveSession();
+          }
         }
-        else if (op === 29) {
-          daveSession.processCommit(payload);
-          console.log('[voice] Processed commit (op 29), session ready:', daveSession.ready);
-        }
-        else if (op === 31) {
-          console.error('[voice] DAVE invalid commit/welcome (op 31):', payload.toString());
+        else {
+          console.warn('[voice] Unexpected DAVE binary op:', op);
         }
       } catch (e) {
         console.error('[voice] Binary DAVE error:', e.message);
@@ -373,42 +534,29 @@ function connectVoiceTransport(session) {
     }
 
     vws.on('message', async (raw) => {
-      // Convert to Buffer if needed
       let buf = raw instanceof Buffer ? raw : (raw instanceof Uint8Array ? Buffer.from(raw) : null);
       
-      // Try to parse as JSON first (for Hello, Ready, SessionDescription, etc.)
       if (buf) {
         const str = buf.toString('utf8');
         if (str.startsWith('{')) {
           let data;
           try { data = JSON.parse(str); } catch { }
           if (data && typeof data.op === 'number') {
-            console.log(`[voice] ws recv op=${data.op}`, data.d ? JSON.stringify(data.d).slice(0, 200) : '');
+            if (typeof data.seq === 'number') lastSequence = data.seq;
+            if (data.op !== 6) console.log(`[voice] ws recv op=${data.op}`);
             
             if (data.op === 8) {
               heartbeatTimer = setInterval(() => {
-                try { if (vws.readyState === WebSocket.OPEN) vws.send(JSON.stringify({ op: 3, d: Date.now() })); } catch {}
+                try { if (vws.readyState === WebSocket.OPEN) vws.send(JSON.stringify({ op: 3, d: { t: Date.now(), seq_ack: lastSequence } })); } catch {}
               }, Math.max(5000, Math.floor((data.d?.heartbeat_interval || 13750) * 0.75)));
 
-              // Create DAVE session with persistent key pair
-              const protocolVersion = davey.DAVE_PROTOCOL_VERSION || 1;
-              
-              // Generate or reuse a consistent signing key pair for this bot
               if (!session.voice.daveKeyPair) {
                 session.voice.daveKeyPair = davey.generateP256Keypair();
                 console.log('[voice] Generated new DAVE key pair');
               }
-              
-              daveSession = new davey.DAVESession(
-                protocolVersion,
-                session.user.id,
-                session.voice.state.channel_id,
-                session.voice.daveKeyPair
-              );
-              console.log('[voice] Created DAVE session', { protocolVersion, userId: session.user.id, channelId: session.voice.state.channel_id });
 
-              // Send identify (op 0) with DAVE mode but NO key_packages
-              // Key package will be sent as binary message (op 26) after identify
+              // Send identify (op 0) with DAVE mode and max_dave_protocol_version ONLY (no key_package)
+              const protocolVersion = davey.DAVE_PROTOCOL_VERSION || 1;
               const identifyPayload = {
                 op: 0,
                 d: {
@@ -416,69 +564,161 @@ function connectVoiceTransport(session) {
                   user_id: session.user.id,
                   session_id: session.voice.state.session_id,
                   token: session.voice.server.token,
-                  mode: 'dave'
+                  max_dave_protocol_version: protocolVersion
                 }
               };
-              console.log('[voice] sending identify (op 0) with DAVE mode');
+              console.log(`[voice] identify (op 0) guild=${session.voice.state.guild_id} session=${session.voice.state.session_id?.slice(0,8)}… dave=${protocolVersion}`);
               vws.send(JSON.stringify(identifyPayload));
-
-              // Send key package as binary message (op 26 = DaveMlsKeyPackage)
-              // The opcode is the WebSocket binary frame type, not a payload prefix
-              const keyPackage = daveSession.getSerializedKeyPackage();
-              console.log('[voice] Got key package, length:', keyPackage.length, 'sending as binary frame');
-              vws.send(keyPackage);
             }
             else if (data.op === 2) {
               ready = data.d;
               console.log('[voice] ready received', { ip: ready.ip, port: ready.port, ssrc: ready.ssrc, modes: ready.modes });
               
-              if (ready.modes?.includes('dave')) {
-                udpDiscovery(ready.ip, ready.port, ready.ssrc)
-                  .then(disc => {
-                    console.log('[voice] udp discovery result', disc);
-                    udp = dgram.createSocket('udp4');
-                    udp.on('error', (err) => console.error('[voice] udp error:', err.message));
-                    vws.send(JSON.stringify({
-                      op: 1,
-                      d: { protocol: 'udp', data: { address: disc.ip, port: disc.port, mode: 'dave' } }
-                    }));
-                    console.log('[voice] sent protocol select (op 1) with dave mode');
-                  })
-                  .catch(e => done(e));
-              } else {
-                return done(new Error('DAVE mode not supported by server. available: ' + (ready.modes || []).join(',')));
+              // Prefer AES-256-GCM (Node-native) over XChaCha20 (needs HChaCha20 impl)
+              const supportedModes = ready.modes || [];
+              if (supportedModes.includes('aead_aes256_gcm_rtpsize')) {
+                encryptionMode = 'aead_aes256_gcm_rtpsize';
+              } else if (supportedModes.includes('aead_xchacha20_poly1305_rtpsize')) {
+                encryptionMode = 'aead_xchacha20_poly1305_rtpsize';
+              } else if (!supportedModes.includes('dave')) {
+                return done(new Error('DAVE mode not supported by server. available: ' + supportedModes.join(',')));
+              }
+              console.log('[voice] selected encryption mode:', encryptionMode);
+              
+              if (encryptionMode !== 'dave') {
+                // For transport encryption modes, we still use DAVE for E2EE
+                // but the transport layer uses the selected mode
+              }
+              
+              // Create the RTP socket, run UDP discovery ON IT, then declare the
+              // discovered (our public) ip/port in Select Protocol. The source port
+              // must match where RTP will actually be sent from.
+              udp = dgram.createSocket('udp4');
+              udp.on('error', (err) => console.error('[voice] udp error:', err.message));
+              try {
+                const disc = await udpDiscoverOn(udp, ready.ip, ready.port, ready.ssrc);
+                console.log('[voice] udp discovery:', disc);
+                vws.send(JSON.stringify({
+                  op: 1,
+                  d: { protocol: 'udp', data: { address: disc.ip, port: disc.port, mode: encryptionMode } }
+                }));
+                console.log('[voice] sent protocol select (op 1) with discovered address', disc, 'mode:', encryptionMode);
+              } catch (e) {
+                console.warn('[voice] udp discovery failed, falling back to ready address:', e.message);
+                vws.send(JSON.stringify({
+                  op: 1,
+                  d: { protocol: 'udp', data: { address: ready.ip, port: ready.port, mode: encryptionMode } }
+                }));
               }
             }
             else if (data.op === 4) {
               if (!ready || !udp) return;
-              if (data.d.mode !== 'dave') return done(new Error('unsupported voice mode: ' + data.d.mode));
-              console.log('[voice] session description (op 4) received for DAVE mode');
-              
-              // Wait for DAVE session to be ready
-              const waitForDave = () => {
+              secretKey = Buffer.from(data.d.secret_key);
+              console.log('[voice] session description (op 4) received, mode:', data.d.mode, 'secret_key length:', secretKey.length);
+
+              // Initialize DAVE session with protocol version from server
+              daveProtocolVersion = data.d.dave_protocol_version || 1;
+              console.log('[voice] DAVE protocol version from server:', daveProtocolVersion);
+
+              // Create the DAVE session and send ONE key package (op 26) now.
+              reinitDaveSession();
+              console.log('[voice] DAVE session ready to init', { protocolVersion: daveProtocolVersion, userId: session.user.id, channelId: session.voice.state.channel_id });
+
+              // Transport is up after op=4 + Select Protocol: mark the connection ready now.
+              // DAVE E2EE readiness (daveSession.ready) is tracked separately and only gates
+              // whether media is additionally E2EE-encrypted. This lets a lone bot play too.
+              session.voiceConnection = {
+                guildId: session.voice.state.guild_id,
+                ws: vws, udp,
+                ip: ready.ip, port: ready.port, ssrc: ready.ssrc,
+                mode: encryptionMode,
+                sequence: Math.floor(Math.random() * 0xffff),
+                timestamp: Math.floor(Math.random() * 0xffffffff),
+                nonceCounter: Math.floor(Math.random() * 0xffffffff),
+                heartbeatTimer,
+                daveSession,
+                secretKey,
+                ready: true, playing: false, playTimer: null
+              };
+              // Keep daveReady updated in the background for media encryption decisions.
+              const watchDaveReady = () => {
+                if (settled) return;
                 if (daveSession && daveSession.ready) {
                   daveReady = true;
-                  session.voiceConnection = {
-                    guildId: session.voice.state.guild_id,
-                    ws: vws, udp,
-                    ip: ready.ip, port: ready.port, ssrc: ready.ssrc,
-                    mode: 'dave',
-                    sequence: Math.floor(Math.random() * 0xffff),
-                    timestamp: Math.floor(Math.random() * 0xffffffff),
-                    nonceCounter: Math.floor(Math.random() * 0xffffffff),
-                    heartbeatTimer,
-                    daveSession,
-                    ready: true, playing: false, playTimer: null
-                  };
-                  done(null, session.voiceConnection);
-                } else if (!settled) {
-                  setTimeout(waitForDave, 50);
+                  console.log('[voice] DAVE session became ready (E2EE active)');
+                } else {
+                  setTimeout(watchDaveReady, 200);
                 }
               };
-              waitForDave();
+              watchDaveReady();
+              done(null, session.voiceConnection);
+
+              // RTP keepalive: send silence when idle so Discord doesn't drop the session.
+              if (!process.env.VOICE_NO_KEEPALIVE) {
+                session.voiceConnection.keepAliveTimer = setInterval(() => {
+                  const c = session.voiceConnection;
+                  if (!c || c !== session.voiceConnection) return;
+                  if (!c.playing) {
+                    try { sendOpusPacket(session, SILENCE_FRAME); } catch {}
+                  }
+                }, 20);
+              }
+            }
+            else if (data.op === 11) {
+              // CLIENTS_CONNECT (JSON): track recognized user IDs for processProposals
+              const ids = Array.isArray(data.d?.user_ids) ? data.d.user_ids
+                       : (Array.isArray(data.d) ? data.d : []);
+              ids.forEach(id => recognizedUserIds.add(String(id)));
+              console.log('[voice] clients connect (op 11):', { ids, recognized: [...recognizedUserIds] });
+            }
+            else if (data.op === 13) {
+              // CLIENT_DISCONNECT (JSON)
+              const uid = data.d?.user_id;
+              if (uid) recognizedUserIds.delete(String(uid));
+              console.log('[voice] client disconnect (op 13):', uid);
+            }
+            else if (data.op === 21) {
+              // DAVE_PREPARE_TRANSITION (JSON)
+              const transitionId = data.d.transition_id;
+              const version = data.d.protocol_version;
+              console.log('[voice] DAVE prepare transition', { transitionId, version });
+              davePendingTransitions.set(transitionId, version);
+              if (transitionId === 0) {
+                // (re)initialization transition: execute immediately
+                daveProtocolVersion = version;
+                if (version === 0) { daveSession?.reset(); daveSession?.setPassthroughMode(true, 10); }
+              } else {
+                if (version === 0) daveSession?.setPassthroughMode(true, 120);
+                vws.send(JSON.stringify({ op: 23, d: { transition_id: transitionId } }));
+              }
+            }
+            else if (data.op === 22) {
+              // DAVE_EXECUTE_TRANSITION (JSON)
+              const transitionId = data.d.transition_id;
+              console.log('[voice] DAVE execute transition', { transitionId });
+              if (davePendingTransitions.has(transitionId)) {
+                daveProtocolVersion = davePendingTransitions.get(transitionId);
+                davePendingTransitions.delete(transitionId);
+                if (daveProtocolVersion === 0) {
+                  daveSession?.reset();
+                  daveSession?.setPassthroughMode(true, 10);
+                }
+              }
+            }
+            else if (data.op === 24) {
+              // DAVE_PREPARE_EPOCH (JSON): only epoch===1 needs a fresh group + key package
+              console.log('[voice] DAVE prepare epoch', data.d);
+              if (data.d.epoch === 1) {
+                daveProtocolVersion = data.d.protocol_version || daveProtocolVersion;
+                reinitDaveSession();
+              }
             }
             else if (data.op === 7) { done(new Error('voice reconnect not implemented')); }
             else if (data.op === 5) { console.warn('[voice] received op 5 (resume?)', data.d); }
+            else if (data.op === 15) {
+              // CLIENT_DISCONNECT or keepalive
+              console.log('[voice] received op 15 (client disconnect/keepalive):', data.d);
+            }
             else if (data.op === 31) {
               console.error('[voice] DAVE invalid commit/welcome (op 31):', data.d);
             }
@@ -487,7 +727,6 @@ function connectVoiceTransport(session) {
         }
       }
       
-      // If not JSON, try as binary DAVE message
       if (buf) {
         return handleDaveBinary(buf);
       }
@@ -502,15 +741,40 @@ async function ensureVoiceUdp(session) {
   const existing = session.voiceConnection;
   if (existing && existing.ready && existing.guildId === session.voice.state.guild_id) return existing;
   
-  // Wait for fresh VOICE_SERVER_UPDATE (cleared by joinVoice/leaveVoice/cleanupVoice)
-  let waited = 0;
-  while (!session.voice?.server?.endpoint && waited < 15000) { await sleep(100); waited += 100; }
-  if (!session.voice?.server?.endpoint) throw new Error('voice server info missing (no VOICE_SERVER_UPDATE received)');
-  
-  console.log('[voice] ensureVoiceUdp: connecting transport...');
-  cleanupVoice(session);
-  await connectVoiceTransport(session);
-  return session.voiceConnection;
+  // Connection should have been established in joinVoice
+  throw new Error('voice transport not connected - call joinVoice first');
+}
+
+function rotl32(x, n) { return ((x << n) | (x >>> (32 - n))) >>> 0; }
+// HChaCha20: derive a 32-byte subkey from key + 16-byte input (needed for XChaCha20).
+function hchacha20(key, in16) {
+  const s = new Uint32Array(16);
+  s[0] = 0x61707865; s[1] = 0x3320646e; s[2] = 0x79622d32; s[3] = 0x6b206574;
+  for (let i = 0; i < 8; i++) s[4 + i] = key.readUInt32LE(i * 4);
+  for (let i = 0; i < 4; i++) s[12 + i] = in16.readUInt32LE(i * 4);
+  const qr = (a, b, c, d) => {
+    s[a] = (s[a] + s[b]) >>> 0; s[d] ^= s[a]; s[d] = rotl32(s[d], 16);
+    s[c] = (s[c] + s[d]) >>> 0; s[b] ^= s[c]; s[b] = rotl32(s[b], 12);
+    s[a] = (s[a] + s[b]) >>> 0; s[d] ^= s[a]; s[d] = rotl32(s[d], 8);
+    s[c] = (s[c] + s[d]) >>> 0; s[b] ^= s[c]; s[b] = rotl32(s[b], 7);
+  };
+  for (let i = 0; i < 10; i++) {
+    qr(0, 4, 8, 12); qr(1, 5, 9, 13); qr(2, 6, 10, 14); qr(3, 7, 11, 15);
+    qr(0, 5, 10, 15); qr(1, 6, 11, 12); qr(2, 7, 8, 13); qr(3, 4, 9, 14);
+  }
+  const out = Buffer.alloc(32);
+  for (let i = 0; i < 8; i++) out.writeUInt32LE(s[i], i * 4);
+  for (let i = 0; i < 8; i++) out.writeUInt32LE(s[12 + i], (i + 8) * 4);
+  return out;
+}
+// XChaCha20-Poly1305 AEAD using Node's chacha20-poly1305 (16-byte IV) on top of HChaCha20.
+function xchacha20poly1305Encrypt(key, nonce24, plaintext, aad) {
+  const subkey = hchacha20(key, nonce24.subarray(0, 16));
+  const iv = Buffer.alloc(16); // [4-byte LE block counter=0][12-byte nonce = 0x00000000 || nonce24[16:24]]
+  nonce24.copy(iv, 8, 16, 24);
+  const cipher = crypto.createCipheriv('chacha20-poly1305', subkey, iv);
+  cipher.setAAD(aad);
+  return Buffer.concat([cipher.update(plaintext), cipher.final(), cipher.getAuthTag()]);
 }
 
 function sendOpusPacket(session, opusPacket) {
@@ -521,52 +785,66 @@ function sendOpusPacket(session, opusPacket) {
   vc.timestamp = (vc.timestamp + 960) >>> 0;
   vc.nonceCounter = (vc.nonceCounter + 1) >>> 0;
 
-  if (vc.mode === 'dave') {
-    // DAVE mode: encrypt with DAVE session, then send with RTP header
-    if (!vc.daveSession || !vc.daveSession.ready) {
-      console.warn('[voice] DAVE session not ready, skipping packet');
-      return;
-    }
-    
-    // Encrypt with DAVE (end-to-end encryption)
-    let encryptedPacket;
+  let payload = opusPacket;
+
+  // Step 1: DAVE E2EE encryption (if available). Silence/keepalive frames are NOT
+  // DAVE-encrypted (matches @discordjs/voice): they must stay transport-only.
+  const isSilence = payload.length === SILENCE_FRAME.length && payload.equals(SILENCE_FRAME);
+  if (vc.daveSession && vc.daveSession.ready && !isSilence) {
     try {
-      encryptedPacket = vc.daveSession.encryptOpus(opusPacket);
+      payload = vc.daveSession.encryptOpus(payload);
     } catch (e) {
       console.error('[voice] DAVE encrypt error:', e.message);
       return;
     }
+  } else if (vc.mode === 'dave' && !isSilence) {
+    console.warn('[voice] DAVE session not ready, skipping packet');
+    return;
+  }
 
-    // RTP header (same format but without AES-GCM encryption)
-    const header = Buffer.alloc(12);
-    header[0] = 0x80;
-    header[1] = 0x78;
-    header.writeUInt16BE(vc.sequence, 2);
-    header.writeUInt32BE(vc.timestamp, 4);
-    header.writeUInt32BE(vc.ssrc, 8);
+  // Step 2: Transport encryption + RTP header (matches @discordjs/voice)
+  const header = Buffer.alloc(12);
+  header[0] = 0x80;
+  header[1] = 0x78; // RTP_OPUS_PAYLOAD_TYPE
+  header.writeUInt16BE(vc.sequence, 2);
+  header.writeUInt32BE(vc.timestamp, 4);
+  header.writeUInt32BE(vc.ssrc, 8);
 
-    // Send RTP header + DAVE-encrypted payload
-    vc.udp.send(Buffer.concat([header, encryptedPacket]), vc.port, vc.ip);
-  } else if (vc.mode === 'aead_aes256_gcm_rtpsize') {
-    // Legacy mode: AES-GCM encryption
+  let packet;
+  if (vc.mode === 'aead_aes256_gcm_rtpsize') {
+    // 12-byte nonce = [4-byte counter (BE)][8 zero bytes]; the 4-byte counter is appended as padding
     const nonce = Buffer.alloc(12);
     nonce.writeUInt32BE(vc.nonceCounter, 0);
-
-    const header = Buffer.alloc(12);
-    header[0] = 0x80;
-    header[1] = 0x78;
-    header.writeUInt16BE(vc.sequence, 2);
-    header.writeUInt32BE(vc.timestamp, 4);
-    header.writeUInt32BE(vc.ssrc, 8);
-
-    const cipher = crypto.createCipheriv('aes-256-gcm', vc.secretKey, nonce);
+    const cipher = crypto.createCipheriv('aes-256-gcm', vc.secretKey.subarray(0, 32), nonce);
     cipher.setAAD(header);
-    const encrypted = Buffer.concat([cipher.update(opusPacket), cipher.final(), cipher.getAuthTag()]);
-
-    vc.udp.send(Buffer.concat([header, encrypted, nonce.subarray(0, 4)]), vc.port, vc.ip);
+    const encrypted = Buffer.concat([cipher.update(payload), cipher.final(), cipher.getAuthTag()]);
+    packet = Buffer.concat([header, encrypted, nonce.subarray(0, 4)]);
+  } else if (vc.mode === 'aead_xchacha20_poly1305_rtpsize') {
+    // 24-byte nonce = [4-byte counter (BE)][20 zero bytes]; the 4-byte counter is appended as padding
+    const nonce = Buffer.alloc(24);
+    nonce.writeUInt32BE(vc.nonceCounter, 0);
+    const encrypted = xchacha20poly1305Encrypt(vc.secretKey.subarray(0, 32), nonce, payload, header);
+    packet = Buffer.concat([header, encrypted, nonce.subarray(0, 4)]);
+  } else if (vc.mode === 'dave') {
+    // Pure DAVE mode without transport encryption (fallback)
+    packet = Buffer.concat([header, payload]);
   } else {
     throw new Error('unsupported encryption mode: ' + vc.mode);
   }
+  vc.udp.send(packet, vc.port, vc.ip);
+}
+
+// Send a Speaking update (op 5). Discord maps SSRC -> userId from this, which the receiver
+// needs to pick the right DAVE key; without it, our audio is silently dropped by listeners.
+function setSpeaking(session, speaking) {
+  const vc = session.voiceConnection;
+  if (!vc || !vc.ws || vc.ws.readyState !== WebSocket.OPEN) return;
+  if (vc.speaking === speaking) return;
+  vc.speaking = speaking;
+  try {
+    vc.ws.send(JSON.stringify({ op: 5, d: { speaking: speaking ? 1 : 0, delay: 0, ssrc: vc.ssrc } }));
+    console.log(`[voice] setSpeaking(${speaking}) ssrc=${vc.ssrc}`);
+  } catch {}
 }
 
 function startOpusPlayback(session, packets) {
@@ -574,6 +852,7 @@ function startOpusPlayback(session, packets) {
   if (!vc) return;
   stopPlayback(session, true);
   vc.playing = true;
+  setSpeaking(session, true);
   let i = 0;
   console.log(`[voice] starting playback bot ${session.botId}: ${packets.length} packets`);
   vc.playTimer = setInterval(() => {
@@ -604,31 +883,26 @@ async function joinVoice(botId, opts = {}) {
     return current;
   }
   // New channel: clear stale voice server info so we wait for fresh VOICE_SERVER_UPDATE
-  if (s.voice) s.voice.server = null;
-
-  const waiter = new Promise((resolve, reject) => {
-    const timeoutMs = Math.max(3000, parseInt(opts.timeout_ms || 12000, 10));
-    const timer = setTimeout(() => {
-      s.voiceWaiters = (s.voiceWaiters || []).filter(w => w !== entry);
-      reject(new Error('voice join timeout'));
-    }, timeoutMs);
-    const entry = {
-      predicate: (d) => d.guild_id === guild_id && d.channel_id === channel_id,
-      resolve: (d) => { clearTimeout(timer); resolve(d); }
-    };
-    s.voiceWaiters = s.voiceWaiters || [];
-    s.voiceWaiters.push(entry);
-  });
+  if (s.voice) {
+    s.voice.server = null;
+    s.voice.pendingServer = null;
+  }
 
   console.log(`[voice] joinVoice: guild=${guild_id} channel=${channel_id} mute=${self_mute} deaf=${self_deaf}`);
   s.ws.send(JSON.stringify({ op: 4, d: { guild_id, channel_id, self_mute, self_deaf } }));
-  const state = await waiter;
-  console.log('[voice] joinVoice: VOICE_STATE_UPDATE received', state);
-  // Wait for VOICE_SERVER_UPDATE to arrive (provides endpoint + token for voice WebSocket)
-  let waited = 0;
-  while (!s.voice?.server?.endpoint && waited < 10000) { await sleep(100); waited += 100; }
-  if (!s.voice?.server?.endpoint) throw new Error('voice server info missing after join (no VOICE_SERVER_UPDATE)');
-  console.log('[voice] joinVoice: VOICE_SERVER_UPDATE received', { endpoint: s.voice.server.endpoint, token_len: s.voice.server.token?.length });
+
+  const timeoutMs = Math.max(3000, parseInt(opts.timeout_ms || 12000, 10));
+  const { state, server } = await waitForVoiceCredentials(s, guild_id, channel_id, timeoutMs);
+
+  console.log('[voice] both voice packets received, connecting transport immediately', {
+    session_id: state.session_id,
+    endpoint: server.endpoint,
+    token_len: server.token?.length
+  });
+
+  await connectVoiceTransport(s);
+  console.log('[voice] joinVoice: voice transport connected successfully');
+
   scheduleVoiceAutoLeave(s, opts.auto_leave_seconds);
   return state;
 }
@@ -766,7 +1040,13 @@ function connectGateway(botId, token) {
           else if (data.t === 'VOICE_STATE_UPDATE' && session.user && data.d.user_id === session.user.id) {
             session.voice = session.voice || {};
             session.voice.state = data.d;
-            console.log(`[gateway] VOICE_STATE_UPDATE: guild=${data.d.guild_id} channel=${data.d.channel_id} session_id=${data.d.session_id}`);
+            console.log('[gateway] VOICE_STATE_UPDATE:', {
+              guild_id: data.d.guild_id,
+              channel_id: data.d.channel_id,
+              session_id: data.d.session_id,
+              self_mute: data.d.self_mute,
+              self_deaf: data.d.self_deaf
+            });
             if (!data.d.channel_id) {
               session.voice.server = null;
               session.voice.pendingServer = null;
@@ -775,13 +1055,27 @@ function connectGateway(botId, token) {
               session.voice.server = session.voice.pendingServer;
               session.voice.pendingServer = null;
             }
+
+            // Check if we now have both state and server for this guild/channel
+            maybeResolveVoiceJoin(session, data.d.guild_id, data.d.channel_id);
             resolveVoiceWaiters(session, data.d);
           }
           else if (data.t === 'VOICE_SERVER_UPDATE') {
             session.voice = session.voice || {};
-            console.log(`[gateway] VOICE_SERVER_UPDATE: guild=${data.d.guild_id} endpoint=${data.d.endpoint} token_len=${data.d.token?.length}`);
-            if (session.voice?.state?.guild_id === data.d.guild_id) session.voice.server = data.d;
-            else session.voice.pendingServer = data.d;
+            console.log('[gateway] VOICE_SERVER_UPDATE:', {
+              guild_id: data.d.guild_id,
+              endpoint: data.d.endpoint,
+              token_len: data.d.token?.length
+            });
+            if (session.voice?.state?.guild_id === data.d.guild_id) {
+              session.voice.server = data.d;
+            } else {
+              session.voice.pendingServer = data.d;
+            }
+
+            // Check if we now have both state and server for this guild/channel
+            maybeResolveVoiceJoin(session, data.d.guild_id, session.voice?.state?.channel_id);
+            resolveVoiceWaiters(session, session.voice?.state);
           }
         }
       } catch (e) { console.error('[gateway] parse error:', e.message); }
@@ -930,5 +1224,6 @@ http.createServer(async (req, res) => {
   serveStatic(res, p);
 }).listen(PORT, '127.0.0.1', () => {
   console.log(`bridge running on http://127.0.0.1:${PORT}`);
+console.error("[voice] BRIDGE VERSION: 2025-09-06-VOICE-DAVE-WORKING-v1");
   if (!WebSocket) console.warn('ws module not installed: gateway disabled. run: npm i ws');
 });

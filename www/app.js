@@ -491,7 +491,11 @@ function closeConfirmModal() {
 function showInfoModal(title, desc, text) {
   document.getElementById('info-title').textContent = title;
   document.getElementById('info-desc').textContent = desc;
-  document.getElementById('info-body').textContent = text;
+  const body = document.getElementById('info-body');
+  // Escape first, then turn http(s) URLs into clickable links. Electron's
+  // setWindowOpenHandler routes target="_blank" to shell.openExternal (default browser).
+  const safe = esc(String(text));
+  body.innerHTML = safe.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
   infoCopyText = text;
   document.getElementById('info-modal').classList.remove('hidden');
 }
