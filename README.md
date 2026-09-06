@@ -15,33 +15,17 @@ a self-hosted, local-first control panel for managing discord bots — token vau
 | ✉️ **send** | send messages to any channel of any server the bot is in. full markdown preview, rich embeds builder, image/video attachments, voice messages (upload or browser recording). |
 | 🗄 **archive** | live capture of `MESSAGE_CREATE` / `UPDATE` / `DELETE` events over the gateway, plus on-demand fetch via rest. deleted messages are flagged, not lost. |
 | 🟢 **presence** | set online/idle/dnd/invisible status and custom activity over a persistent gateway websocket session. |
-| 🔊 **voice** | join voice channels, self-mute/deafen, auto-leave timer, and play audio files directly into the channel (raw voice gateway + udp + opus implementation). |
+| 🔊 **voice** | join voice channels, self-mute/deafen, auto-leave timer, and play audio files directly into the channel (voice gateway + udp + opus, with DAVE end-to-end encryption). |
 | 🧹 **cleaner** | wipe all messages from a channel (bulk-delete for recent ones, one-by-one for older than 14 days) or clone-and-recreate a channel. |
 | ⚙️ **settings** | auto-lock timer, language (en/it/zh), theme (light/dark/system), master password change, vault reset. |
-
-## screenshots
-
-<!-- replace with real screenshots -->
-| unlock screen | vault | send + preview |
-| --- | --- | --- |
-| ![unlock](docs/screens/unlock.png) | ![vault](docs/screens/vault.png) | ![send](docs/screens/send.png) |
 
 ---
 
 ## how it works
 
-```
-┌────────────────────────────┐        ┌─────────────────────────────┐
-│  browser (www/)            │        │  bridge.js (node)           │
-│  ─ encrypted vault (ls)    │  http  │  ─ static file server       │
-│  ─ web crypto aes-256-gcm  │ <----> | discord rest proxy          │
-│  ─ vanilla js spa          │ :8787  │  ─ gateway sessions (ws)    │
-└────────────────────────────┘        │  ─ voice (ws + udp + opus)  │
-                                      │  ─ archive (data/messages/) │
-                                      └─────────────────────────────┘
-```
+the app is two pieces that talk over local http: a static browser frontend (`www/`) and a small node backend (`bridge.js`) that proxies discord and owns the gateway/voice connections.
 
-- **bridge.js** is a zero-framework node server bound to `127.0.0.1:8787`. it serves the frontend, proxies discord rest calls (injecting `Authorization: Bot <token>` from the `x-bot-token` header), holds gateway websocket sessions in memory, and implements the discord voice transport by hand (voice ws → ip discovery → udp → aes-256-gcm rtp).
+- **bridge.js** is a zero-framework node server bound to `127.0.0.1:8789`. it serves the frontend, proxies discord rest calls (injecting `Authorization: Bot <token>` from the `x-bot-token` header), holds gateway websocket sessions in memory, and implements the discord voice transport by hand (voice ws → ip discovery → udp → aes-256-gcm rtp).
 - **www/** is a dependency-free single-page app. token encryption happens entirely in the browser with the web crypto api; the backend only ever sees tokens for the duration of an api call.
 
 ### security model
@@ -69,8 +53,8 @@ the gateway connects with these intents:
 | intent | privileged? | needed for |
 | --- | --- | --- |
 | `guilds` (1 << 0) | no | server/channel lists |
-| `voice states` (1 << 7) | no | voice join/leave |
-| `guild voice states` (1 << 9) | no | voice state tracking |
+| `guild voice states` (1 << 7) | no | voice join/leave |
+| `message content` (1 << 9) | **yes** | message bodies in events |
 | `guild messages` (1 << 15) | **yes** | archive capture |
 
 enable **`guild messages`** (and **`message content`**, if you want message bodies in events) under *bot → privileged gateway intents* for each application, otherwise the archive will receive nothing.
@@ -90,7 +74,7 @@ npm install ws ffmpeg-static
 node bridge.js
 ```
 
-then open **http://127.0.0.1:8787**.
+then open **http://127.0.0.1:8789**.
 
 ### Electron desktop app
 
@@ -103,32 +87,27 @@ npm run build        # creates NSIS installer in dist/
 npm run build:portable   # creates portable .exe in dist/
 ```
 
-The Electron app bundles everything and runs the bridge internally on `http://127.0.0.1:8787`.
+The Electron app bundles everything and runs the bridge internally on `http://127.0.0.1:8789`.
 
 > **Requires Node.js 18+** (global `fetch` is used)
 
 expected output:
 
 ```
-bridge attivo su http://127.0.0.1:8787
+bridge running on http://127.0.0.1:8789
 ```
 
-> if you see `modulo ws non installato`, run `npm i ws`. gateway features are disabled without it.
+> if you see `ws module not installed`, run `npm i ws`. gateway features are disabled without it.
 
 ### project structure
 
-```
-bot-manager/
-├── bridge.js              # node server: static, discord proxy, gateway, voice, archive, i18n
-├── data/
-│   ├── messages/          # per-channel archives: <channel_id>.json (created at runtime)
-│   └── voice/             # temp files for transcoding (created at runtime)
-└── www/
-    ├── index.html         # spa markup (all tabs + modals)
-    ├── app.js             # vault crypto, ui logic, gateway/voice client
-    ├── styles.css         # theme + components
-    └── locales/           # en.json, it.json, zh.json
-```
+- `bridge.js` — node server: static file host, discord rest proxy, gateway sessions, voice transport, archive, i18n
+- `data/messages/` — per-channel archives: `<channel_id>.json` (created at runtime)
+- `data/voice/` — temp files for transcoding (created at runtime)
+- `www/index.html` — spa markup (all tabs + modals)
+- `www/app.js` — vault crypto, ui logic, gateway/voice client
+- `www/styles.css` — theme + components
+- `www/locales/` — `en.json`, `it.json`, `zh.json`
 
 ---
 
@@ -162,11 +141,11 @@ selecting a bot and applying a status opens a persistent gateway session (`/gate
 ### voice
 
 1. pick bot → server → voice channel.
-2. **join** sends op 4 and waits for the voice state ack (12s timeout). self-mute/deafen changes re-send the state live.
-3. **play** reads the audio file, transcodes it to 48 kHz stereo opus (64 kbps, 20 ms frames) with ffmpeg, then streams packets over udp with `aead_aes256_gcm_rtpsize` encryption.
+2. **join** sends op 4, waits for the matching voice state + server packets, then opens the voice websocket and runs the handshake (identify → ready → select protocol → udp discovery → DAVE key exchange). self-mute/deafen changes re-send the state live.
+3. **play** reads the audio file, transcodes it to 48 kHz stereo opus (64 kbps, 20 ms frames) with ffmpeg, then streams packets over udp — DAVE end-to-end encrypted once the MLS group is ready, wrapped in transport encryption (`aead_aes256_gcm_rtpsize`, with `aead_xchacha20_poly1305_rtpsize` as fallback).
 4. **auto-leave** (minutes) schedules an automatic disconnect after joining.
 
-> the voice stack requires the `aead_aes256_gcm_rtpsize` encryption mode; if discord negotiates something else, join/play will report it.
+> voice uses discord's **DAVE** protocol for end-to-end encryption. the MLS group only forms once a second member is present, so a lone bot in an e2ee channel gets dropped by discord after a short idle — that's expected, not a bug. transport mode prefers `aead_aes256_gcm_rtpsize`.
 
 ### cleaner
 
@@ -185,7 +164,7 @@ selecting a bot and applying a status opens a persistent gateway session (`/gate
 
 ## http api reference
 
-all routes on `http://127.0.0.1:8787`. discord routes need the `x-bot-token` header.
+all routes on `http://127.0.0.1:8789`. discord routes need the `x-bot-token` header.
 
 ### gateway / sessions
 
@@ -220,7 +199,7 @@ all routes on `http://127.0.0.1:8787`. discord routes need the `x-bot-token` hea
 any path under `/discord/...` is forwarded to `https://discord.com/api/v10/...` with the bot token attached, and rate-limit headers (`x-ratelimit-remaining`, `x-ratelimit-reset`) are passed through.
 
 ```bash
-curl http://127.0.0.1:8787/discord/users/@me \
+curl http://127.0.0.1:8789/discord/users/@me \
   -H "x-bot-token: YOUR_BOT_TOKEN"
 ```
 
@@ -252,11 +231,10 @@ colors are css custom properties in `www/styles.css` (`:root` for light, `[data-
 
 | symptom | cause / fix |
 | --- | --- |
-| `Web Crypto API unavailable` | you opened the app over plain http on a non-localhost address. use `127.0.0.1:8787` or serve over https. |
-| `timeout connessione gateway (30s)` | invalid token, no network, or the bot was banned from everywhere. test the token from the vault first. |
+| `Web Crypto API unavailable` | you opened the app over plain http on a non-localhost address. use `127.0.0.1:8789` or serve over https. |
+| `gateway connect timeout (30s)` | invalid token, no network, or the bot was banned from everywhere. test the token from the vault first. |
 | archive stays empty | the **guild messages** privileged intent is off in the dev portal. |
-| `modalità voice non supportata` | discord negotiated a mode other than `aead_aes256_gcm_rtpsize`; retry or update. |
-| `crypto is not defined` / `dgram is not defined` during voice playback | add `const crypto = require('crypto')` and `const dgram = require('dgram')` at the top of `bridge.js` if they're missing in your copy. |
+| `DAVE mode not supported by server` | the voice channel isn't DAVE-capable or discord offered no usable mode; retry, or update `@snazzah/davey`. |
 | `ffmpeg binary not found` | `ffmpeg-static` missing (`npm i ffmpeg-static`); the transcode endpoint additionally needs system `ffmpeg` on `PATH`. |
 | recording tab unsupported | the browser can't encode ogg/opus via `MediaRecorder` (use chrome/edge/firefox desktop). |
 | vault wiped after browser data cleanup | the vault lives in `localStorage` — clearing site data deletes it. keep your own token backups. |
@@ -269,8 +247,8 @@ colors are css custom properties in `www/styles.css` (`:root` for light, `[data-
 To start completely fresh (as if newly installed):
 
 ### Web mode
-1. Open the app at `http://127.0.0.1:8787`
-2. Open DevTools (`F12`) → **Application** tab → **Local Storage** → `http://127.0.0.1:8787`
+1. Open the app at `http://127.0.0.1:8789`
+2. Open DevTools (`F12`) → **Application** tab → **Local Storage** → `http://127.0.0.1:8789`
 3. Right-click → **Clear** (or delete the `v` key specifically)
 4. Also clear **Session Storage** and **IndexedDB** if present
 5. Reload the page
