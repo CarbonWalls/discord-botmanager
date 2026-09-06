@@ -7,7 +7,6 @@
   },
   "strings": {
     "app.title": "bot manager",
-
     "nav.tokens": "令牌",
     "nav.send": "发送",
     "nav.archive": "存档",
@@ -16,7 +15,6 @@
     "nav.cleaner": "清理",
     "nav.settings": "设置",
     "nav.lock": "锁定",
-
     "unlock.create_title": "创建保险库",
     "unlock.create_desc": "主密码使用 aes-256-gcm 加密令牌。如果丢失，将无法恢复。",
     "unlock.master_password": "主密码",
@@ -25,7 +23,6 @@
     "unlock.unlock_title": "解锁保险库",
     "unlock.unlock_desc": "输入主密码。",
     "unlock.unlock": "解锁",
-
     "vault.title": "令牌",
     "vault.add": "添加机器人",
     "vault.name": "名称",
@@ -50,7 +47,6 @@
     "vault.need_name": "需要名称",
     "vault.invalid_token": "令牌无效",
     "vault.locked": "保险库已锁定",
-
     "send.title": "发送",
     "send.bot": "机器人",
     "send.destination": "目标",
@@ -134,7 +130,6 @@
     "send.send_via_webhook": "通过 webhook 发送",
     "send.error_no_webhook": "请选择一个 webhook。",
     "send.webhook_no_files": "此处的 webhook 只能发送文本和 embed：请关闭文件和语音消息。",
-
     "logs.title": "消息存档",
     "logs.bot": "机器人",
     "logs.guild": "服务器",
@@ -159,7 +154,6 @@
     "logs.selected_count": "已选择 {n} 条",
     "logs.bulk_confirm": "永久删除所选消息？超过 14 天的消息将逐条删除。",
     "logs.bulk_deleted": "所选消息已删除",
-
     "presence.title": "机器人在线状态",
     "presence.info_title": "工作原理",
     "presence.info_desc": "在线状态通过 websocket 连接到 discord gateway 设置。连接后，只要后端运行，状态就会保持。",
@@ -177,7 +171,6 @@
     "presence.no_sessions": "没有会话。",
     "presence.updated": "在线状态已更新",
     "presence.reset": "在线状态已重置",
-
     "voice.title": "语音",
     "voice.info_title": "工作原理",
     "voice.info_desc": "机器人使用 voice state update 进入语音频道。播放需要 ffmpeg 和连接/说话权限。",
@@ -215,7 +208,6 @@
     "voice.undeafen": "取消静音",
     "voice.disconnect": "断开",
     "voice.member_updated": "成员已更新",
-
     "cleaner.title": "频道清理",
     "cleaner.warning": "警告",
     "cleaner.warning_desc": "这些操作是<b>不可逆</b>的。确保你选择了正确的频道。",
@@ -243,7 +235,6 @@
     "cleaner.cloning": "克隆中…",
     "cleaner.confirm_clone": "创建一个相同频道并删除原频道。继续？",
     "cleaner.channel_cloned": "频道已克隆",
-
     "settings.title": "设置",
     "settings.autolock": "自动锁定",
     "settings.autolock_desc": "保险库多久后自动锁定。",
@@ -276,7 +267,6 @@
     "settings.master_password_changed": "主密码已更改",
     "settings.current_pw_wrong": "当前密码错误",
     "settings.reset_confirm": "删除所有令牌。不可逆。",
-    "settings.vault_deleted": "保险库已删除",
     "settings.password_changed": "主密码已更改",
     "settings.vault_backup": "保险库备份",
     "settings.vault_backup_desc": "将所有令牌导出为加密文件，或导入现有备份。文件使用你为备份设置的密码加密，不必是主密码。",
@@ -291,7 +281,6 @@
     "settings.vault_replaced": "保险库已替换",
     "settings.vault_import_invalid": "备份文件无效。",
     "settings.vault_import_pw_wrong": "备份密码错误。",
-
     "modal.user_profile": "用户资料",
     "modal.user_id": "用户 id",
     "modal.copy": "复制",
@@ -307,7 +296,6 @@
     "modal.nick_placeholder": "新昵称...",
     "modal.timeout_placeholder": "时长（分钟）",
     "modal.confirm": "确认",
-
     "profile.no_roles": "没有角色",
     "profile.created": "账号创建时间",
     "profile.joined": "加入服务器时间",
@@ -320,7 +308,6 @@
     "profile.user_kicked": "用户已踢出",
     "profile.roles_updated": "角色已更新",
     "modal.manage_roles": "管理角色",
-
     "common.loading": "加载中…",
     "common.cancel": "取消",
     "common.confirm": "确认",
@@ -335,7 +322,6 @@
     "common.unknown": "未知",
     "common.connected": "已连接",
     "common.disconnected": "已断开",
-
     "select.bot": "选择机器人",
     "select.bot_first": "请先选择机器人",
     "select.server": "选择服务器",
@@ -343,11 +329,9 @@
     "select.choose_channel": "选择频道",
     "select.loading": "加载中…",
     "select.error": "错误",
-
     "voice.select_bot": "选择机器人",
     "voice.play_transcoding": "转码中…",
     "voice.transport_ready": "语音传输已就绪",
-
     "error.min_password": "至少 8 个字符",
     "error.password_mismatch": "两次密码不一致",
     "error.invalid_duration": "时长无效",
@@ -365,6 +349,38 @@
     "error.hierarchy": "机器人角色低于目标",
     "error.owner": "无法管理服务器所有者",
     "error.bulk_delete": "批量删除仅限 14 天内的消息",
-    "error.invalid_password": "密码无效"
+    "error.invalid_password": "密码无效",
+    "nav.channels": "频道",
+    "channels.title": "频道管理",
+    "channels.bot": "机器人",
+    "channels.guild": "服务器",
+    "channels.refresh": "刷新",
+    "channels.list_title": "频道列表",
+    "channels.no_channels": "选择一个机器人和一个服务器以查看其频道。",
+    "channels.backup": "备份",
+    "channels.clone": "克隆",
+    "channels.delete": "删除",
+    "channels.backing_up": "保存中…",
+    "channels.cloning": "克隆中…",
+    "channels.deleting": "删除中…",
+    "channels.backup_complete": "备份已保存（{count} 条消息）",
+    "channels.clone_title": "克隆频道",
+    "channels.clone_confirm": "创建一个具有相同设置的频道副本？",
+    "channels.cloned": "频道已克隆",
+    "channels.delete_title": "删除频道",
+    "channels.delete_confirm": "这将永久删除该频道及其所有消息。继续吗？",
+    "channels.deleted": "频道已删除",
+    "presence.rate_limits": "速率限制",
+    "presence.no_rate_limits": "暂无速率限制数据 — 先发起一些 api 请求。",
+    "vault.select_all": "全选",
+    "vault.selected_count": "已选择 {n} 个",
+    "vault.multi_presence": "设置状态",
+    "vault.multi_send": "发送消息",
+    "vault.multi_disconnect": "断开连接",
+    "vault.presence_prompt": "状态（online、idle、dnd、invisible）",
+    "vault.channel_prompt": "频道 id",
+    "vault.message_prompt": "要发送的消息",
+    "vault.confirm_disconnect": "断开所有已选机器人与网关的连接？",
+    "vault.multi_complete": "完成：成功 {success} 个，失败 {failed} 个"
   }
 }

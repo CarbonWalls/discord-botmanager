@@ -1166,7 +1166,8 @@ a.embed-title:hover { text-decoration: underline; }
 }
 
 /* ===== logs: ricerca / multi-selezione / export ===== */
-.log-action-bar {
+.log-action-bar,
+.multi-action-bar {
   position: sticky;
   bottom: 8px;
   display: flex;
@@ -1181,8 +1182,13 @@ a.embed-title:hover { text-decoration: underline; }
   box-shadow: var(--shadow-lg);
   z-index: 5;
 }
-.log-action-bar .btn { white-space: nowrap; }
-#log-action-count { margin-right: auto; }
+.log-action-bar .btn,
+.multi-action-bar .btn { white-space: nowrap; }
+#log-action-count,
+#multi-action-count { margin-right: auto; }
+/* vault: bot cards become selectable rows */
+#bl .card label.check-row { margin: 0; padding: 0; background: none; border: none; }
+#bl .card label.check-row input[type="checkbox"] { flex-shrink: 0; align-self: flex-start; margin-top: 12px; margin-left: 12px; }
 .msg-check {
   width: 16px;
   height: 16px;

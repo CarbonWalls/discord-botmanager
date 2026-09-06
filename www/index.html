@@ -33,6 +33,7 @@
       <button class="nav-btn" data-tab="presence"><i data-icon="circle"></i><span data-i18n="nav.presence"></span></button>
       <button class="nav-btn" data-tab="voice"><i data-icon="volume"></i><span data-i18n="nav.voice"></span></button>
       <button class="nav-btn" data-tab="cleaner"><i data-icon="trash"></i><span data-i18n="nav.cleaner"></span></button>
+      <button class="nav-btn" data-tab="channels"><i data-icon="hash"></i><span data-i18n="nav.channels"></span></button>
       <button class="nav-btn" data-tab="settings"><i data-icon="settings"></i><span data-i18n="nav.settings"></span></button>
     </nav>
     <div class="nav-spacer"></div>
@@ -85,7 +86,18 @@
               <button class="btn btn-ghost" id="ca" data-i18n="vault.close"></button>
             </div>
           </div>
+          <label class="check-row hidden" id="select-all-row" for="select-all-bots">
+            <input type="checkbox" id="select-all-bots">
+            <span data-i18n="vault.select_all"></span>
+          </label>
           <div id="bl" class="cards"></div>
+          <div class="multi-action-bar hidden" id="multi-action-bar">
+            <span id="multi-action-count" class="small"></span>
+            <button class="btn btn-ghost btn-small" id="multi-set-presence" data-i18n="vault.multi_presence"></button>
+            <button class="btn btn-ghost btn-small" id="multi-send-message" data-i18n="vault.multi_send"></button>
+            <button class="btn btn-danger btn-small" id="multi-disconnect" data-i18n="vault.multi_disconnect"></button>
+            <button class="btn btn-ghost btn-small" id="multi-clear-selection" data-i18n="logs.clear_selection"></button>
+          </div>
         </section>
 
         <!-- SEND -->
@@ -325,6 +337,10 @@
             <label class="label" data-i18n="presence.sessions"></label>
             <div id="sessions-list" class="muted small" data-i18n="presence.no_sessions"></div>
           </div>
+          <div class="card">
+            <div class="card-title" data-i18n="presence.rate_limits"></div>
+            <div id="rate-limits-list" class="muted small" data-i18n="presence.no_rate_limits"></div>
+          </div>
         </section>
 
         <!-- VOICE -->
@@ -386,6 +402,29 @@
               <button class="btn btn-ghost" id="voice-stop" disabled data-i18n="voice.stop_playback"></button>
             </div>
             <div class="muted small" id="voice-play-status" style="margin-top:8px"></div>
+          </div>
+        </section>
+
+        <!-- CHANNELS -->
+        <section id="channels" class="hidden">
+          <div class="page-header"><h1 data-i18n="channels.title"></h1></div>
+          <div class="card">
+            <div class="field">
+              <label class="label" data-i18n="channels.bot"></label>
+              <select id="channels-bot-select"><option value="" data-i18n-key="select.bot"></option></select>
+            </div>
+            <div class="field">
+              <label class="label" data-i18n="channels.guild"></label>
+              <select id="channels-guild-select" disabled><option data-i18n-key="select.bot_first"></option></select>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-primary" id="channels-refresh" data-i18n="channels.refresh"></button>
+            </div>
+            <div class="error hidden" id="channels-error"></div>
+          </div>
+          <div class="card">
+            <div class="card-title" data-i18n="channels.list_title"></div>
+            <div id="channels-list" class="muted small" data-i18n="channels.no_channels"></div>
           </div>
         </section>
 

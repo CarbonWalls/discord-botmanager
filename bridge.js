@@ -138,11 +138,15 @@ async function proxyDiscord(req, res, target) {
       method: req.method, headers,
       body: ['GET', 'HEAD'].includes(req.method) ? undefined : body,
     });
+    // track the discord rate limit bucket this request consumed
+    const bucket = up.headers.get('x-ratelimit-bucket') || target.split('?')[0];
+    updateRateLimit(bucket, up.headers);
     const buf = Buffer.from(await up.arrayBuffer());
     res.writeHead(up.status, {
       'Content-Type': up.headers.get('content-type') || (buf.length ? 'application/octet-stream' : 'text/plain'),
       'X-RateLimit-Remaining': up.headers.get('x-ratelimit-remaining') ?? '',
       'X-RateLimit-Reset': up.headers.get('x-ratelimit-reset') ?? '',
+      'X-RateLimit-Bucket': bucket,
     });
     res.end(buf);
   } catch (e) { json(res, 502, { error: 'upstream: ' + e.message }); }
@@ -159,6 +163,31 @@ function serveStatic(res, pathname) {
 
 /* ===== archive ===== */
 const sessions = new Map();
+
+/* ===== rate limit tracking ===== */
+const rateLimits = new Map(); // bucket -> { remaining, reset, limit, updatedAt }
+const RATE_LIMIT_TTL = 10 * 60 * 1000;
+
+function updateRateLimit(bucket, headers) {
+  const remaining = headers.get('x-ratelimit-remaining');
+  const reset = headers.get('x-ratelimit-reset');
+  const limit = headers.get('x-ratelimit-limit');
+  if (remaining === null || reset === null) return;
+  rateLimits.set(bucket, {
+    remaining: parseInt(remaining, 10),
+    reset: parseFloat(reset),
+    limit: limit !== null ? parseInt(limit, 10) : null,
+    updatedAt: Date.now()
+  });
+}
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [bucket, data] of rateLimits) {
+    if (now - data.updatedAt > RATE_LIMIT_TTL) rateLimits.delete(bucket);
+  }
+}, 60000).unref();
+
 function archivePath(channelId) { return path.join(DATA_DIR, `${channelId}.json`); }
 function loadArchive(channelId) {
   const p = archivePath(channelId);
@@ -1245,6 +1274,51 @@ http.createServer(async (req, res) => {
     const s = sessions.get(m[1]);
     const states = s?.guildVoiceStates ? [...s.guildVoiceStates.values()] : [];
     return json(res, 200, { states });
+  }
+
+  if (p === '/gateway/rate-limits' && req.method === 'GET') {
+    const limits = [];
+    for (const [bucket, data] of rateLimits.entries()) {
+      limits.push({ bucket, ...data });
+    }
+    return json(res, 200, { limits });
+  }
+
+  // full channel backup: metadata + every message, paginated with rate-limit pauses
+  if ((m = p.match(/^\/gateway\/backup\/channel\/(\d+)$/)) && req.method === 'POST') {
+    const channelId = m[1];
+    const body = await readJson(req);
+    const token = body.token;
+    if (!token) return json(res, 400, { error: 'missing token' });
+    const authHeaders = { Authorization: `Bot ${token}`, 'User-Agent': 'DiscordBot (local-manager, 1.0)' };
+    try {
+      const channelRes = await fetch(`${API}/channels/${channelId}`, { headers: authHeaders });
+      if (!channelRes.ok) throw new Error('failed to fetch channel (HTTP ' + channelRes.status + ')');
+      const channel = await channelRes.json();
+
+      const messages = [];
+      let before = null;
+      while (true) {
+        const url = `${API}/channels/${channelId}/messages?limit=100${before ? '&before=' + before : ''}`;
+        const msgRes = await fetch(url, { headers: authHeaders });
+        if (!msgRes.ok) break;
+        const msgs = await msgRes.json();
+        if (!Array.isArray(msgs) || !msgs.length) break;
+        messages.push(...msgs);
+        before = msgs[msgs.length - 1].id;
+        if (msgs.length < 100) break;
+        await sleep(500);
+      }
+
+      const backupDir = path.join(DATA_DIR, 'backups');
+      if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
+      const filename = `channel-${channelId}-${Date.now()}.json`;
+      fs.writeFileSync(path.join(backupDir, filename), JSON.stringify({ channel, messages }, null, 2));
+
+      return json(res, 200, { ok: true, filename, messageCount: messages.length });
+    } catch (e) {
+      return json(res, 500, { error: e.message });
+    }
   }
 
   if (p.startsWith('/discord/')) return proxyDiscord(req, res, p.slice('/discord'.length) + url.search);

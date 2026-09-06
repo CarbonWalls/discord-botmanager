@@ -7,7 +7,6 @@
   },
   "strings": {
     "app.title": "bot manager",
-
     "nav.tokens": "token",
     "nav.send": "invio",
     "nav.archive": "archivio",
@@ -16,7 +15,6 @@
     "nav.cleaner": "pulizia",
     "nav.settings": "impostazioni",
     "nav.lock": "blocca",
-
     "unlock.create_title": "crea il vault",
     "unlock.create_desc": "la master password cifra i token con aes-256-gcm. se la perdi, sono irrecuperabili.",
     "unlock.master_password": "master password",
@@ -25,7 +23,6 @@
     "unlock.unlock_title": "sblocca il vault",
     "unlock.unlock_desc": "inserisci la master password.",
     "unlock.unlock": "sblocca",
-
     "vault.title": "token",
     "vault.add": "aggiungi bot",
     "vault.name": "nome",
@@ -50,7 +47,6 @@
     "vault.need_name": "serve un nome",
     "vault.invalid_token": "token non valido",
     "vault.locked": "vault bloccato",
-
     "send.title": "invio",
     "send.bot": "bot",
     "send.destination": "destinazione",
@@ -134,7 +130,6 @@
     "send.send_via_webhook": "invia tramite webhook",
     "send.error_no_webhook": "seleziona un webhook.",
     "send.webhook_no_files": "i webhook qui inviano solo testo ed embed: disattiva file e messaggio vocale.",
-
     "logs.title": "archivio messaggi",
     "logs.bot": "bot",
     "logs.guild": "server",
@@ -159,7 +154,6 @@
     "logs.selected_count": "{n} selezionati",
     "logs.bulk_confirm": "eliminare definitivamente i messaggi selezionati? i messaggi più vecchi di 14 giorni verranno eliminati uno a uno.",
     "logs.bulk_deleted": "messaggi selezionati eliminati",
-
     "presence.title": "presenza bot",
     "presence.info_title": "come funziona",
     "presence.info_desc": "la presenza viene impostata tramite una connessione websocket al gateway di discord. una volta connesso, lo stato resta attivo finché il backend è in esecuzione.",
@@ -177,7 +171,6 @@
     "presence.no_sessions": "nessuna sessione.",
     "presence.updated": "presenza aggiornata",
     "presence.reset": "presenza resettata",
-
     "voice.title": "voce",
     "voice.info_title": "come funziona",
     "voice.info_desc": "il bot entra nel canale vocale usando voice state update. il playback richiede ffmpeg e i permessi connetti/parla.",
@@ -215,7 +208,6 @@
     "voice.undeafen": "non sorda",
     "voice.disconnect": "scollega",
     "voice.member_updated": "membro aggiornato",
-
     "cleaner.title": "pulizia canale",
     "cleaner.warning": "attenzione",
     "cleaner.warning_desc": "queste azioni sono <b>irreversibili</b>. assicurati di aver selezionato il canale giusto.",
@@ -243,7 +235,6 @@
     "cleaner.cloning": "clono…",
     "cleaner.confirm_clone": "crea un canale identico e elimina l'originale. procedere?",
     "cleaner.channel_cloned": "canale clonato",
-
     "settings.title": "impostazioni",
     "settings.autolock": "blocco automatico",
     "settings.autolock_desc": "dopo quanto tempo il vault si richiude.",
@@ -276,7 +267,6 @@
     "settings.master_password_changed": "master password cambiata",
     "settings.current_pw_wrong": "password attuale errata",
     "settings.reset_confirm": "cancella tutti i token. irreversibile.",
-    "settings.vault_deleted": "vault eliminato",
     "settings.password_changed": "master password cambiata",
     "settings.vault_backup": "backup vault",
     "settings.vault_backup_desc": "esporta tutti i token in un file cifrato, o importa un backup esistente. il file è cifrato con la password che scegli per il backup, che non deve per forza essere la master.",
@@ -291,7 +281,6 @@
     "settings.vault_replaced": "vault sostituito",
     "settings.vault_import_invalid": "file di backup non valido.",
     "settings.vault_import_pw_wrong": "password del backup errata.",
-
     "modal.user_profile": "profilo utente",
     "modal.user_id": "user id",
     "modal.copy": "copia",
@@ -307,7 +296,6 @@
     "modal.nick_placeholder": "nuovo nickname...",
     "modal.timeout_placeholder": "durata in minuti",
     "modal.confirm": "conferma",
-
     "profile.no_roles": "nessun ruolo",
     "profile.created": "account creato",
     "profile.joined": "entrato nel server",
@@ -320,7 +308,6 @@
     "profile.user_kicked": "utente espulso",
     "profile.roles_updated": "ruoli aggiornati",
     "modal.manage_roles": "gestisci ruoli",
-
     "common.loading": "caricamento…",
     "common.cancel": "annulla",
     "common.confirm": "conferma",
@@ -335,7 +322,6 @@
     "common.unknown": "sconosciuto",
     "common.connected": "connesso",
     "common.disconnected": "disconnesso",
-
     "select.bot": "seleziona un bot",
     "select.bot_first": "seleziona prima un bot",
     "select.server": "seleziona un server",
@@ -343,11 +329,9 @@
     "select.choose_channel": "scegli un canale",
     "select.loading": "carico…",
     "select.error": "errore",
-
     "voice.select_bot": "seleziona un bot",
     "voice.play_transcoding": "transcoding…",
     "voice.transport_ready": "trasporto vocale pronto",
-
     "error.min_password": "minimo 8 caratteri",
     "error.password_mismatch": "le password non coincidono",
     "error.invalid_duration": "durata non valida",
@@ -365,6 +349,38 @@
     "error.hierarchy": "ruolo del bot troppo basso rispetto al target",
     "error.owner": "impossibile moderare il proprietario del server",
     "error.bulk_delete": "bulk delete limitato ai messaggi più recenti di 14 giorni",
-    "error.invalid_password": "password non valida"
+    "error.invalid_password": "password non valida",
+    "nav.channels": "canali",
+    "channels.title": "gestione canali",
+    "channels.bot": "bot",
+    "channels.guild": "server",
+    "channels.refresh": "aggiorna",
+    "channels.list_title": "lista canali",
+    "channels.no_channels": "seleziona un bot e un server per vederne i canali.",
+    "channels.backup": "backup",
+    "channels.clone": "clona",
+    "channels.delete": "elimina",
+    "channels.backing_up": "salvataggio…",
+    "channels.cloning": "clonazione…",
+    "channels.deleting": "eliminazione…",
+    "channels.backup_complete": "backup salvato ({count} messaggi)",
+    "channels.clone_title": "clona canale",
+    "channels.clone_confirm": "creare una copia di questo canale con le stesse impostazioni?",
+    "channels.cloned": "canale clonato",
+    "channels.delete_title": "elimina canale",
+    "channels.delete_confirm": "questo elimina definitivamente il canale e tutti i suoi messaggi. continuare?",
+    "channels.deleted": "canale eliminato",
+    "presence.rate_limits": "rate limit",
+    "presence.no_rate_limits": "nessun dato sui rate limit — fai qualche chiamata api.",
+    "vault.select_all": "seleziona tutti",
+    "vault.selected_count": "{n} selezionati",
+    "vault.multi_presence": "imposta presenza",
+    "vault.multi_send": "invia messaggio",
+    "vault.multi_disconnect": "disconnetti",
+    "vault.presence_prompt": "stato (online, idle, dnd, invisible)",
+    "vault.channel_prompt": "id canale",
+    "vault.message_prompt": "messaggio da inviare",
+    "vault.confirm_disconnect": "disconnettere tutti i bot selezionati dal gateway?",
+    "vault.multi_complete": "fatto: {success} ok, {failed} falliti"
   }
 }

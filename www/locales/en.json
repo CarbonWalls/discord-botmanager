@@ -7,7 +7,6 @@
   },
   "strings": {
     "app.title": "bot manager",
-
     "nav.tokens": "tokens",
     "nav.send": "send",
     "nav.archive": "archive",
@@ -16,7 +15,6 @@
     "nav.cleaner": "cleaner",
     "nav.settings": "settings",
     "nav.lock": "lock",
-
     "unlock.create_title": "create vault",
     "unlock.create_desc": "the master password encrypts tokens with aes-256-gcm. if you lose it, they are unrecoverable.",
     "unlock.master_password": "master password",
@@ -25,7 +23,6 @@
     "unlock.unlock_title": "unlock vault",
     "unlock.unlock_desc": "enter the master password.",
     "unlock.unlock": "unlock",
-
     "vault.title": "tokens",
     "vault.add": "add bot",
     "vault.name": "name",
@@ -50,7 +47,6 @@
     "vault.need_name": "name required",
     "vault.invalid_token": "invalid token",
     "vault.locked": "vault locked",
-
     "send.title": "send",
     "send.bot": "bot",
     "send.destination": "destination",
@@ -134,7 +130,6 @@
     "send.send_via_webhook": "send via webhook",
     "send.error_no_webhook": "select a webhook.",
     "send.webhook_no_files": "webhooks here send text and embeds only: turn off files and voice message.",
-
     "logs.title": "message archive",
     "logs.bot": "bot",
     "logs.guild": "server",
@@ -159,7 +154,6 @@
     "logs.selected_count": "{n} selected",
     "logs.bulk_confirm": "permanently delete the selected messages? messages older than 14 days will be deleted one by one.",
     "logs.bulk_deleted": "selected messages deleted",
-
     "presence.title": "bot presence",
     "presence.info_title": "how it works",
     "presence.info_desc": "presence is set through a websocket connection to the discord gateway. once connected, status stays active while the backend is running.",
@@ -177,7 +171,6 @@
     "presence.no_sessions": "no sessions.",
     "presence.updated": "presence updated",
     "presence.reset": "presence reset",
-
     "voice.title": "voice",
     "voice.info_title": "how it works",
     "voice.info_desc": "the bot joins a voice channel using voice state update. playback requires ffmpeg and connect/speak permissions.",
@@ -216,7 +209,6 @@
     "voice.undeafen": "undeafen",
     "voice.disconnect": "disconnect",
     "voice.member_updated": "member updated",
-
     "cleaner.title": "channel cleaner",
     "cleaner.warning": "warning",
     "cleaner.warning_desc": "these actions are <b>irreversible</b>. make sure you selected the right channel.",
@@ -244,7 +236,6 @@
     "cleaner.cloning": "cloning…",
     "cleaner.confirm_clone": "creates an identical channel and deletes the original. proceed?",
     "cleaner.channel_cloned": "channel cloned",
-
     "settings.title": "settings",
     "settings.autolock": "auto lock",
     "settings.autolock_desc": "how long before the vault locks.",
@@ -277,7 +268,6 @@
     "settings.master_password_changed": "master password changed",
     "settings.current_pw_wrong": "current password is wrong",
     "settings.reset_confirm": "delete all tokens. irreversible.",
-    "settings.vault_deleted": "vault deleted",
     "settings.password_changed": "master password changed",
     "settings.vault_backup": "vault backup",
     "settings.vault_backup_desc": "export all tokens to an encrypted file, or import an existing backup. the file is encrypted with the backup password you choose, which does not have to be the master one.",
@@ -292,7 +282,6 @@
     "settings.vault_replaced": "vault replaced",
     "settings.vault_import_invalid": "invalid backup file.",
     "settings.vault_import_pw_wrong": "wrong backup password.",
-
     "modal.user_profile": "user profile",
     "modal.user_id": "user id",
     "modal.copy": "copy",
@@ -308,7 +297,6 @@
     "modal.nick_placeholder": "new nickname...",
     "modal.timeout_placeholder": "duration in minutes",
     "modal.confirm": "confirm",
-
     "profile.no_roles": "no roles",
     "profile.created": "account created",
     "profile.joined": "joined server",
@@ -321,7 +309,6 @@
     "profile.user_kicked": "user kicked",
     "profile.roles_updated": "roles updated",
     "modal.manage_roles": "manage roles",
-
     "common.loading": "loading…",
     "common.cancel": "cancel",
     "common.confirm": "confirm",
@@ -336,7 +323,6 @@
     "common.unknown": "unknown",
     "common.connected": "connected",
     "common.disconnected": "disconnected",
-
     "select.bot": "select a bot",
     "select.bot_first": "select a bot first",
     "select.server": "select a server",
@@ -344,10 +330,8 @@
     "select.choose_channel": "choose a channel",
     "select.loading": "loading…",
     "select.error": "error",
-
     "voice.select_bot": "select a bot",
     "voice.transport_ready": "voice transport ready",
-
     "error.min_password": "minimum 8 characters",
     "error.password_mismatch": "passwords do not match",
     "error.invalid_duration": "invalid duration",
@@ -365,6 +349,38 @@
     "error.hierarchy": "bot role is lower than target",
     "error.owner": "cannot moderate the server owner",
     "error.bulk_delete": "bulk delete limited to messages younger than 14 days",
-    "error.invalid_password": "invalid password"
+    "error.invalid_password": "invalid password",
+    "nav.channels": "channels",
+    "channels.title": "channel management",
+    "channels.bot": "bot",
+    "channels.guild": "server",
+    "channels.refresh": "refresh",
+    "channels.list_title": "channel list",
+    "channels.no_channels": "select a bot and a server to see its channels.",
+    "channels.backup": "backup",
+    "channels.clone": "clone",
+    "channels.delete": "delete",
+    "channels.backing_up": "saving…",
+    "channels.cloning": "cloning…",
+    "channels.deleting": "deleting…",
+    "channels.backup_complete": "backup saved ({count} messages)",
+    "channels.clone_title": "clone channel",
+    "channels.clone_confirm": "create a copy of this channel with the same settings?",
+    "channels.cloned": "channel cloned",
+    "channels.delete_title": "delete channel",
+    "channels.delete_confirm": "this permanently deletes the channel and all its messages. continue?",
+    "channels.deleted": "channel deleted",
+    "presence.rate_limits": "rate limits",
+    "presence.no_rate_limits": "no rate limit data yet — make some api calls.",
+    "vault.select_all": "select all",
+    "vault.selected_count": "{n} selected",
+    "vault.multi_presence": "set presence",
+    "vault.multi_send": "send message",
+    "vault.multi_disconnect": "disconnect",
+    "vault.presence_prompt": "status (online, idle, dnd, invisible)",
+    "vault.channel_prompt": "channel id",
+    "vault.message_prompt": "message to send",
+    "vault.confirm_disconnect": "disconnect all the selected bots from the gateway?",
+    "vault.multi_complete": "done: {success} ok, {failed} failed"
   }
 }

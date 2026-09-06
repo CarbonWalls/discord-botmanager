@@ -136,6 +136,7 @@ const ICONS = {
   copy: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>',
   x: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>',
   plus: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>',
+  hash: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M10.54 5l-.42 2H7.96l.42-2h2.16zm3 0h2.16l-.42 2h-2.16l.42-2zM8.38 11H6.22l.42-2h2.16l-.42 2zm7.4-2h2.16l-.42 2h-2.16l.42-2zM9.22 17H7.06l.42-2h2.16l-.42 2zm3 0h2.16l-.42-2h-2.16l.42 2zM20.5 9h-1.94l.42-2h1.6c.55 0 1-.45 1-1s-.45-1-1-1h-1.98l.48-2.29c.11-.54-.23-1.07-.77-1.18-.54-.11-1.07.23-1.18.77L16.53 5h-2.16l.48-2.29c.11-.54-.23-1.07-.77-1.18-.54-.11-1.07.23-1.18.77L12.5 5h-2.16l.48-2.29c.11-.54-.23-1.07-.77-1.18-.54-.11-1.07.23-1.18.77L8.47 5H5c-.55 0-1 .45-1 1s.45 1 1 1h3.09l-.42 2H5.13c-.55 0-1 .45-1 1s.45 1 1 1h2.16l-.42 2H4.71c-.55 0-1 .45-1 1s.45 1 1 1h1.74l-.48 2.29c-.11.54.23 1.07.77 1.18.54.11 1.07-.23 1.18-.77L8.32 15h2.16l-.48 2.29c-.11.54.23 1.07.77 1.18.54.11 1.07-.23 1.18-.77l.39-2.7h2.16l-.48 2.29c-.11.54.23 1.07.77 1.18.54.11 1.07-.23 1.18-.77l.39-2.7H19c.55 0 1-.45 1-1s-.45-1-1-1h-2.6l.42-2h1.68c.55 0 1-.45 1-1s-.45-1-1-1z"/></svg>',
   trashSmall: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>'
 };
 function injectIcons(root = document) {
@@ -1040,6 +1041,7 @@ const TAB_MAP = {
   presence: 'presence',
   voice: 'voice',
   cleaner: 'cleaner',
+  channels: 'channels',
   settings: 'ss'
 };
 function switchTab(tab) {
@@ -1055,6 +1057,7 @@ function switchTab(tab) {
   document.getElementById('backdrop').classList.remove('show');
   if (tab === 'presence') refreshSessions();
   if (tab === 'voice') updateVoiceStatus();
+  if (tab === 'channels') loadChannelsList();
 }
 document.querySelectorAll('.nav-btn').forEach(b => {
   if (b.id !== 'lk-side') b.onclick = () => switchTab(b.dataset.tab);
@@ -1146,17 +1149,23 @@ function rb() {
   if (!V || V.bots.length === 0) {
     c.innerHTML = '<div class="muted center" style="padding:40px 20px">' + esc(t('vault.none')) + '</div>';
     populateAllBotSelects();
+    updateMultiActionBar();
+    const selRow = document.getElementById('select-all-row');
+    if (selRow) selRow.classList.add('hidden');
     return;
   }
   c.innerHTML = V.bots.map((b, i) => `
     <div class="card" data-i="${i}">
-      <div class="bot-item">
-        <div class="dot dot-idle"></div>
-        <div class="bot-info">
-          <div class="bot-name">${esc(b.name)}</div>
-          <div class="bot-meta">${esc(t('vault.added'))} ${esc(fmtDate(b.createdAt))}</div>
+      <label class="check-row">
+        <input type="checkbox" class="bot-select" data-index="${i}" ${selectedBots.has(b.id) ? 'checked' : ''}>
+        <div class="bot-item" style="flex:1">
+          <div class="dot dot-idle"></div>
+          <div class="bot-info">
+            <div class="bot-name">${esc(b.name)}</div>
+            <div class="bot-meta">${esc(t('vault.added'))} ${esc(fmtDate(b.createdAt))}</div>
+          </div>
         </div>
-      </div>
+      </label>
       <div class="btn-row" style="margin-top:12px">
         <button class="btn btn-ghost tb">${esc(t('vault.test'))}</button>
         <button class="btn btn-ghost ib">${esc(t('vault.invite'))}</button>
@@ -1164,6 +1173,9 @@ function rb() {
       </div>
     </div>
   `).join('');
+  c.querySelectorAll('.bot-select').forEach(cb => {
+    cb.onchange = () => toggleBotSelection(parseInt(cb.dataset.index, 10));
+  });
   c.querySelectorAll('.tb').forEach((btn, i) => btn.onclick = async () => {
     const t2 = await db(V.bots[i], K);
     btn.disabled = true;
@@ -1193,11 +1205,12 @@ function rb() {
     }
   });
   c.querySelectorAll('.xb').forEach((btn, i) => btn.onclick = () => {
-    const n = V.bots[i].name;
+    const bot = V.bots[i];
     showConfirmModal(
       t('vault.remove_title'),
-      t('vault.remove_desc').replace('{name}', n),
+      t('vault.remove_desc').replace('{name}', bot.name),
       () => {
+        selectedBots.delete(bot.id);
         V.bots.splice(i, 1);
         sv();
         rb();
@@ -1206,7 +1219,141 @@ function rb() {
     );
   });
   populateAllBotSelects();
+  updateMultiActionBar();
+  const selRow = document.getElementById('select-all-row');
+  if (selRow) selRow.classList.toggle('hidden', !V.bots.length);
 }
+
+/* ===== multi-bot actions (vault) ===== */
+const selectedBots = new Set();
+
+function updateMultiActionBar() {
+  const bar = document.getElementById('multi-action-bar');
+  if (!bar) return;
+  if (selectedBots.size > 0) {
+    bar.classList.remove('hidden');
+    const c = document.getElementById('multi-action-count');
+    if (c) c.textContent = t('vault.selected_count').replace('{n}', selectedBots.size);
+  } else bar.classList.add('hidden');
+}
+
+function toggleBotSelection(index) {
+  const bot = V.bots[index];
+  if (!bot) return;
+  if (selectedBots.has(bot.id)) selectedBots.delete(bot.id);
+  else selectedBots.add(bot.id);
+  updateMultiActionBar();
+}
+
+document.getElementById('select-all-bots').onchange = (e) => {
+  if (e.target.checked) V.bots.forEach(b => selectedBots.add(b.id));
+  else selectedBots.clear();
+  rb();
+};
+
+document.getElementById('multi-clear-selection').onclick = () => {
+  selectedBots.clear();
+  const sa = document.getElementById('select-all-bots');
+  if (sa) sa.checked = false;
+  rb();
+};
+
+function reportMultiResult(success, failed) {
+  tt(t('vault.multi_complete').replace('{success}', success).replace('{failed}', failed));
+}
+
+document.getElementById('multi-set-presence').onclick = () => {
+  if (!selectedBots.size || !K) return;
+  showInputModal(t('vault.multi_presence'), t('vault.presence_prompt'), 'online', async (status) => {
+    status = (status || '').trim().toLowerCase();
+    if (!['online', 'idle', 'dnd', 'invisible'].includes(status)) { tt(t('common.error')); return; }
+    const btn = document.getElementById('multi-set-presence');
+    btn.disabled = true;
+    let success = 0, failed = 0;
+    for (const botId of [...selectedBots]) {
+      const bot = V.bots.find(b => b.id === botId);
+      if (!bot) { failed++; continue; }
+      try {
+        const token = await db(bot, K);
+        await gateway(`/${botId}/connect`, { token });
+        await gateway(`/${botId}/presence`, { status });
+        success++;
+      } catch {
+        failed++;
+      }
+      await new Promise(r => setTimeout(r, 800));
+    }
+    btn.disabled = false;
+    reportMultiResult(success, failed);
+    refreshSessions();
+  });
+};
+
+document.getElementById('multi-send-message').onclick = () => {
+  if (!selectedBots.size || !K) return;
+  showInputModal(t('vault.multi_send'), t('vault.message_prompt'), 'hello', (content) => {
+    if (!content || !content.trim()) return;
+    // closeInputModal() runs right after this callback returns, so the second
+    // prompt must open on the next tick or it gets hidden immediately
+    setTimeout(async () => {
+      const channelId = await requestChannelId();
+      if (!channelId) return;
+      const btn = document.getElementById('multi-send-message');
+      btn.disabled = true;
+      let success = 0, failed = 0;
+      for (const botId of [...selectedBots]) {
+        const bot = V.bots.find(b => b.id === botId);
+        if (!bot) { failed++; continue; }
+        const token = await db(bot, K);
+        const old = selToken;
+        selToken = token;
+        try {
+          await api('/channels/' + channelId + '/messages', {
+            method: 'POST',
+            body: JSON.stringify({ content: content.trim() })
+          });
+          success++;
+        } catch {
+          failed++;
+        } finally {
+          selToken = old;
+        }
+        await new Promise(r => setTimeout(r, 800));
+      }
+      btn.disabled = false;
+      reportMultiResult(success, failed);
+    }, 0);
+  });
+};
+
+// promise wrapper over showInputModal so the two-step channel prompt does not
+// nest two open modals into each other
+function requestChannelId() {
+  return new Promise(resolve => {
+    showInputModal(t('vault.multi_send'), t('vault.channel_prompt'), 'channel_id', (v) => resolve((v || '').trim()));
+  });
+}
+
+document.getElementById('multi-disconnect').onclick = () => {
+  if (!selectedBots.size) return;
+  showConfirmModal(t('vault.multi_disconnect'), t('vault.confirm_disconnect'), async () => {
+    const btn = document.getElementById('multi-disconnect');
+    btn.disabled = true;
+    let success = 0, failed = 0;
+    for (const botId of [...selectedBots]) {
+      try {
+        await gateway(`/${botId}/disconnect`);
+        success++;
+      } catch {
+        failed++;
+      }
+      await new Promise(r => setTimeout(r, 400));
+    }
+    btn.disabled = false;
+    reportMultiResult(success, failed);
+    refreshSessions();
+  });
+};
 
 /* ===== send tab ===== */
 const botSel = document.getElementById('bot-select');
@@ -2238,6 +2385,7 @@ document.getElementById('disconnect-presence').onclick = async () => {
   }
 };
 async function refreshSessions() {
+  refreshRateLimits();
   try {
     const res = await gatewayGet('/status');
     const list = res.sessions || [];
@@ -2269,6 +2417,43 @@ async function refreshSessions() {
     document.getElementById('sessions-list').innerHTML = '<span class="muted small">' + esc(t('common.error')) + ': ' + esc(e.message) + '</span>';
   }
 }
+
+/* ===== rate limit monitor ===== */
+async function refreshRateLimits() {
+  const el = document.getElementById('rate-limits-list');
+  if (!el) return;
+  try {
+    const res = await gatewayGet('/rate-limits');
+    const limits = res.limits || [];
+    if (!limits.length) {
+      el.innerHTML = '<span class="muted small">' + esc(t('presence.no_rate_limits')) + '</span>';
+      return;
+    }
+    const now = Date.now() / 1000;
+    el.innerHTML = limits.slice(0, 10).map(l => {
+      const remaining = l.remaining;
+      const resetIn = Math.max(0, (l.reset || 0) - now);
+      const hot = remaining <= 2;
+      return `
+        <div class="session-item">
+          <div class="dot ${hot ? 'dot-ko' : 'dot-ok'}"></div>
+          <div style="flex:1;min-width:0">
+            <div class="bold small" style="font-size:12px">${esc(String(l.bucket).slice(0, 40))}${l.bucket.length > 40 ? '…' : ''}</div>
+            <div class="muted small"${hot ? ' style="color:var(--danger)"' : ''}>${remaining}/${l.limit || '?'} · reset ${resetIn.toFixed(1)}s</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (e) {
+    el.innerHTML = '<span class="muted small">' + esc(t('common.error')) + ': ' + esc(e.message) + '</span>';
+  }
+}
+
+// keep the monitor fresh while the presence tab is open
+setInterval(() => {
+  const p = document.getElementById('presence');
+  if (p && !p.classList.contains('hidden')) refreshRateLimits();
+}, 5000);
 
 /* ===== voice tab ===== */
 let voiceBot = null;
@@ -2885,6 +3070,188 @@ document.getElementById('clone-channel').onclick = async () => {
   );
 };
 
+/* ===== channels tab ===== */
+let channelsBot = null;
+let channelsToken = null;
+let channelsGuild = null;
+
+const channelsBotSel = document.getElementById('channels-bot-select');
+const channelsGs = document.getElementById('channels-guild-select');
+
+function populateChannelsBotSelect() {
+  if (!channelsBotSel) return;
+  const cur = channelsBotSel.value;
+  channelsBotSel.innerHTML = '';
+  setPlaceholderOption(channelsBotSel, 'select.bot');
+  if (V) {
+    V.bots.forEach(b => {
+      const o = document.createElement('option');
+      o.value = b.id;
+      o.textContent = b.name;
+      channelsBotSel.appendChild(o);
+    });
+  }
+  if (cur) channelsBotSel.value = cur;
+  translateSelectOptions(channelsBotSel);
+}
+
+channelsBotSel.onchange = async () => {
+  const id = channelsBotSel.value;
+  channelsBot = V.bots.find(b => b.id === id) || null;
+  channelsToken = channelsBot ? await db(channelsBot, K) : null;
+  channelsGs.disabled = true;
+  setPlaceholderOption(channelsGs, 'select.bot_first');
+  document.getElementById('channels-list').innerHTML = '<span class="muted small">' + esc(t('channels.no_channels')) + '</span>';
+  if (channelsToken) loadChannelsGuilds();
+};
+
+async function loadChannelsGuilds() {
+  channelsGs.disabled = false;
+  setPlaceholderOption(channelsGs, 'select.loading');
+  try {
+    const old = selToken;
+    selToken = channelsToken;
+    const g = await api('/users/@me/guilds');
+    selToken = old;
+    channelsGs.innerHTML = '';
+    setPlaceholderOption(channelsGs, 'select.choose_server');
+    g.forEach(x => {
+      const o = document.createElement('option');
+      o.value = x.id;
+      o.textContent = x.name;
+      channelsGs.appendChild(o);
+    });
+    translateSelectOptions(channelsGs);
+  } catch (e) {
+    setPlaceholderOption(channelsGs, 'select.error');
+    tt(e.message);
+  }
+}
+
+channelsGs.onchange = async () => {
+  channelsGuild = channelsGs.value;
+  if (channelsGuild) await loadChannelsList();
+};
+
+const CHANNEL_TYPE_ICONS = { 2: '🔊', 4: '📁', 5: '📢', 13: '🔊', 15: '💬' };
+
+async function loadChannelsList() {
+  const list = document.getElementById('channels-list');
+  const err = document.getElementById('channels-error');
+  if (!list) return;
+  if (err) err.classList.add('hidden');
+  if (!channelsGuild || !channelsToken) {
+    list.innerHTML = '<span class="muted small">' + esc(t('channels.no_channels')) + '</span>';
+    return;
+  }
+  list.innerHTML = '<span class="muted small">' + esc(t('common.loading')) + '</span>';
+  const old = selToken;
+  selToken = channelsToken;
+  try {
+    const channels = await api('/guilds/' + channelsGuild + '/channels');
+    const sorted = [...channels].sort((a, b) =>
+      (a.raw_position || 0) - (b.raw_position || 0) || (a.type || 0) - (b.type || 0)
+    );
+    if (!sorted.length) {
+      list.innerHTML = '<span class="muted small">' + esc(t('channels.no_channels')) + '</span>';
+      return;
+    }
+    list.innerHTML = sorted.map(c => {
+      const icon = CHANNEL_TYPE_ICONS[c.type] || '#';
+      const cat = c.parent_id ? sorted.find(x => x.id === c.parent_id) : null;
+      return `
+        <div class="session-item">
+          <div style="flex:1;min-width:0">
+            <div class="bold small">${icon} ${esc(c.name)}${cat ? ` <span class="muted small">(${esc(cat.name)})</span>` : ''}</div>
+            <div class="muted small mono" style="font-size:11px">${esc(c.id)} · type ${c.type}${c.nsfw ? ' · nsfw' : ''}</div>
+          </div>
+          <button class="btn btn-ghost btn-small ch-backup" data-id="${c.id}">${esc(t('channels.backup'))}</button>
+          <button class="btn btn-ghost btn-small ch-clone" data-id="${c.id}">${esc(t('channels.clone'))}</button>
+          <button class="btn btn-danger btn-small ch-delete" data-id="${c.id}">${esc(t('channels.delete'))}</button>
+        </div>
+      `;
+    }).join('');
+
+    list.querySelectorAll('.ch-backup').forEach(btn => {
+      btn.onclick = async () => {
+        const id = btn.dataset.id;
+        btn.disabled = true;
+        btn.textContent = t('channels.backing_up');
+        try {
+          const res = await gateway('/backup/channel/' + id, { token: channelsToken });
+          tt(t('channels.backup_complete').replace('{count}', res.messageCount));
+        } catch (e) {
+          tt(e.message);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = t('channels.backup');
+        }
+      };
+    });
+
+    list.querySelectorAll('.ch-clone').forEach(btn => {
+      btn.onclick = () => {
+        const id = btn.dataset.id;
+        showConfirmModal(t('channels.clone_title'), t('channels.clone_confirm'), async () => {
+          btn.disabled = true;
+          btn.textContent = t('channels.cloning');
+          try {
+            const orig = await api('/channels/' + id);
+            const payload = {
+              name: orig.name + '-copy',
+              type: orig.type,
+              topic: orig.topic || '',
+              nsfw: orig.nsfw || false,
+              rate_limit_per_user: orig.rate_limit_per_user || 0,
+              parent_id: orig.parent_id || null,
+              permission_overwrites: orig.permission_overwrites || []
+            };
+            if (orig.bitrate) payload.bitrate = orig.bitrate;
+            if (orig.user_limit) payload.user_limit = orig.user_limit;
+            const newCh = await api('/guilds/' + channelsGuild + '/channels', {
+              method: 'POST',
+              body: JSON.stringify(payload)
+            });
+            tt(t('channels.cloned') + ': ' + newCh.name);
+            await loadChannelsList();
+          } catch (e) {
+            tt(friendlyError(e.message, 'clone'));
+          } finally {
+            btn.disabled = false;
+            btn.textContent = t('channels.clone');
+          }
+        });
+      };
+    });
+
+    list.querySelectorAll('.ch-delete').forEach(btn => {
+      btn.onclick = () => {
+        const id = btn.dataset.id;
+        showConfirmModal(t('channels.delete_title'), t('channels.delete_confirm'), async () => {
+          btn.disabled = true;
+          btn.textContent = t('channels.deleting');
+          try {
+            await api('/channels/' + id, { method: 'DELETE' });
+            tt(t('channels.deleted'));
+            await loadChannelsList();
+          } catch (e) {
+            tt(friendlyError(e.message, 'delete'));
+          } finally {
+            btn.disabled = false;
+            btn.textContent = t('channels.delete');
+          }
+        });
+      };
+    });
+  } catch (e) {
+    list.innerHTML = '<span class="muted small">' + esc(t('common.error')) + ': ' + esc(e.message) + '</span>';
+  } finally {
+    selToken = old;
+  }
+}
+
+document.getElementById('channels-refresh').onclick = () => loadChannelsList();
+
 /* ===== bot selects helper ===== */
 function populateAllBotSelects() {
   populateBotSelect();
@@ -2892,6 +3259,7 @@ function populateAllBotSelects() {
   populatePresenceBotSelect();
   populateVoiceBotSelect();
   populateCleanBotSelect();
+  populateChannelsBotSelect();
 }
 
 /* ===== init ===== */

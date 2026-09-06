@@ -84,5 +84,8 @@ coverage/
 /play_body.json
 /www/app_test.js
 
+# Local test harness (smoke tests, working-tree backups)
+.tmp/
+
 # Misc
 .npmrc
