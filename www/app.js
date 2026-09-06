@@ -4476,6 +4476,71 @@ document.getElementById('script-insert-example').onclick = () => {
   if (ex && SCRIPT_EXAMPLES[ex]) document.getElementById('script-code').value = SCRIPT_EXAMPLES[ex];
 };
 
+/* ===== channel id fetcher (scripts tab) ===== */
+const cfBotSel = document.getElementById('cf-bot');
+const cfGuildSel = document.getElementById('cf-guild');
+const cfChanSel = document.getElementById('cf-chan');
+const cfIdInput = document.getElementById('cf-id');
+let cfToken = null;
+
+function populateAllBotSelectsCf() {
+  if (!cfBotSel) return;
+  cfBotSel.innerHTML = `<option value="">${esc(t('select.bot'))}</option>` +
+    ((V && V.bots) || []).map(b => `<option value="${esc(b.id)}">${esc(b.name)}</option>`).join('');
+}
+populateAllBotSelectsCf();
+
+if (cfBotSel) cfBotSel.onchange = async () => {
+  const b = (V.bots || []).find(x => x.id === cfBotSel.value);
+  cfGuildSel.innerHTML = '';
+  cfChanSel.innerHTML = '';
+  cfChanSel.disabled = true;
+  cfIdInput.value = '';
+  cfToken = null;
+  if (!b) { cfGuildSel.disabled = true; return; }
+  setPlaceholderOption(cfGuildSel, 'select.loading');
+  cfGuildSel.disabled = false;
+  try {
+    cfToken = await db(b, K);
+    const guilds = await api('/users/@me/guilds', {}, cfToken);
+    cfGuildSel.innerHTML = `<option value="">${esc(t('scripts.cf_pick_guild'))}</option>` +
+      guilds.map(g => `<option value="${esc(g.id)}">${esc(g.name)}</option>`).join('');
+  } catch (e) {
+    cfGuildSel.innerHTML = `<option value="">${esc(t('common.error'))}</option>`;
+    tt(friendlyError(e.message, 'scripts'));
+  }
+};
+if (cfGuildSel) cfGuildSel.onchange = async () => {
+  cfChanSel.innerHTML = '';
+  cfIdInput.value = '';
+  if (!cfGuildSel.value || !cfToken) { cfChanSel.disabled = true; return; }
+  setPlaceholderOption(cfChanSel, 'select.loading');
+  cfChanSel.disabled = false;
+  try {
+    const chs = await api('/guilds/' + cfGuildSel.value + '/channels', {}, cfToken);
+    cfChanSel.innerHTML = `<option value="">${esc(t('scripts.cf_pick_channel'))}</option>` +
+      chs.map(c => {
+        const icon = CHANNEL_TYPE_ICONS[c.type] || '#';
+        return `<option value="${esc(c.id)}">${icon} ${esc(c.name)}</option>`;
+      }).join('');
+  } catch (e) {
+    cfChanSel.innerHTML = `<option value="">${esc(t('common.error'))}</option>`;
+    tt(friendlyError(e.message, 'scripts'));
+  }
+};
+if (cfChanSel) cfChanSel.onchange = () => { cfIdInput.value = cfChanSel.value || ''; };
+if (cfIdInput) document.getElementById('cf-insert').onclick = () => {
+  if (!cfIdInput.value) return;
+  const codeTa = document.getElementById('script-code');
+  const pos = codeTa.selectionStart !== undefined && codeTa.selectionStart !== null ? codeTa.selectionStart : codeTa.value.length;
+  const before = codeTa.value.slice(0, pos);
+  const after = codeTa.value.slice(codeTa.selectionEnd || pos);
+  codeTa.value = before + cfIdInput.value + after;
+  const newPos = pos + cfIdInput.value.length;
+  codeTa.focus();
+  try { codeTa.setSelectionRange(newPos, newPos); } catch {}
+};
+
 document.getElementById('console-clear').onclick = () => clearConsole();
 
 // hotkeys fire only when unlocked and nothing is typing
@@ -4560,6 +4625,7 @@ function populateAllBotSelects() {
   populateCleanBotSelect();
   populateChannelsBotSelect();
   populateMembersBotSelect();
+  populateAllBotSelectsCf();
 }
 
 /* ===== init ===== */

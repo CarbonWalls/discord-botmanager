@@ -601,6 +601,18 @@
               <textarea id="script-code" class="mono" style="min-height:200px" data-i18n-placeholder="scripts.script_code_placeholder"></textarea>
             </div>
             <div class="field">
+              <label class="label" data-i18n="scripts.channel_fetcher"></label>
+              <div class="btn-row" style="flex-wrap:wrap">
+                <select id="cf-bot" style="min-width:120px;flex:1"></select>
+                <select id="cf-guild" disabled style="min-width:120px;flex:1"></select>
+                <select id="cf-chan" disabled style="min-width:120px;flex:1"></select>
+              </div>
+              <div class="btn-row" style="margin-top:6px">
+                <input type="text" id="cf-id" class="mono" readonly style="flex:1" placeholder="id">
+                <button class="btn btn-ghost btn-small" id="cf-insert" data-i18n="scripts.cf_insert"></button>
+              </div>
+            </div>
+            <div class="field">
               <label class="label" data-i18n="scripts.examples"></label>
               <select id="script-examples">
                 <option value="" data-i18n-key="scripts.select_example"></option>
