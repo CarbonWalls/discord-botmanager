@@ -1197,3 +1197,31 @@ a.embed-title:hover { text-decoration: underline; }
   cursor: pointer;
   flex-shrink: 0;
 }
+/* ===== scripts: console + permission prompt ===== */
+.console {
+  background: var(--bg-shell);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  font-family: 'SF Mono', Monaco, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  max-height: 220px;
+  overflow-y: auto;
+  color: var(--text);
+}
+.console-line { margin-bottom: 4px; color: var(--text-secondary); }
+.console-line:last-child { margin-bottom: 0; }
+.perm-details { margin: 10px 0; }
+.perm-details > div { margin-bottom: 6px; }
+.perm-body {
+  max-height: 160px;
+  overflow: auto;
+  background: var(--bg-shell);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

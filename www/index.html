@@ -36,6 +36,7 @@
       <button class="nav-btn" data-tab="channels"><i data-icon="hash"></i><span data-i18n="nav.channels"></span></button>
       <button class="nav-btn" data-tab="scheduler"><i data-icon="clock"></i><span data-i18n="nav.scheduler"></span></button>
       <button class="nav-btn" data-tab="members"><i data-icon="users"></i><span data-i18n="nav.members"></span></button>
+      <button class="nav-btn" data-tab="scripts"><i data-icon="code"></i><span data-i18n="nav.scripts"></span></button>
       <button class="nav-btn" data-tab="settings"><i data-icon="settings"></i><span data-i18n="nav.settings"></span></button>
     </nav>
     <div class="nav-spacer"></div>
@@ -548,9 +549,76 @@
           </div>
         </section>
 
+        <!-- SCRIPTS -->
+        <section id="scripts" class="hidden">
+          <div class="page-header">
+            <h1 data-i18n="scripts.title"></h1>
+            <button class="btn btn-primary" id="scripts-add"><i data-icon="plus"></i><span data-i18n="scripts.add"></span></button>
+          </div>
+          <div class="info-card">
+            <div class="info-title"><i data-icon="info"></i><span data-i18n="scripts.info_title"></span></div>
+            <p data-i18n="scripts.info_desc"></p>
+          </div>
+          <div id="script-form" class="card hidden">
+            <div class="card-title" data-i18n="scripts.new_script"></div>
+            <div class="field">
+              <label class="label" data-i18n="scripts.script_name"></label>
+              <input type="text" id="script-name" data-i18n-placeholder="scripts.script_name_placeholder">
+            </div>
+            <div class="field">
+              <label class="label" data-i18n="scripts.script_color"></label>
+              <input type="color" id="script-color" value="#4d6bfe">
+            </div>
+            <div class="field">
+              <label class="label" data-i18n="scripts.script_hotkey"></label>
+              <input type="text" id="script-hotkey" data-i18n-placeholder="scripts.script_hotkey_placeholder">
+              <div class="muted small" style="margin-top:4px" data-i18n="scripts.hotkey_help"></div>
+            </div>
+            <div class="field">
+              <label class="label" data-i18n="scripts.script_code"></label>
+              <textarea id="script-code" class="mono" style="min-height:200px" data-i18n-placeholder="scripts.script_code_placeholder"></textarea>
+            </div>
+            <div class="field">
+              <label class="label" data-i18n="scripts.examples"></label>
+              <select id="script-examples">
+                <option value="" data-i18n-key="scripts.select_example"></option>
+                <option value="hello" data-i18n-key="scripts.example_hello"></option>
+                <option value="presence" data-i18n-key="scripts.example_presence"></option>
+                <option value="storage" data-i18n-key="scripts.example_storage"></option>
+              </select>
+              <button class="btn btn-ghost btn-small" id="script-insert-example" data-i18n="scripts.insert_example"></button>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-primary" id="script-save" data-i18n="common.save"></button>
+              <button class="btn btn-ghost" id="script-run" data-i18n="scripts.run"></button>
+              <button class="btn btn-ghost" id="script-cancel" data-i18n="common.cancel"></button>
+            </div>
+            <div class="error hidden" id="script-error"></div>
+          </div>
+          <div class="card">
+            <div class="card-title" data-i18n="scripts.scripts_list"></div>
+            <div id="scripts-list" class="muted small" data-i18n="scripts.no_scripts"></div>
+          </div>
+          <div class="card">
+            <div class="card-title" data-i18n="scripts.console_title"></div>
+            <div id="script-console" class="console"></div>
+            <div class="btn-row">
+              <button class="btn btn-ghost btn-small" id="console-clear" data-i18n="scripts.clear_console"></button>
+            </div>
+          </div>
+        </section>
+
         <!-- SETTINGS -->
         <section id="ss" class="hidden">
           <div class="page-header"><h1 data-i18n="settings.title"></h1></div>
+          <div class="card">
+            <div class="card-title" data-i18n="settings.script_permissions"></div>
+            <p class="muted small" data-i18n="settings.script_permissions_desc"></p>
+            <div id="script-permissions-list" class="muted small" data-i18n="settings.no_script_permissions"></div>
+            <div class="btn-row" style="margin-top:12px">
+              <button class="btn btn-ghost btn-small" id="revoke-all-permissions" data-i18n="settings.revoke_all"></button>
+            </div>
+          </div>
           <div class="card">
             <div class="card-title" data-i18n="settings.autolock"></div>
             <p class="muted small" data-i18n="settings.autolock_desc"></p>

@@ -1,4 +1,5 @@
 document.documentElement.classList.add('i18n-loading');
+import { configureRuntime, executeScript, clearConsole, isRunning } from './runtime.js';
 const CRITICAL_CSS = `
 html.i18n-loading body {
   visibility: hidden;
@@ -139,6 +140,7 @@ const ICONS = {
   hash: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M10.54 5l-.42 2H7.96l.42-2h2.16zm3 0h2.16l-.42 2h-2.16l.42-2zM8.38 11H6.22l.42-2h2.16l-.42 2zm7.4-2h2.16l-.42 2h-2.16l.42-2zM9.22 17H7.06l.42-2h2.16l-.42 2zm3 0h2.16l-.42-2h-2.16l.42 2zM20.5 9h-1.94l.42-2h1.6c.55 0 1-.45 1-1s-.45-1-1-1h-1.98l.48-2.29c.11-.54-.23-1.07-.77-1.18-.54-.11-1.07.23-1.18.77L16.53 5h-2.16l.48-2.29c.11-.54-.23-1.07-.77-1.18-.54-.11-1.07.23-1.18.77L12.5 5h-2.16l.48-2.29c.11-.54-.23-1.07-.77-1.18-.54-.11-1.07.23-1.18.77L8.47 5H5c-.55 0-1 .45-1 1s.45 1 1 1h3.09l-.42 2H5.13c-.55 0-1 .45-1 1s.45 1 1 1h2.16l-.42 2H4.71c-.55 0-1 .45-1 1s.45 1 1 1h1.74l-.48 2.29c-.11.54.23 1.07.77 1.18.54.11 1.07-.23 1.18-.77L8.32 15h2.16l-.48 2.29c-.11.54.23 1.07.77 1.18.54.11 1.07-.23 1.18-.77l.39-2.7h2.16l-.48 2.29c-.11.54.23 1.07.77 1.18.54.11 1.07-.23 1.18-.77l.39-2.7H19c.55 0 1-.45 1-1s-.45-1-1-1h-2.6l.42-2h1.68c.55 0 1-.45 1-1s-.45-1-1-1z"/></svg>',
   clock: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>',
   users: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>',
+  code: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>',
   trashSmall: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>'
 };
 function injectIcons(root = document) {
@@ -174,6 +176,9 @@ if (typeof crypto === 'undefined' || !crypto.subtle) {
 
 const API = '/discord';
 const GATEWAY = '/gateway';
+// per-boot bridge secret injected into index.html; required by every
+// /gateway/* and /discord/* call, never visible to user-script workers
+const BRIDGE_NONCE = (document.querySelector('meta[name="x-bridge-nonce"]') || {}).getAttribute ? document.querySelector('meta[name="x-bridge-nonce"]').getAttribute('content') : null;
 const ITERS = 100000;
 const VER = 'vault-ok';
 const INVITE_PERMS = 70368744295424;
@@ -1046,6 +1051,7 @@ const TAB_MAP = {
   channels: 'channels',
   scheduler: 'scheduler',
   members: 'members',
+  scripts: 'scripts',
   settings: 'ss'
 };
 function switchTab(tab) {
@@ -1064,6 +1070,8 @@ function switchTab(tab) {
   if (tab === 'channels') loadChannelsList();
   if (tab === 'scheduler') loadJobs();
   if (tab === 'members') refreshMembersCount();
+  if (tab === 'scripts') loadScripts();
+  if (tab === 'settings') loadScriptPermissions();
 }
 document.querySelectorAll('.nav-btn').forEach(b => {
   if (b.id !== 'lk-side') b.onclick = () => switchTab(b.dataset.tab);
@@ -1097,7 +1105,7 @@ async function api(path, opts = {}, overrideToken = null) {
   const tok = overrideToken || selToken;
   const r = await fetch(API + path, {
     method: opts.method || 'GET',
-    headers: { 'X-Bot-Token': tok, 'Content-Type': 'application/json' },
+    headers: { 'X-Bot-Token': tok, 'X-Client-Nonce': BRIDGE_NONCE, 'Content-Type': 'application/json' },
     body: opts.body,
   });
   if (!r.ok) {
@@ -1105,7 +1113,9 @@ async function api(path, opts = {}, overrideToken = null) {
     try {
       const j = await r.json();
       if (j.message) msg = j.message;
+      if (j.error) msg = j.error;
     } catch {}
+    if (r.status === 403 && String(msg).includes('nonce')) throw new Error(t('errors.stale_page'));
     throw new Error(msg);
   }
   return r.status === 204 ? null : r.json();
@@ -1113,7 +1123,7 @@ async function api(path, opts = {}, overrideToken = null) {
 async function apiUpload(path, fd, token) {
   const r = await fetch(API + path, {
     method: 'POST',
-    headers: { 'X-Bot-Token': token },
+    headers: { 'X-Bot-Token': token, 'X-Client-Nonce': BRIDGE_NONCE },
     body: fd
   });
   if (!r.ok) {
@@ -1129,7 +1139,7 @@ async function apiUpload(path, fd, token) {
 async function gateway(path, body = {}) {
   const r = await fetch(GATEWAY + path, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'X-Client-Nonce': BRIDGE_NONCE, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
   if (!r.ok) {
@@ -1143,8 +1153,13 @@ async function gateway(path, body = {}) {
   return r.json();
 }
 async function gatewayGet(path) {
-  const r = await fetch(GATEWAY + path);
-  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const r = await fetch(GATEWAY + path, { headers: { 'X-Client-Nonce': BRIDGE_NONCE } });
+  if (!r.ok) {
+    let msg = 'HTTP ' + r.status;
+    try { const j = await r.json(); if (j.error) msg = j.error; } catch {}
+    if (r.status === 403 && String(msg).includes('nonce')) throw new Error(t('errors.stale_page'));
+    throw new Error(msg);
+  }
   return r.json();
 }
 
@@ -1552,7 +1567,7 @@ document.getElementById('send-btn').onclick = async () => {
       const wOpt = webhookSel.selectedOptions[0];
       const r = await fetch(`/gateway/webhook/${webhookSel.value}/${wOpt.dataset.token}?wait=true`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'X-Client-Nonce': BRIDGE_NONCE, 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
       if (!r.ok) {
@@ -3451,7 +3466,7 @@ async function loadJobs() {
         showConfirmModal(t('scheduler.delete_job'), t('scheduler.delete_confirm'), async () => {
           btn.disabled = true;
           try {
-            await fetch('/gateway/scheduler/job/' + id, { method: 'DELETE' });
+            await fetch('/gateway/scheduler/job/' + id, { method: 'DELETE', headers: { 'X-Client-Nonce': BRIDGE_NONCE } });
             tt(t('scheduler.job_deleted'));
             await loadJobs();
           } catch (e) {
@@ -3548,7 +3563,7 @@ document.getElementById('members-fetch').onclick = async () => {
   btn.textContent = t('common.loading');
 
   try {
-    const r = await fetch('/gateway/' + membersBot.id + '/members/' + membersGuild);
+    const r = await fetch('/gateway/' + membersBot.id + '/members/' + membersGuild, { headers: { 'X-Client-Nonce': BRIDGE_NONCE } });
     const data = await r.json().catch(() => ({}));
     if (!r.ok) {
       if (r.status === 403) {
@@ -3651,6 +3666,306 @@ function filterMembers() {
 
 document.getElementById('members-search').oninput = filterMembers;
 document.getElementById('members-role-filter').onchange = filterMembers;
+
+/* ===== scripts tab (user scripts, sandboxed) ===== */
+const SCRIPTS_MAX = 50;
+let editingScriptId = null;
+
+function getSelected(kind) {
+  if (kind === 'bot') {
+    const id = botSel && botSel.value;
+    const b = V.bots.find(x => x.id === id);
+    return b ? { id: b.id, name: b.name } : null;
+  }
+  const el = kind === 'channel' ? document.getElementById('chan-select') : document.getElementById('guild-select');
+  if (!el || !el.value) return null;
+  const opt = el.options[el.selectedIndex];
+  return { id: el.value, name: opt ? opt.textContent : el.value };
+}
+
+function getScriptPermissions(scriptId) {
+  const s = (V.scripts || []).find(x => x.id === scriptId);
+  return s && Array.isArray(s.permissions) ? s.permissions : [];
+}
+
+function addScriptPermission(scriptId, perm) {
+  const s = (V.scripts || []).find(x => x.id === scriptId);
+  if (!s) return;
+  if (!Array.isArray(s.permissions)) s.permissions = [];
+  if (!s.permissions.some(p => p.path === perm.path && p.method === perm.method)) {
+    s.permissions.push(perm);
+    sv();
+    loadScriptPermissions();
+  }
+}
+
+configureRuntime({
+  V: () => V,
+  K: () => K,
+  sv: () => sv(),
+  db,
+  tt,
+  t,
+  esc,
+  injectIcons,
+  getScriptPermissions,
+  addScriptPermission,
+  getSelected
+});
+
+function runScript(script) {
+  executeScript(script);
+}
+
+function loadScripts() {
+  const list = document.getElementById('scripts-list');
+  if (!list) return;
+  const scripts = V.scripts || [];
+
+  if (!scripts.length) {
+    list.innerHTML = '<span class="muted small">' + esc(t('scripts.no_scripts')) + '</span>';
+    return;
+  }
+
+  list.innerHTML = scripts.map(s => `
+    <div class="session-item">
+      <div style="width:12px;height:12px;border-radius:50%;background:${esc(s.color || '#4d6bfe')};flex-shrink:0"></div>
+      <div style="flex:1;min-width:0">
+        <div class="bold small">${esc(s.name)}</div>
+        <div class="muted small">${s.hotkey ? esc(t('scripts.hotkey')) + ': ' + esc(s.hotkey) : esc(t('scripts.no_hotkey'))}${(s.permissions || []).length ? ' · ' + (s.permissions.length) + ' ' + esc(t('settings.permissions')) : ''}</div>
+      </div>
+      <button class="btn btn-ghost btn-small script-run" data-id="${s.id}">${esc(t('scripts.run'))}</button>
+      <button class="btn btn-ghost btn-small script-edit" data-id="${s.id}">${esc(t('common.edit'))}</button>
+      <button class="btn btn-danger btn-small script-delete" data-id="${s.id}">${esc(t('common.delete'))}</button>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.script-run').forEach(btn => {
+    btn.onclick = () => {
+      const script = (V.scripts || []).find(s => s.id === btn.dataset.id);
+      if (script) runScript(script);
+    };
+  });
+
+  list.querySelectorAll('.script-edit').forEach(btn => {
+    btn.onclick = () => {
+      const script = (V.scripts || []).find(s => s.id === btn.dataset.id);
+      if (!script) return;
+      editingScriptId = script.id;
+      document.getElementById('script-name').value = script.name;
+      document.getElementById('script-color').value = script.color || '#4d6bfe';
+      document.getElementById('script-hotkey').value = script.hotkey || '';
+      document.getElementById('script-code').value = script.code || '';
+      document.getElementById('script-form').classList.remove('hidden');
+      document.getElementById('script-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+  });
+
+  list.querySelectorAll('.script-delete').forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.dataset.id;
+      const script = (V.scripts || []).find(s => s.id === id);
+      showConfirmModal(
+        t('scripts.delete_script'),
+        t('scripts.delete_confirm').replace('{name}', script ? script.name : ''),
+        () => {
+          V.scripts = (V.scripts || []).filter(s => s.id !== id);
+          if (V.scriptStorage) delete V.scriptStorage[id];
+          sv();
+          loadScripts();
+          loadScriptPermissions();
+          tt(t('scripts.script_deleted'));
+        }
+      );
+    };
+  });
+}
+
+const SCRIPT_EXAMPLES = {
+  hello: `// invia un messaggio nel canale selezionato della tab invio
+async function main() {
+  const channel = await api.getSelectedChannel();
+  if (!channel) { ui.toast('nessun canale selezionato'); return; }
+  const bot = await api.getSelectedBot();
+  if (!bot) { ui.toast('nessun bot selezionato'); return; }
+  ui.log('invio in #' + channel.name + ' come @' + bot.name);
+  const result = await api.discord(
+    bot.id,
+    '/channels/' + channel.id + '/messages',
+    'POST',
+    { content: 'ciao da uno script!' }
+  );
+  ui.toast('inviato: ' + result.id);
+}
+main().catch(e => ui.log('errore: ' + e.message));`,
+  presence: `// imposta lo stato del bot selezionato (richiede il gateway connesso)
+async function main() {
+  const bot = await api.getSelectedBot();
+  if (!bot) { ui.toast('nessun bot selezionato'); return; }
+  ui.log('cambio stato per @' + bot.name);
+  await api.discord(bot.id, '/users/@me', 'PATCH', { status: 'dnd' });
+  ui.toast('stato aggiornato');
+}
+main().catch(e => ui.log('errore: ' + e.message));`,
+  storage: `// contatore di esecuzioni persistito (nel vault, per-script)
+async function main() {
+  const count = (await storage.get('run_count')) || 0;
+  ui.log('esecuzioni: ' + count);
+  await storage.set('run_count', count + 1);
+  ui.toast('contatore incrementato');
+}
+main().catch(e => ui.log('errore: ' + e.message));`
+};
+
+document.getElementById('scripts-add').onclick = () => {
+  if ((V.scripts || []).length >= SCRIPTS_MAX) { tt(t('scripts.too_many')); return; }
+  editingScriptId = null;
+  document.getElementById('script-name').value = '';
+  document.getElementById('script-color').value = '#4d6bfe';
+  document.getElementById('script-hotkey').value = '';
+  document.getElementById('script-code').value = '';
+  document.getElementById('script-examples').value = '';
+  document.getElementById('script-error').classList.add('hidden');
+  document.getElementById('script-form').classList.remove('hidden');
+};
+
+document.getElementById('script-cancel').onclick = () => {
+  document.getElementById('script-form').classList.add('hidden');
+  editingScriptId = null;
+};
+
+document.getElementById('script-save').onclick = () => {
+  const err = document.getElementById('script-error');
+  err.classList.add('hidden');
+  const name = document.getElementById('script-name').value.trim();
+  const color = document.getElementById('script-color').value;
+  const hotkey = document.getElementById('script-hotkey').value.trim().toLowerCase();
+  const code = document.getElementById('script-code').value;
+
+  if (!name) { err.textContent = t('scripts.error_need_name'); err.classList.remove('hidden'); return; }
+  if (!code.trim()) { err.textContent = t('scripts.error_need_code'); err.classList.remove('hidden'); return; }
+  if (hotkey && !/^(ctrl\+)?(shift\+)?(alt\+)?[a-z0-9]$/.test(hotkey)) {
+    err.textContent = t('scripts.error_bad_hotkey');
+    err.classList.remove('hidden');
+    return;
+  }
+
+  if (!Array.isArray(V.scripts)) V.scripts = [];
+
+  if (editingScriptId) {
+    const script = V.scripts.find(s => s.id === editingScriptId);
+    if (script) {
+      script.name = name;
+      script.color = color;
+      script.hotkey = hotkey;
+      script.code = code;
+    }
+  } else {
+    if (V.scripts.length >= SCRIPTS_MAX) { tt(t('scripts.too_many')); return; }
+    V.scripts.push({
+      id: 'script-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+      name, color, hotkey, code,
+      permissions: [],
+      createdAt: Date.now(),
+      runCount: 0
+    });
+  }
+
+  sv();
+  loadScripts();
+  loadScriptPermissions();
+  document.getElementById('script-form').classList.add('hidden');
+  editingScriptId = null;
+  tt(t('scripts.script_saved'));
+};
+
+document.getElementById('script-run').onclick = () => {
+  const name = document.getElementById('script-name').value.trim();
+  const code = document.getElementById('script-code').value;
+  if (!name || !code.trim()) { tt(t('scripts.error_need_name_and_code')); return; }
+  // run the editor buffer without saving: a temp id gets fresh permissions
+  runScript({ id: 'temp-' + Date.now(), name, code, permissions: [] });
+};
+
+document.getElementById('script-insert-example').onclick = () => {
+  const ex = document.getElementById('script-examples').value;
+  if (ex && SCRIPT_EXAMPLES[ex]) document.getElementById('script-code').value = SCRIPT_EXAMPLES[ex];
+};
+
+document.getElementById('console-clear').onclick = () => clearConsole();
+
+// hotkeys fire only when unlocked and nothing is typing
+document.addEventListener('keydown', (e) => {
+  if (!V || !K) return;
+  const tag = (document.activeElement && document.activeElement.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+  for (const script of (V.scripts || [])) {
+    if (!script.hotkey) continue;
+    const parts = script.hotkey.split('+');
+    const key = parts[parts.length - 1];
+    if (e.ctrlKey === parts.includes('ctrl') &&
+        e.shiftKey === parts.includes('shift') &&
+        e.altKey === parts.includes('alt') &&
+        e.key.toLowerCase() === key) {
+      e.preventDefault();
+      runScript(script);
+      return;
+    }
+  }
+});
+
+/* ===== settings: script permissions ===== */
+function loadScriptPermissions() {
+  const list = document.getElementById('script-permissions-list');
+  if (!list) return;
+  const scripts = (V.scripts || []).filter(s => (s.permissions || []).length > 0);
+
+  if (!scripts.length) {
+    list.innerHTML = '<span class="muted small">' + esc(t('settings.no_script_permissions')) + '</span>';
+    return;
+  }
+
+  list.innerHTML = scripts.map(s => `
+    <div class="session-item">
+      <div style="flex:1;min-width:0">
+        <div class="bold small">${esc(s.name)}</div>
+        <div class="muted small">${(s.permissions || []).map(p => esc(p.method + ' ' + p.path)).join(' · ')}</div>
+      </div>
+      <button class="btn btn-danger btn-small revoke-perms" data-id="${s.id}">${esc(t('settings.revoke'))}</button>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.revoke-perms').forEach(btn => {
+    btn.onclick = () => {
+      const script = (V.scripts || []).find(s => s.id === btn.dataset.id);
+      if (script) {
+        script.permissions = [];
+        sv();
+        loadScriptPermissions();
+        loadScripts();
+        tt(t('settings.permissions_revoked'));
+      }
+    };
+  });
+}
+
+document.getElementById('revoke-all-permissions').onclick = () => {
+  if (!(V.scripts || []).some(s => (s.permissions || []).length)) return;
+  showConfirmModal(t('settings.revoke_all'), t('settings.revoke_all_confirm'), () => {
+    (V.scripts || []).forEach(s => { s.permissions = []; });
+    sv();
+    loadScriptPermissions();
+    loadScripts();
+    tt(t('settings.all_permissions_revoked'));
+  });
+};
+
+window.addEventListener('i18n:changed', () => {
+  if (V && K) {
+    loadScripts();
+    loadScriptPermissions();
+  }
+});
 
 /* ===== bot selects helper ===== */
 function populateAllBotSelects() {
@@ -4071,7 +4386,11 @@ document.getElementById('tpl-delete').onclick = () => {
 /* ===== export / import vault ===== */
 function exportVault() {
   if (!V) { tt(t('common.error')); return; }
-  const blob = new Blob([JSON.stringify(V, null, 2)], { type: 'application/json' });
+  // script permissions are deliberately excluded: an exported backup must not
+  // carry pre-approved api scopes, re-prompt on the importing installation
+  const snapshot = JSON.parse(JSON.stringify(V));
+  (snapshot.scripts || []).forEach(s => { delete s.permissions; });
+  const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -4116,9 +4435,23 @@ async function doImport(mode) {
     }
     if (mode === 'replace') {
       V.bots = recs;
+      // scripts and per-script storage travel with the vault; permissions do
+      // not survive an export, but sanitize anyway for hand-made files
+      V.scripts = (pendingImport.scripts || []).map(s => ({
+        ...s,
+        permissions: []
+      }));
+      V.scriptStorage = pendingImport.scriptStorage || {};
     } else {
       const names = new Set(V.bots.map(b => b.name));
       for (const r of recs) if (!names.has(r.name)) V.bots.push(r);
+      const ids = new Set((V.scripts || []).map(s => s.id));
+      for (const s of (pendingImport.scripts || [])) {
+        if (!ids.has(s.id)) V.scripts.push({ ...s, permissions: [] });
+      }
+      if (pendingImport.scriptStorage) {
+        V.scriptStorage = { ...(pendingImport.scriptStorage || {}), ...(V.scriptStorage || {}) };
+      }
     }
     sv();
     rb();

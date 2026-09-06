@@ -117,10 +117,14 @@ async function transcodeToOggBuffer(inputPath) {
 const cors = (res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,PUT,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,X-Bot-Token');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,X-Bot-Token,X-Client-Nonce');
 };
 const send = (res, status, type, body) => { res.writeHead(status, { 'Content-Type': type }); res.end(body); };
 const json = (res, status, obj) => send(res, status, 'application/json', JSON.stringify(obj));
+
+// per-boot secret required by every /gateway/* and /discord/* call; injected
+// into the served index.html so the page has it but workers/user scripts cannot
+const SESSION_NONCE = crypto.randomBytes(16).toString('hex');
 
 async function readBody(req) {
   const chunks = [];
@@ -164,6 +168,23 @@ function serveStatic(res, pathname) {
   const file = path.normalize(path.join(WWW, rel));
   if (!file.startsWith(WWW + path.sep) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
     return send(res, 404, 'text/plain', '404');
+  }
+  // the script-sandbox worker must have zero network reach from inside:
+  // connect-src 'none' blocks fetch/xhr/ws/eventsource/cache.add at the
+  // browser level, which user code cannot bypass even by restoring shims
+  if (rel === 'runtime-worker.js') {
+    res.writeHead(200, {
+      'Content-Type': 'text/javascript',
+      'Content-Security-Policy': "default-src 'none'; script-src 'self' 'unsafe-eval'; connect-src 'none'; worker-src 'none'"
+    });
+    return res.end(fs.readFileSync(file));
+  }
+  if (rel === 'index.html') {
+    const html = fs.readFileSync(file, 'utf8').replace(
+      '<head>',
+      `<head>\n  <meta name="x-bridge-nonce" content="${SESSION_NONCE}">`
+    );
+    return send(res, 200, 'text/html', html);
   }
   send(res, 200, MIME[path.extname(file)] || 'application/octet-stream', fs.readFileSync(file));
 }
@@ -1257,6 +1278,15 @@ http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const p = url.pathname;
   let m;
+
+  // every api route requires the per-boot nonce (injected into index.html);
+  // static files stay open. this walls off bridge endpoints from user scripts
+  // running inside sandboxed workers, which never receive the nonce
+  if (p.startsWith('/gateway/') || p.startsWith('/discord/')) {
+    if (req.headers['x-client-nonce'] !== SESSION_NONCE) {
+      return json(res, 403, { error: 'invalid session nonce' });
+    }
+  }
 
   if (p === '/gateway/tools/transcode-voice' && req.method === 'POST') {
     const body = await readJson(req);
