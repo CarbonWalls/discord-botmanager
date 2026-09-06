@@ -1176,6 +1176,15 @@ function connectGateway(botId, token) {
           else if (data.t === 'MESSAGE_UPDATE' && data.d.channel_id) saveMessage(data.d);
           else if (data.t === 'MESSAGE_DELETE' && data.d.channel_id) markDeleted(data.d.channel_id, data.d.id);
           else if (data.t === 'MESSAGE_DELETE_BULK' && data.d.channel_id) data.d.ids.forEach(id => markDeleted(data.d.channel_id, id));
+          else if (data.t === 'GUILD_CREATE') {
+            // seed the voice state cache with the members already in voice
+            // when the session opened (VOICE_STATE_UPDATE only carries deltas)
+            if (Array.isArray(data.d.voice_states)) {
+              for (const vs of data.d.voice_states) {
+                if (vs && vs.user_id && vs.channel_id) session.guildVoiceStates.set(vs.user_id, vs);
+              }
+            }
+          }
           else if (data.t === 'VOICE_STATE_UPDATE') {
             // track every member's voice state (used by the voice moderation list)
             if (data.d.guild_id) {
@@ -1310,7 +1319,8 @@ http.createServer(async (req, res) => {
   if ((m = p.match(/^\/gateway\/([^/]+)\/connect$/)) && req.method === 'POST') {
     const body = await readJson(req);
     if (!body.token) return json(res, 400, { error: 'missing token' });
-    connectGateway(m[1], body.token).then(() => json(res, 200, { ok: true })).catch(e => json(res, 500, { error: e.message }));
+    const existed = (() => { const s = sessions.get(m[1]); return !!s && s.ws.readyState === WebSocket.OPEN; })();
+    connectGateway(m[1], body.token).then(() => json(res, 200, { ok: true, created: !existed })).catch(e => json(res, 500, { error: e.message }));
     return;
   }
 
@@ -1395,10 +1405,49 @@ http.createServer(async (req, res) => {
     return;
   }
 
-  // tracked voice states of every member in the guild (gateway cache)
-  if ((m = p.match(/^\/gateway\/([^/]+)\/voice\/states$/)) && req.method === 'GET') {
+  // tracked voice states of every member in the guild. the gateway cache
+  // (VOICE_STATE_UPDATE + GUILD_CREATE seed) may be empty or stale for users
+  // whose states were never observed, so it is re-verified per user against
+  // the per-user REST endpoint before being reported.
+  if ((m = p.match(/^\/gateway\/([^/]+)\/voice\/states(\?.*)?$/)) && req.method === 'GET') {
     const s = sessions.get(m[1]);
-    const states = s?.guildVoiceStates ? [...s.guildVoiceStates.values()] : [];
+    const guildId = url.searchParams.get('guild_id');
+    let states = s?.guildVoiceStates ? [...s.guildVoiceStates.values()] : [];
+    if (states.some(st => !st || !st.channel_id)) {
+      states = states.filter(st => st && st.channel_id);
+    }
+    if (guildId && s) {
+      const candidateIds = [...new Set(states.map(st => st.user_id).filter(Boolean))];
+      const verified = new Map(states.map(st => [st.user_id, st]));
+      const token = s.token || null;
+      const missing = [];
+      for (const uid of candidateIds) {
+        const cached = verified.get(uid);
+        if (cached && (cached.guild_id || cached.join_time)) continue;
+        missing.push(uid);
+      }
+      await Promise.all(missing.map(async (uid) => {
+        try {
+          const r = await fetch(`${API}/guilds/${guildId}/voice-states/${uid}`, {
+            headers: { Authorization: `Bot ${token}`, 'User-Agent': 'DiscordBot (local-manager, 1.0)' }
+          });
+          if (r.ok) {
+            const fresh = await r.json();
+            if (fresh && fresh.channel_id) {
+              verified.set(uid, fresh);
+              s.guildVoiceStates.set(uid, fresh);
+            } else {
+              verified.delete(uid);
+              s.guildVoiceStates.delete(uid);
+            }
+          } else if (r.status === 404) {
+            verified.delete(uid);
+            s.guildVoiceStates.delete(uid);
+          }
+        } catch {}
+      }));
+      states = [...verified.values()].filter(st => st && st.channel_id);
+    }
     return json(res, 200, { states });
   }
 

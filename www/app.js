@@ -2644,6 +2644,13 @@ document.getElementById('voice-leave').onclick = async () => {
   }
 };
 document.getElementById('voice-refresh').onclick = () => updateVoiceStatus();
+// light poll while the voice tab is active so join/leave of other members shows up
+setInterval(() => {
+  const panel = document.getElementById('voice');
+  if (panel && !panel.classList.contains('hidden')) {
+    updateVoiceMembers();
+  }
+}, 5000);
 ['voice-self-mute', 'voice-self-deaf'].forEach(id => {
   const el = document.getElementById(id);
   if (!el) return;
@@ -2727,9 +2734,19 @@ if (voiceStopBtn) {
     }
   };
 }
+let voiceSessionPending = false;
 async function updateVoiceStatus() {
   const el = document.getElementById('voice-status');
   if (!el) return;
+  // make sure a gateway session exists so GUILD_CREATE seeds the bridge cache
+  // and VOICE_STATE_UPDATE deltas arrive; reused if already open
+  if (voiceBot && !voiceSessionPending) {
+    voiceSessionPending = true;
+    gateway('/' + voiceBot.id + '/connect', { token: voiceToken })
+      .then(r => { if (r && r.created) setTimeout(updateVoiceMembers, 2500); })
+      .catch(() => {})
+      .finally(() => { voiceSessionPending = false; });
+  }
   updateVoiceMembers();
   if (!voiceBot) {
     el.textContent = '';
@@ -2770,6 +2787,42 @@ async function updateVoiceStatus() {
 
 /* ===== voice moderation ===== */
 const voiceUserCache = {};
+// explicit per-user REST sweep: no guild-level voice-state endpoint exists, so
+// each known member is polled individually (cheap on small servers, no
+// gateway session required)
+async function guildVoiceStatesRest(guildId, token) {
+  const ids = await guildMemberIds(guildId, token);
+  const results = await Promise.all(ids.map(async (uid) => {
+    const old = selToken;
+    try {
+      selToken = token;
+      return await api('/guilds/' + guildId + '/voice-states/' + uid);
+    } catch { return null; }
+    finally { selToken = old; }
+  }));
+  return results.filter(Boolean).filter(s => s && s.channel_id);
+}
+// cached list of member ids of a guild (refreshed every 5 minutes)
+const guildMemberIdsCache = new Map();
+async function guildMemberIds(guildId, token) {
+  const cached = guildMemberIdsCache.get(guildId);
+  if (cached && (Date.now() - cached.at) < 300000) return cached.ids;
+  const old = selToken;
+  try {
+    selToken = token;
+    const ids = [];
+    let url = '/guilds/' + guildId + '/members?limit=1000';
+    for (let i = 0; i < 4; i++) {
+      const batch = await api(url);
+      if (!Array.isArray(batch) || !batch.length) break;
+      ids.push(...batch.map(m => m.user && m.user.id).filter(Boolean));
+      if (batch.length < 1000) break;
+      url = '/guilds/' + guildId + '/members?limit=1000&after=' + ids[ids.length - 1];
+    }
+    guildMemberIdsCache.set(guildId, { at: Date.now(), ids: [...new Set(ids)] });
+    return guildMemberIdsCache.get(guildId).ids;
+  } finally { selToken = old; }
+}
 async function updateVoiceMembers() {
   const list = document.getElementById('voice-members-list');
   if (!list) return;
@@ -2779,21 +2832,20 @@ async function updateVoiceMembers() {
     return;
   }
   let states = null;
-  // REST first (works even before the gateway cache fills up), then the
-  // bridge cache as fallback
-  const oldTok = selToken;
+  // bridge gateway cache first (VOICE_STATE_UPDATE deltas + GUILD_CREATE seed,
+  // re-verified against the per-user REST endpoint server-side), then the
+  // explicit per-user REST sweep as fallback
   try {
-    selToken = voiceToken;
-    states = await api('/guilds/' + voiceGuild + '/voice-states');
-  } catch {
+    const res = await gatewayGet('/' + voiceBot.id + '/voice/states?guild_id=' + voiceGuild);
+    states = res.states || [];
+  } catch {}
+  if (!states || !states.length) {
     try {
-      const res = await gatewayGet('/' + voiceBot.id + '/voice/states');
-      states = res.states || [];
+      const list = await guildVoiceStatesRest(voiceGuild, voiceToken);
+      states = list;
     } catch {}
-  } finally {
-    selToken = oldTok;
   }
-  const members = (states || []).filter(s => s.channel_id && s.user_id !== botUserId);
+  const members = (states || []).filter(s => s.channel_id && (s.guild_id || voiceGuild) === voiceGuild && s.user_id !== botUserId);
   // prefer the members actually in the channel selected in the dropdown
   const inChannel = voiceChannel ? members.filter(s => s.channel_id === voiceChannel) : [];
   const shown = inChannel.length ? inChannel : members;
