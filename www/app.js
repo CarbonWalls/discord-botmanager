@@ -1571,6 +1571,9 @@ document.getElementById('send-btn').onclick = async () => {
         const em = buildEmbed();
         if (em) payload.embeds = [em];
       }
+      if (componentsOn && componentsOn.checked) {
+        payload.components = buildComponentsPayload();
+      }
     }
   } catch (e) {
     err.textContent = e.message;
@@ -1582,7 +1585,7 @@ document.getElementById('send-btn').onclick = async () => {
     err.classList.remove('hidden');
     return;
   }
-  if (!isVoice && !payload.content && !payload.embeds && !fileToSend) {
+  if (!isVoice && !payload.content && !payload.embeds && !(payload.components && payload.components.length) && !fileToSend) {
     err.textContent = t('send.error_empty');
     err.classList.remove('hidden');
     return;
@@ -1658,6 +1661,178 @@ document.getElementById('send-btn').onclick = async () => {
     b.textContent = t('send.send');
   }
 };
+
+/* ===== interactive components builder (send tab) ===== */
+const COMP_STYLES = [['primary', 'send.components_style_primary'], ['secondary', 'send.components_style_secondary'], ['success', 'send.components_style_success'], ['danger', 'send.components_style_danger'], ['link', 'send.components_style_link']];
+let compRows = []; // [{type:'buttons', buttons:[{label,style,custom_id,url,emoji,disabled}]}, {type:'select', custom_id, placeholder, options:[{label,value,description,emoji,default}]}]
+
+const componentsOn = document.getElementById('components-on');
+const componentsBuilder = document.getElementById('components-builder');
+if (componentsOn) componentsOn.addEventListener('change', () => {
+  componentsBuilder.classList.toggle('hidden', !componentsOn.checked);
+  renderComponentsBuilder();
+});
+const compAddRow = document.getElementById('comp-add-row');
+if (compAddRow) compAddRow.onclick = () => {
+  compRows.push({ type: 'buttons', buttons: [] });
+  renderComponentsBuilder();
+};
+
+function renderComponentsBuilder() {
+  if (!componentsBuilder) return;
+  if (!compRows.length) {
+    componentsBuilder.innerHTML = `<span class="muted small">${esc(t('send.components_empty'))}</span>`;
+    return;
+  }
+  componentsBuilder.innerHTML = compRows.map((row, ri) => {
+    const head = `
+      <div class="comp-row-head">
+        <span class="muted small">${esc(t('send.components_row').replace('{n}', ri + 1))}</span>
+        <select data-ri="${ri}" data-act="type">
+          <option value="buttons"${row.type === 'buttons' ? ' selected' : ''}>${esc(t('send.components_type_buttons'))}</option>
+          <option value="select"${row.type === 'select' ? ' selected' : ''}>${esc(t('send.components_type_select'))}</option>
+        </select>
+        <button class="btn btn-ghost btn-small" data-ri="${ri}" data-act="del-row">${esc(t('send.components_remove'))}</button>
+      </div>`;
+    let body = '';
+    if (row.type === 'buttons') {
+      body = row.buttons.map((b, bi) => `
+        <div class="comp-item">
+          <div class="comp-grid">
+            <label>${esc(t('send.components_label'))}<input type="text" maxlength="80" data-ri="${ri}" data-bi="${bi}" data-field="label" value="${esc(b.label)}"></label>
+            <label>${esc(t('send.components_style'))}<select data-ri="${ri}" data-bi="${bi}" data-field="style">${COMP_STYLES.map(([v, k]) => `<option value="${v}"${b.style === v ? ' selected' : ''}>${esc(t(k))}</option>`).join('')}</select></label>
+            ${b.style === 'link'
+              ? `<label class="comp-full">${esc(t('send.components_url'))}<input type="text" placeholder="https://" data-ri="${ri}" data-bi="${bi}" data-field="url" value="${esc(b.url)}"></label>`
+              : `<label class="comp-full">${esc(t('send.components_id'))}<input type="text" maxlength="100" data-ri="${ri}" data-bi="${bi}" data-field="custom_id" value="${esc(b.custom_id)}"></label>`}
+            <label>${esc(t('send.components_emoji'))}<input type="text" maxlength="32" data-ri="${ri}" data-bi="${bi}" data-field="emoji" value="${esc(b.emoji)}"></label>
+            <label style="justify-content:flex-end"><span class="check-row"><input type="checkbox" data-ri="${ri}" data-bi="${bi}" data-field="disabled"${b.disabled ? ' checked' : ''}> ${esc(t('send.components_disabled'))}</span></label>
+          </div>
+          <div class="btn-row" style="margin-top:6px">
+            <button class="btn btn-ghost btn-small" data-ri="${ri}" data-bi="${bi}" data-act="del-btn">${esc(t('send.components_remove'))}</button>
+          </div>
+        </div>`).join('');
+      body += `<div class="btn-row" style="margin-top:6px"><button class="btn btn-ghost btn-small" data-ri="${ri}" data-act="add-btn"${row.buttons.length >= 5 ? ' disabled' : ''}>${esc(t('send.components_add_button'))}</button></div>`;
+    } else {
+      body = `
+        <div class="comp-grid">
+          <label>${esc(t('send.components_id'))}<input type="text" maxlength="100" data-ri="${ri}" data-field="custom_id" value="${esc(row.custom_id)}"></label>
+          <label>${esc(t('send.components_placeholder'))}<input type="text" maxlength="100" data-ri="${ri}" data-field="placeholder" value="${esc(row.placeholder)}"></label>
+        </div>
+        ${row.options.map((o, oi) => `
+          <div class="comp-item">
+            <div class="comp-grid">
+              <label>${esc(t('send.components_label'))}<input type="text" maxlength="100" data-ri="${ri}" data-oi="${oi}" data-field="label" value="${esc(o.label)}"></label>
+              <label>${esc(t('send.components_value'))}<input type="text" maxlength="100" data-ri="${ri}" data-oi="${oi}" data-field="value" value="${esc(o.value)}"></label>
+              <label class="comp-full">${esc(t('send.components_description'))}<input type="text" maxlength="100" data-ri="${ri}" data-oi="${oi}" data-field="description" value="${esc(o.description)}"></label>
+              <label>${esc(t('send.components_emoji'))}<input type="text" maxlength="32" data-ri="${ri}" data-oi="${oi}" data-field="emoji" value="${esc(o.emoji)}"></label>
+              <label style="justify-content:flex-end"><span class="check-row"><input type="checkbox" data-ri="${ri}" data-oi="${oi}" data-field="default"${o.default ? ' checked' : ''}> ${esc(t('send.components_default'))}</span></label>
+            </div>
+            <div class="btn-row" style="margin-top:6px">
+              <button class="btn btn-ghost btn-small" data-ri="${ri}" data-oi="${oi}" data-act="del-opt">${esc(t('send.components_remove'))}</button>
+            </div>
+          </div>`).join('')}
+        <div class="btn-row" style="margin-top:6px">
+          <button class="btn btn-ghost btn-small" data-ri="${ri}" data-act="add-opt"${row.options.length >= 25 ? ' disabled' : ''}>${esc(t('send.components_add_option'))}</button>
+        </div>`;
+    }
+    return `<div class="comp-row">${head}${body}</div>`;
+  }).join('');
+
+  componentsBuilder.querySelectorAll('[data-act]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      if (el.tagName === 'SELECT') return;
+      e.preventDefault();
+      const ri = +el.dataset.ri;
+      const row = compRows[ri];
+      if (!row) return;
+      switch (el.dataset.act) {
+        case 'type': break;
+        case 'del-row': compRows.splice(ri, 1); break;
+        case 'add-btn': row.buttons.push({ label: '', style: 'primary', custom_id: '', url: '', emoji: '', disabled: false }); break;
+        case 'del-btn': row.buttons.splice(+el.dataset.bi, 1); break;
+        case 'add-opt': row.options.push({ label: '', value: '', description: '', emoji: '', default: false }); break;
+        case 'del-opt': row.options.splice(+el.dataset.oi, 1); break;
+      }
+      renderComponentsBuilder();
+    });
+    if (el.tagName === 'SELECT') {
+      el.addEventListener('change', () => {
+        compRows[+el.dataset.ri].type = el.value;
+        renderComponentsBuilder();
+      });
+    }
+  });
+  componentsBuilder.querySelectorAll('input[data-field], select[data-field]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const row = compRows[+inp.dataset.ri];
+      if (!row) return;
+      if (inp.dataset.bi !== undefined) {
+        const b = row.buttons[+inp.dataset.bi];
+        if (!b) return;
+        b[inp.dataset.field] = inp.type === 'checkbox' ? inp.checked : inp.value;
+        if (inp.dataset.field === 'style') renderComponentsBuilder();
+      } else if (inp.dataset.oi !== undefined) {
+        const o = row.options[+inp.dataset.oi];
+        if (!o) return;
+        o[inp.dataset.field] = inp.type === 'checkbox' ? inp.checked : inp.value;
+      } else {
+        row[inp.dataset.field] = inp.value;
+      }
+    });
+    if (inp.type === 'checkbox') inp.addEventListener('change', () => {
+      const row = compRows[+inp.dataset.ri];
+      if (!row) return;
+      if (inp.dataset.bi !== undefined) { const b = row.buttons[+inp.dataset.bi]; if (b) b[inp.dataset.field] = inp.checked; }
+      else if (inp.dataset.oi !== undefined) { const o = row.options[+inp.dataset.oi]; if (o) o[inp.dataset.field] = inp.checked; }
+    });
+  });
+}
+
+// model → discord payload; throws translated errors on invalid structures
+function buildComponentsPayload() {
+  const rows = [];
+  for (const row of compRows) {
+    if (rows.length >= 5) throw new Error(t('send.components_too_many_rows'));
+    if (row.type === 'buttons') {
+      const btns = row.buttons.filter(b => b.label.trim() || b.emoji.trim() || (b.style === 'link' ? b.url.trim() : b.custom_id.trim()));
+      if (!btns.length) continue;
+      if (btns.length > 5) throw new Error(t('send.components_too_many_buttons'));
+      rows.push({ type: 1, components: btns.map(b => {
+        const c = { type: 2, style: ({ primary: 1, secondary: 2, success: 3, danger: 4, link: 5 })[b.style] || 1 };
+        if (b.label.trim()) c.label = b.label.trim().slice(0, 80);
+        if (b.emoji.trim()) c.emoji = { name: b.emoji.trim() };
+        if (b.style === 'link') {
+          if (!b.url.trim()) throw new Error(t('send.components_link_needs_url'));
+          c.url = b.url.trim();
+        } else {
+          if (!b.custom_id.trim()) throw new Error(t('send.components_needs_id').replace('{label}', c.label || ''));
+          c.custom_id = b.custom_id.trim().slice(0, 100);
+        }
+        if (b.disabled) c.disabled = true;
+        return c;
+      }) });
+    } else {
+      const opts = row.options.filter(o => o.label.trim() || o.value.trim());
+      if (!opts.length) continue;
+      if (opts.length > 25) throw new Error(t('send.components_too_many_options'));
+      const sel = {
+        type: 3,
+        custom_id: (row.custom_id || 'select_' + (rows.length + 1)).trim().slice(0, 100),
+        options: opts.map(o => {
+          const oc = { label: o.label.trim().slice(0, 100) || ' ', value: o.value.trim().slice(0, 100) || ' ' };
+          if (o.description.trim()) oc.description = o.description.trim().slice(0, 100);
+          if (o.emoji.trim()) oc.emoji = { name: o.emoji.trim() };
+          if (o.default) oc.default = true;
+          return oc;
+        })
+      };
+      if (row.placeholder.trim()) sel.placeholder = row.placeholder.trim().slice(0, 100);
+      rows.push({ type: 1, components: [sel] });
+    }
+  }
+  return rows;
+}
+
 
 /* ===== webhooks (send tab) ===== */
 let currentWebhooks = [];

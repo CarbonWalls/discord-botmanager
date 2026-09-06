@@ -239,6 +239,18 @@
             <button class="btn btn-primary btn-block" id="send-btn" data-i18n="send.send"></button>
             <div class="error hidden" id="send-error"></div>
           </div>
+          <div class="card" id="components-card">
+            <div class="card-title" data-i18n="send.components_title"></div>
+            <p class="muted small" data-i18n="send.components_desc"></p>
+            <label class="check-row" for="components-on">
+              <input type="checkbox" id="components-on">
+              <span data-i18n="send.components_enable"></span>
+            </label>
+            <div id="components-builder" class="hidden"></div>
+            <div class="btn-row">
+              <button class="btn btn-ghost btn-small" id="comp-add-row" data-i18n="send.components_add_row"></button>
+            </div>
+          </div>
           <div class="card hidden" id="webhook-card">
             <div class="card-title" data-i18n="send.webhooks_title"></div>
             <p class="muted small" data-i18n="send.webhooks_desc"></p>
