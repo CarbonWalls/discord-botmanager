@@ -32,13 +32,13 @@ a self-hosted, local-first control panel for managing discord bots — token vau
 
 ```
 ┌────────────────────────────┐        ┌─────────────────────────────┐
-│  browser (www/)            │        │  bridge.js (node)           │
-│  ─ encrypted vault (ls)    │  http  │  ─ static file server       │
-│  ─ web crypto aes-256-gcm  │◄──────►│  ─ discord rest proxy       │
-│  ─ vanilla js spa          │ :8787  │  ─ gateway sessions (ws)    │
-└────────────────────────────┘        │  ─ voice (ws + udp + opus)  │
-                                      │  ─ archive (data/messages/) │
-                                      └─────────────────────────────┘
+│  browser (www/)                       │        │  bridge.js (node)                        │
+│  ─ encrypted vault (ls)                 │  http  │  ─ static file server                     │
+│  ─ web crypto aes-256-gcm           │◄───►│  ─ discord rest proxy                   │
+│  ─ vanilla js spa                       │  :8787 │  ─ gateway sessions (ws)               │
+└────────────────────────────┘        │  ─ voice (ws + udp + opus)             │
+                                                    │  ─ archive (data/messages/)            │
+                                                    └─────────────────────────────┘
 ```
 
 - **bridge.js** is a zero-framework node server bound to `127.0.0.1:8787`. it serves the frontend, proxies discord rest calls (injecting `Authorization: Bot <token>` from the `x-bot-token` header), holds gateway websocket sessions in memory, and implements the discord voice transport by hand (voice ws → ip discovery → udp → aes-256-gcm rtp).
