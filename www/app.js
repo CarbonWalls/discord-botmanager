@@ -1415,6 +1415,9 @@ let logBot = null;
 let logToken = null;
 let logGuild = null;
 let logChannel = null;
+let allLogMsgs = [];
+let currentFiltered = [];
+const selectedLogs = new Set();
 const logBotSel = document.getElementById('log-bot-select');
 const logGs = document.getElementById('log-guild-select');
 const logCs = document.getElementById('log-chan-select');
@@ -1434,10 +1437,21 @@ function populateLogBotSelect() {
   if (cur) logBotSel.value = cur;
   translateSelectOptions(logBotSel);
 }
+function resetLogFeed() {
+  // drops stale results AND the selection so bulk actions can never hit a
+  // channel different from the one the selection was made in
+  allLogMsgs = [];
+  currentFiltered = [];
+  selectedLogs.clear();
+  updateLogActionBar();
+  renderLogs([]);
+}
+
 logBotSel.onchange = async () => {
   const id = logBotSel.value;
   logBot = V.bots.find(b => b.id === id) || null;
   logToken = logBot ? await db(logBot, K) : null;
+  resetLogFeed();
   logGs.disabled = true;
   setPlaceholderOption(logGs, 'select.bot_first');
   logCs.disabled = true;
@@ -1470,6 +1484,7 @@ async function loadLogGuilds() {
 }
 logGs.onchange = async () => {
   logGuild = logGs.value;
+  resetLogFeed();
   if (!logGuild) {
     logCs.disabled = true;
     setPlaceholderOption(logCs, 'select.server');
@@ -1499,6 +1514,7 @@ logGs.onchange = async () => {
 };
 logCs.onchange = () => {
   logChannel = logCs.value;
+  resetLogFeed();
   document.getElementById('fetch-logs-btn').disabled = !logChannel;
   document.getElementById('fetch-archive-btn').disabled = !logChannel;
 };
@@ -1513,7 +1529,10 @@ document.getElementById('fetch-logs-btn').onclick = async () => {
     selToken = logToken;
     const msgs = await api('/channels/' + logChannel + '/messages?limit=50');
     selToken = old;
-    renderLogs(msgs.reverse().map(m => ({ ...m, _deleted: false })));
+    allLogMsgs = msgs.reverse().map(m => ({ ...m, _deleted: false }));
+    selectedLogs.clear();
+    updateLogActionBar();
+    applyLogFilter();
   } catch (e) {
     err.textContent = e.message;
     err.classList.remove('hidden');
@@ -1530,7 +1549,10 @@ document.getElementById('fetch-archive-btn').onclick = async () => {
   btn.textContent = t('common.loading');
   try {
     const res = await gatewayGet('/archive/' + logChannel);
-    renderLogs((res.messages || []).slice(-100));
+    allLogMsgs = (res.messages || []).slice(-100);
+    selectedLogs.clear();
+    updateLogActionBar();
+    applyLogFilter();
   } catch (e) {
     err.textContent = e.message;
     err.classList.remove('hidden');
@@ -1572,6 +1594,7 @@ function renderLogs(msgs) {
       ? '<span class="pill" style="background:var(--danger-subtle);color:var(--danger);margin-left:6px">' + esc(t('logs.deleted')) + '</span>'
       : '';
     return `<div class="msg-item${deletedClass}">
+      <input type="checkbox" class="msg-check" data-msgid="${m.id}" ${selectedLogs.has(m.id) ? 'checked' : ''}>
       <img src="${avatar}" class="msg-avatar" data-uid="${author.id}" data-uname="${esc(author.username)}" data-guild="${logGuild}">
       <div class="msg-body">
         <div class="msg-header">
@@ -1596,7 +1619,115 @@ function renderLogs(msgs) {
   feed.querySelectorAll('.msg-delete').forEach(el => {
     el.onclick = () => deleteMessage(el.dataset.chanid, el.dataset.msgid);
   });
+  feed.querySelectorAll('.msg-check').forEach(el => {
+    el.onchange = () => {
+      if (el.checked) selectedLogs.add(el.dataset.msgid);
+      else selectedLogs.delete(el.dataset.msgid);
+      updateLogActionBar();
+    };
+  });
 }
+
+function applyLogFilter() {
+  const q = (document.getElementById('log-search')?.value || '').toLowerCase().trim();
+  let msgs = allLogMsgs;
+  if (q) {
+    msgs = msgs.filter(m =>
+      (m.content || '').toLowerCase().includes(q) ||
+      (m.author?.username || '').toLowerCase().includes(q)
+    );
+  }
+  currentFiltered = msgs;
+  renderLogs(msgs);
+}
+
+function updateLogActionBar() {
+  const bar = document.getElementById('log-action-bar');
+  if (!bar) return;
+  if (selectedLogs.size > 0) {
+    bar.classList.remove('hidden');
+    const c = document.getElementById('log-action-count');
+    if (c) c.textContent = t('logs.selected_count').replace('{n}', selectedLogs.size);
+  } else bar.classList.add('hidden');
+}
+
+function exportLogs(fmt) {
+  const msgs = currentFiltered;
+  if (!msgs.length) { tt(t('logs.no_messages')); return; }
+  let blob, filename;
+  if (fmt === 'csv') {
+    const rows = [['id', 'timestamp', 'author', 'content']];
+    msgs.forEach(m => rows.push([m.id, m.timestamp || '', m.author?.username || '', (m.content || '').replace(/\r?\n/g, ' ')]));
+    const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\n');
+    blob = new Blob([csv], { type: 'text/csv' }); filename = 'archive.csv';
+  } else if (fmt === 'html') {
+    const html = '<!DOCTYPE html><meta charset="utf-8"><body>' + msgs.map(m =>
+      `<div><b>${esc(m.author?.username || '')}</b> <small>${esc(m.timestamp || '')}</small><p>${esc(m.content || '')}</p></div>`
+    ).join('') + '</body>';
+    blob = new Blob([html], { type: 'text/html' }); filename = 'archive.html';
+  } else {
+    blob = new Blob([JSON.stringify(msgs, null, 2)], { type: 'application/json' }); filename = 'archive.json';
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function bulkDeleteSelected() {
+  if (!selectedLogs.size || !logChannel || !logToken) return;
+  const old = selToken; selToken = logToken;
+  const cutoff = Date.now() - 14 * 24 * 3600 * 1000;
+  const young = [], oldIds = [];
+  for (const m of allLogMsgs) {
+    if (!selectedLogs.has(m.id)) continue;
+    if (new Date(m.timestamp).getTime() > cutoff) young.push(m.id);
+    else oldIds.push(m.id);
+  }
+  try {
+    for (let i = 0; i < young.length; i += 100) {
+      const batch = young.slice(i, i + 100);
+      await api(`/channels/${logChannel}/messages/bulk-delete`, { method: 'POST', body: JSON.stringify({ messages: batch }) });
+      await new Promise(r => setTimeout(r, 1200));
+    }
+    for (const id of oldIds) {
+      try { await api(`/channels/${logChannel}/messages/${id}`, { method: 'DELETE' }); await new Promise(r => setTimeout(r, 400)); } catch {}
+    }
+    tt(t('logs.bulk_deleted'));
+    selectedLogs.clear();
+    updateLogActionBar();
+    document.getElementById('fetch-logs-btn').click();
+  } catch (e) { tt(friendlyError(e.message, 'delete')); }
+  finally { selToken = old; }
+}
+
+function wireLogToolbar() {
+  document.getElementById('log-search').addEventListener('input', applyLogFilter);
+  document.getElementById('log-export-json').onclick = () => exportLogs('json');
+  document.getElementById('log-export-csv').onclick = () => exportLogs('csv');
+  document.getElementById('log-export-html').onclick = () => exportLogs('html');
+  document.getElementById('log-bulk-delete').onclick = () => {
+    showConfirmModal(t('logs.bulk_delete'), t('logs.bulk_confirm'), bulkDeleteSelected);
+  };
+  document.getElementById('log-copy-selected').onclick = () => {
+    const texts = allLogMsgs.filter(m => selectedLogs.has(m.id)).map(m => m.content || '');
+    navigator.clipboard.writeText(texts.join('\n'));
+    tt(t('common.copied'));
+  };
+  document.getElementById('log-export-selected').onclick = () => {
+    const sel = allLogMsgs.filter(m => selectedLogs.has(m.id));
+    if (!sel.length) return;
+    const blob = new Blob([JSON.stringify(sel, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'selected-messages.json'; a.click();
+    URL.revokeObjectURL(url);
+  };
+  document.getElementById('log-clear-selection').onclick = () => {
+    selectedLogs.clear();
+    updateLogActionBar();
+    applyLogFilter();
+  };
+}
+wireLogToolbar();
 function deleteMessage(chanId, msgId) {
   showConfirmModal(
     t('logs.delete_title'),
@@ -2798,4 +2929,176 @@ function makeDropdown(select) {
 }
 function initAllDropdowns() {
   document.querySelectorAll('select').forEach(makeDropdown);
+  refreshTemplateSelect();
 }
+
+/* ===== template messaggi (send tab) ===== */
+function getTemplates() { try { return JSON.parse(safeGetItem('tpl') || '[]'); } catch { return []; } }
+function saveTemplates(x) { safeSetItem('tpl', JSON.stringify(x)); }
+
+function captureSendState() {
+  const g = id => document.getElementById(id).value;
+  const fields = [];
+  document.querySelectorAll('#e-fields .efield').forEach(f => {
+    fields.push({
+      name: f.querySelector('.ef-n').value,
+      value: f.querySelector('.ef-v').value,
+      inline: f.querySelector('.ef-i').checked
+    });
+  });
+  return {
+    content: ta.value,
+    embedOn: document.getElementById('embed-on').checked,
+    embed: {
+      title: g('e-title'), url: g('e-url'), desc: g('e-desc'), color: g('e-color'),
+      aname: g('e-aname'), aicon: g('e-aicon'), img: g('e-img'), thumb: g('e-thumb'),
+      footer: g('e-footer'), ficon: g('e-ficon'), ts: g('e-ts'), fields
+    }
+  };
+}
+
+function applySendState(s) {
+  ta.value = s.content || '';
+  updatePreview();
+  const em = s.embed || {};
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+  set('e-title', em.title); set('e-url', em.url); set('e-desc', em.desc);
+  if (em.color) set('e-color', em.color);
+  set('e-aname', em.aname); set('e-aicon', em.aicon); set('e-img', em.img);
+  set('e-thumb', em.thumb); set('e-footer', em.footer); set('e-ficon', em.ficon);
+  const ts = document.getElementById('e-ts');
+  if (ts) {
+    ts.value = em.ts || '';
+    ts.dispatchEvent(new Event('change')); // keeps the custom dropdown label in sync
+  }
+  document.getElementById('e-fields').innerHTML = '';
+  (em.fields || []).forEach(f => {
+    addFieldRow();
+    const rows = document.querySelectorAll('#e-fields .efield');
+    const row = rows[rows.length - 1];
+    row.querySelector('.ef-n').value = f.name || '';
+    row.querySelector('.ef-v').value = f.value || '';
+    row.querySelector('.ef-i').checked = !!f.inline;
+  });
+  const embedOn = document.getElementById('embed-on');
+  if (embedOn.checked !== !!s.embedOn) {
+    embedOn.checked = !!s.embedOn;
+    embedOn.dispatchEvent(new Event('change'));
+  }
+  updatePreview();
+}
+
+function refreshTemplateSelect() {
+  const sel = document.getElementById('tpl-select');
+  if (!sel) return;
+  const tpls = getTemplates();
+  sel.innerHTML = '';
+  setPlaceholderOption(sel, 'send.template_choose');
+  tpls.forEach((x, i) => {
+    const o = document.createElement('option');
+    o.value = i;
+    o.textContent = x.name;
+    sel.appendChild(o);
+  });
+}
+
+document.getElementById('tpl-save').onclick = () => {
+  const nameEl = document.getElementById('tpl-name');
+  const name = nameEl.value.trim();
+  if (!name) { tt(t('send.template_need_name')); return; }
+  const tpls = getTemplates();
+  tpls.push({ name, state: captureSendState() });
+  saveTemplates(tpls);
+  nameEl.value = '';
+  refreshTemplateSelect();
+  tt(t('send.template_saved'));
+};
+document.getElementById('tpl-load').onclick = () => {
+  const i = document.getElementById('tpl-select').value;
+  const tpls = getTemplates();
+  if (i === '' || !tpls[i]) return;
+  applySendState(tpls[i].state);
+  tt(t('send.template_loaded'));
+};
+document.getElementById('tpl-delete').onclick = () => {
+  const i = document.getElementById('tpl-select').value;
+  const tpls = getTemplates();
+  if (i === '' || !tpls[i]) return;
+  showConfirmModal(t('send.template_delete'), t('send.template_confirm_delete').replace('{name}', tpls[i].name), () => {
+    tpls.splice(i, 1);
+    saveTemplates(tpls);
+    refreshTemplateSelect();
+    tt(t('send.template_deleted'));
+  });
+};
+
+/* ===== export / import vault ===== */
+function exportVault() {
+  if (!V) { tt(t('common.error')); return; }
+  const blob = new Blob([JSON.stringify(V, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'vault-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  tt(t('settings.vault_exported'));
+}
+
+let pendingImport = null;
+document.getElementById('vault-export').onclick = exportVault;
+document.getElementById('vault-import').onclick = () => document.getElementById('vault-import-file').click();
+document.getElementById('vault-import-file').onchange = async (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  try {
+    const parsed = JSON.parse(await f.text());
+    if (!parsed || !parsed.kdf || !parsed.verifier || !Array.isArray(parsed.bots)) throw new Error('bad');
+    pendingImport = parsed;
+    document.getElementById('iv-pw').value = '';
+    document.getElementById('iv-error').classList.add('hidden');
+    document.getElementById('import-vault-modal').classList.remove('hidden');
+  } catch {
+    tt(t('settings.vault_import_invalid'));
+  }
+  e.target.value = '';
+};
+
+async function doImport(mode) {
+  if (!pendingImport || !K) { tt(t('common.error')); return; }
+  const pw = document.getElementById('iv-pw').value;
+  const err = document.getElementById('iv-error');
+  err.classList.add('hidden');
+  const busy = mode === 'replace' ? document.getElementById('iv-replace') : document.getElementById('iv-merge');
+  busy.disabled = true;
+  try {
+    const importedKey = await unl(pendingImport, pw);
+    const recs = [];
+    for (const b of pendingImport.bots) {
+      const token = await db(b, importedKey);
+      recs.push(await eb(b.name, token, K));
+    }
+    if (mode === 'replace') {
+      V.bots = recs;
+    } else {
+      const names = new Set(V.bots.map(b => b.name));
+      for (const r of recs) if (!names.has(r.name)) V.bots.push(r);
+    }
+    sv();
+    rb();
+    document.getElementById('import-vault-modal').classList.add('hidden');
+    tt(mode === 'replace' ? t('settings.vault_replaced') : t('settings.vault_merged'));
+  } catch {
+    err.textContent = t('settings.vault_import_pw_wrong');
+    err.classList.remove('hidden');
+  } finally {
+    busy.disabled = false;
+  }
+}
+document.getElementById('iv-merge').onclick = () => doImport('merge');
+document.getElementById('iv-replace').onclick = () => doImport('replace');
+document.getElementById('iv-cancel').onclick = () => document.getElementById('import-vault-modal').classList.add('hidden');
+document.getElementById('iv-close').onclick = () => document.getElementById('import-vault-modal').classList.add('hidden');
+document.getElementById('import-vault-modal').onclick = (e) => {
+  if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
+};

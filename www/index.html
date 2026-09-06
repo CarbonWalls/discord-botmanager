@@ -121,6 +121,22 @@
             </div>
           </div>
           <div class="card">
+            <div class="card-title" data-i18n="send.templates_title"></div>
+            <div class="field">
+              <input type="text" id="tpl-name" data-i18n-placeholder="send.template_name_placeholder">
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-ghost" id="tpl-save" data-i18n="send.template_save"></button>
+            </div>
+            <div class="field" style="margin-top:12px">
+              <select id="tpl-select"><option value="" data-i18n-key="send.template_choose"></option></select>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-primary" id="tpl-load" data-i18n="send.template_load"></button>
+              <button class="btn btn-danger" id="tpl-delete" data-i18n="send.template_delete"></button>
+            </div>
+          </div>
+          <div class="card">
             <div class="field">
               <label class="label" data-i18n="send.content"></label>
               <textarea id="msg-content" data-i18n-placeholder="send.content_placeholder"></textarea>
@@ -231,12 +247,28 @@
               <button class="btn btn-ghost" id="fetch-archive-btn" disabled data-i18n="logs.load_archive"></button>
             </div>
             <div class="error hidden" id="log-error"></div>
+            <div class="field">
+              <label class="label" data-i18n="logs.search"></label>
+              <input type="text" id="log-search" data-i18n-placeholder="logs.search_placeholder">
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-ghost" id="log-export-json">JSON</button>
+              <button class="btn btn-ghost" id="log-export-csv">CSV</button>
+              <button class="btn btn-ghost" id="log-export-html">HTML</button>
+            </div>
             <p class="muted small" style="margin-top:12px" data-i18n="logs.info"></p>
           </div>
           <div class="card feed">
             <div id="log-feed">
               <div class="muted center" data-i18n="logs.select_channel"></div>
             </div>
+          </div>
+          <div class="log-action-bar hidden" id="log-action-bar">
+            <span id="log-action-count" class="small"></span>
+            <button class="btn btn-danger btn-small" id="log-bulk-delete" data-i18n="logs.bulk_delete"></button>
+            <button class="btn btn-ghost btn-small" id="log-copy-selected" data-i18n="logs.copy_selected"></button>
+            <button class="btn btn-ghost btn-small" id="log-export-selected" data-i18n="logs.export_selected"></button>
+            <button class="btn btn-ghost btn-small" id="log-clear-selection" data-i18n="logs.clear_selection"></button>
           </div>
         </section>
 
@@ -399,12 +431,22 @@
               <button class="seg-btn" data-v="light" data-i18n="settings.light"></button>
               <button class="seg-btn" data-v="dark" data-i18n="settings.dark"></button>
               <button class="seg-btn active" data-v="auto" data-i18n="settings.auto"></button>
+              <button class="seg-btn" data-v="discord" data-i18n="settings.discord"></button>
             </div>
           </div>
           <div class="card">
             <div class="card-title" data-i18n="settings.master_password"></div>
             <p class="muted small" data-i18n="settings.master_password_desc"></p>
             <button class="btn btn-ghost btn-block" id="cpw-open" data-i18n="settings.change_master_password"></button>
+          </div>
+          <div class="card">
+            <div class="card-title" data-i18n="settings.vault_backup"></div>
+            <p class="muted small" data-i18n="settings.vault_backup_desc"></p>
+            <div class="btn-row">
+              <button class="btn btn-ghost" id="vault-export" data-i18n="settings.vault_export"></button>
+              <button class="btn btn-ghost" id="vault-import" data-i18n="settings.vault_import"></button>
+            </div>
+            <input type="file" id="vault-import-file" accept="application/json,.json" class="hidden">
           </div>
           <div class="card danger-card">
             <div class="card-title danger" data-i18n="settings.danger_zone"></div>
@@ -514,6 +556,24 @@
     <div class="modal-actions">
       <button class="btn btn-ghost" id="cpw-cancel" data-i18n="common.cancel"></button>
       <button class="btn btn-primary" id="cpw-save" data-i18n="common.save"></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal hidden" id="import-vault-modal">
+  <div class="modal-content">
+    <button class="close-modal" id="iv-close"><i data-icon="x"></i></button>
+    <h3 data-i18n="settings.vault_import"></h3>
+    <p class="muted small" data-i18n="settings.vault_import_desc"></p>
+    <div class="field">
+      <label class="label" data-i18n="settings.vault_import_pw"></label>
+      <input type="password" id="iv-pw" autocomplete="current-password">
+    </div>
+    <div class="error hidden" id="iv-error"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="iv-cancel" data-i18n="common.cancel"></button>
+      <button class="btn btn-ghost" id="iv-merge" data-i18n="settings.vault_merge"></button>
+      <button class="btn btn-primary" id="iv-replace" data-i18n="settings.vault_replace"></button>
     </div>
   </div>
 </div>

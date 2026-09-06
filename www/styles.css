@@ -1138,3 +1138,56 @@ a.embed-title:hover { text-decoration: underline; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
+
+/* ===== tema discord ===== */
+[data-theme="discord"] {
+  --bg-shell: #1e1f22;
+  --bg-surface: #313338;
+  --bg-surface-hover: #383a40;
+  --bg-input: #2b2d31;
+  --bg-hover: #35373c;
+  --border: #3f4147;
+  --border-subtle: #383a40;
+  --border-focus: #5865f2;
+  --text: #dbdee1;
+  --text-secondary: #b5bac1;
+  --text-muted: #80848e;
+  --accent: #5865f2;
+  --accent-hover: #4752c4;
+  --accent-subtle: rgba(88, 101, 242, 0.15);
+  --danger: #f23f43;
+  --danger-hover: #d83c3e;
+  --danger-subtle: rgba(242, 63, 67, 0.12);
+  --success: #23a55a;
+  --warning: #f0b232;
+  --warning-subtle: rgba(240, 178, 50, 0.12);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.55);
+}
+
+/* ===== logs: ricerca / multi-selezione / export ===== */
+.log-action-bar {
+  position: sticky;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  margin-top: 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+  z-index: 5;
+}
+.log-action-bar .btn { white-space: nowrap; }
+#log-action-count { margin-right: auto; }
+.msg-check {
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
