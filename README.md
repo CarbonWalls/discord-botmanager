@@ -12,12 +12,12 @@ a self-hosted, local-first control panel for managing discord bots — token vau
 | module | what it does |
 | --- | --- |
 | 🔐 **vault** | stores bot tokens encrypted with a master password (aes-256-gcm + pbkdf2). test tokens, generate invite links, export/import encrypted backups, multi-select bots for bulk actions. |
-| ✉️ **send** | send messages to any channel of any server the bot is in. full markdown preview, rich embeds builder, image/video attachments, voice messages (upload or browser recording). |
+| ✉️ **send** | send messages to any channel of any server the bot is in. full markdown preview, rich embeds builder, interactive components (buttons + select menus with a live interaction panel), image/video attachments, voice messages (upload or browser recording), webhook sending with a profile editor. |
 | 🗄 **archive** | live capture of `MESSAGE_CREATE` / `UPDATE` / `DELETE` events over the gateway, plus on-demand fetch via rest. deleted messages are flagged, not lost. |
 | 🟢 **presence** | set online/idle/dnd/invisible status and custom activity over a persistent gateway websocket session. |
-| 🔊 **voice** | join voice channels, self-mute/deafen, auto-leave timer, and play audio files directly into the channel (voice gateway + udp + opus, with DAVE end-to-end encryption). |
+| 🔊 **voice** | join voice channels, self-mute/deafen, auto-leave timer, play audio files directly into the channel (voice gateway + udp + opus, with DAVE end-to-end encryption), see who is in voice and mute/deafen/disconnect them. |
 | 🧹 **cleaner** | wipe all messages from a channel (bulk-delete for recent ones, one-by-one for older than 14 days) or clone-and-recreate a channel. |
-| #️⃣ **channels** | browse channels per server with icons/sorting, back up a channel's messages to json, clone or delete channels. |
+| #️⃣ **channels** | browse channels per server with icons/sorting; every channel has a ⋯ menu with rename, move (category + position), clone, backup and delete. |
 | ⏰ **scheduler** | recurring jobs (send message, change presence) running in the bridge with live status dots. |
 | 👥 **members** | full member list per server with search, role filters and profile links (needs the `guild members` intent). |
 | 🧩 **scripts** | sandboxed user scripts (web worker): explicit per-call permission prompts showing which bot acts, revocable scopes, 10 calls/min, per-script storage in the vault. |
@@ -172,7 +172,10 @@ The Electron app bundles everything and runs the bridge internally on `http://12
 - pick a bot → pick a server → pick a text channel, or switch to **manual id** and paste a channel id.
 - content supports discord markdown, rendered live in the preview: `**bold**`, `*italic*`, `__underline__`, `~~strike~~`, `` `code` ``, code blocks, `> quotes`, lists, `||spoiler||` (click to reveal in preview), links, mentions.
 - **embed**: title (+url), description, color, timestamp, author, image, thumbnail, footer, and inline fields.
+- **components**: attach buttons and select menus to the message. structure limits are enforced live: max 5 action rows, max 5 buttons per row (or one select menu per row), select menus take 1–25 options, labels up to 80 chars, custom ids up to 100 chars. button styles: primary / secondary / success / danger / link (link buttons carry a url, the others a `custom_id`). the payload goes out as `components[]` on both the bot and webhook paths.
+- **interactions**: when someone clicks a button or uses a select menu, the interaction shows up in the interactions card (captured by the bot's gateway session — the send tab opens one automatically). each entry shows who clicked, what, the selected values and the source message, with four responses: **reply** (callback type 4, immediate message), **edit message** (type 7, rewrites the message the component lives on), **ack** (type 6, just acknowledges) and **followup** (a webhook message using the interaction token). the interaction token expires after **15 minutes**; responses within 3 s need no deferral, the ack button covers the late ones.
 - **attachment**: one image/video file, sent via multipart `payload_json`.
+- **webhooks**: the card lists the channel's webhooks (needs `manage webhooks`). **edit profile** fetches the current identity (`GET /webhooks/:id/:token`) and lets you change the name and the avatar: image files are resized in the browser (max 1024 px, png keeps transparency / jpeg for photos, 256 kb cap) and sent as a data uri through the bridge proxy — no discord upload roundtrip needed. removing the avatar sends `avatar: null`.
 - **voice message**: upload an `.ogg/.opus` file or record directly in the browser (requires a browser that encodes ogg/opus). waveform can be generated from the audio (`auto`), constant, or flat; duration and waveform are required by discord.
 
 ### archive
@@ -192,6 +195,7 @@ selecting a bot and applying a status opens a persistent gateway session (`/gate
 2. **join** sends op 4, waits for the matching voice state + server packets, then opens the voice websocket and runs the handshake (identify → ready → select protocol → udp discovery → DAVE key exchange). self-mute/deafen changes re-send the state live.
 3. **play** reads the audio file, transcodes it to 48 kHz stereo opus (64 kbps, 20 ms frames) with ffmpeg, then streams packets over udp — DAVE end-to-end encrypted once the MLS group is ready, wrapped in transport encryption (`aead_aes256_gcm_rtpsize`, with `aead_xchacha20_poly1305_rtpsize` as fallback).
 4. **auto-leave** (minutes) schedules an automatic disconnect after joining.
+5. **members in channel** lists everyone in voice with mute / deafen / disconnect buttons (needs `mute members` / `deafen members` / `move members`). the list comes from the bot's gateway session: the bridge seeds its cache from `GUILD_CREATE` when the session opens, keeps it live with `VOICE_STATE_UPDATE` deltas and re-verifies each cached entry against the per-user rest endpoint (`GET /guilds/:id/voice-states/:userId`). there is **no guild-level rest endpoint** for voice states in the discord api (it returns 404) — a session is therefore required for the live cache, and the app opens one automatically; as a last resort it falls back to a per-user rest sweep over the guild's members (fine on small servers, slow on big ones).
 
 > voice uses discord's **DAVE** protocol for end-to-end encryption. the MLS group only forms once a second member is present, so a lone bot in an e2ee channel gets dropped by discord after a short idle — that's expected, not a bug. transport mode prefers `aead_aes256_gcm_rtpsize`.
 
@@ -212,7 +216,7 @@ selecting a bot and applying a status opens a persistent gateway session (`/gate
 
 ### scripts
 
-scripts are little automation snippets (javascript) that run in a sandboxed web worker with **no network access and no token**. the only way for a script to touch discord is `api.discord(botId, path, method, body)` — and every distinct call goes through a permission prompt that shows the script name, **which bot identity** it would act as, and the exact `METHOD /path`, plus the payload. "allow always" whitelists exactly that path + method (query strings normalized away); scopes are revocable in settings. limits: 10 api calls/minute, 30s hard timeout (paused while a prompt is open), per-script storage inside the vault (50 keys × 64kb). three built-in examples cover messaging, presence and storage; hotkeys (modifier + key) can trigger scripts while the app is unlocked.
+scripts are little automation snippets (javascript) that run in a sandboxed web worker with **no network access and no token**. the only way for a script to touch discord is `api.discord(botId, path, method, body)` — and every distinct call goes through a permission prompt that shows the script name, **which bot identity** it would act as, and the exact `METHOD /path`, plus the payload. "allow always" whitelists exactly that path + method (query strings normalized away); scopes are revocable in settings. limits: 10 api calls/minute, 30s hard timeout (paused while a prompt is open), per-script storage inside the vault (50 keys × 64kb). three built-in examples cover messaging, presence and storage; hotkeys (modifier + key) can trigger scripts while the app is unlocked. a **channel id fetcher** (bot → guild → channel dropdowns) sits inside the editor and inserts the channel id at the cursor — scripts no longer borrow the send tab selection.
 
 ---
 
@@ -229,6 +233,7 @@ all routes on `http://127.0.0.1:8789`. every `/gateway/*` and `/discord/*` route
 | `POST` | `/gateway/:botId/disconnect` | – | close the session |
 | `GET` | `/gateway/status` | – | list sessions (user, presence, voice playing) |
 | `POST` | `/gateway/:botId/members/:guildId` | `{ token }` | member list via rest pagination; returns `{ members, hasIntent }`. needs no gateway session — the 403 gate is the portal intent |
+| `GET` | `/gateway/:botId/voice/states?guild_id=` | – | tracked voice states (gateway cache seeded from `GUILD_CREATE`, live deltas, per-user rest re-verification when a guild_id is passed) |
 | `GET` | `/gateway/rate-limits` | – | live rate-limit buckets observed by the bridge |
 
 ### scheduler
@@ -257,7 +262,12 @@ all routes on `http://127.0.0.1:8789`. every `/gateway/*` and `/discord/*` route
 | --- | --- | --- | --- |
 | `GET` | `/archive/:channelId` | – | stored gateway-captured messages for a channel |
 | `POST` | `/gateway/backup/channel/:channelId` | `{ token }` | fetch full channel history via rest → `data/messages/backups/*.json` |
+| `GET` | `/gateway/webhook/:webhookId/:token` | – | webhook profile through the bridge (name/avatar/channel) |
+| `PATCH` | `/gateway/webhook/:webhookId/:token` | `{ name?, avatar? }` | edit the webhook profile; `avatar` is a data uri (base64) or `null` to remove it |
 | `POST` | `/gateway/webhook/:webhookId/:token` | webhook payload | webhook execution through the bridge (webhook endpoints reject browser cors) |
+| `GET` | `/gateway/interactions/:botId` | – | buffered component interactions of the bot's gateway session (newest first, 15 min expiry) |
+| `DELETE` | `/gateway/interactions/:botId` | – | clear the interaction buffer |
+| `POST` | `/gateway/interactions/:botId/callback` | `{ id, token, type, data? }` | respond to an interaction: type `4` reply (with `{ content }` in `data`), `5`/`6` defer/ack, `7` edit the original message |
 | `GET` | `/i18n/languages` | – | available locale files + metadata |
 | `GET` | `/i18n/locales/:code` | – | full locale json |
 
@@ -352,6 +362,7 @@ The bridge also stores message archives and voice temp files in:
 - [x] configurable port — `PORT=<port> node bridge.js`
 - [x] per-bot bulk actions — multi-select in the vault
 - [x] sandboxed automation scripts — the **scripts** tab
+- [x] interactive components (buttons / select menus) with a live interaction panel — the **send** tab
 - [ ] multiple attachments per message
 - [ ] export archive as json/csv/html
 - [ ] per-bot notes and tag filtering in the vault
