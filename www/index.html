@@ -224,6 +224,24 @@
             <button class="btn btn-primary btn-block" id="send-btn" data-i18n="send.send"></button>
             <div class="error hidden" id="send-error"></div>
           </div>
+          <div class="card hidden" id="webhook-card">
+            <div class="card-title" data-i18n="send.webhooks_title"></div>
+            <p class="muted small" data-i18n="send.webhooks_desc"></p>
+            <div class="field">
+              <label class="label" data-i18n="send.webhook_select"></label>
+              <select id="webhook-select"><option value="" data-i18n-key="send.webhook_none"></option></select>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-ghost btn-small" id="webhook-create-btn" data-i18n="send.webhook_create"></button>
+              <button class="btn btn-danger btn-small" id="webhook-delete-btn" data-i18n="send.webhook_delete"></button>
+            </div>
+            <div class="field" style="margin-top:12px">
+              <label class="check-row" for="send-via-webhook">
+                <input type="checkbox" id="send-via-webhook">
+                <span data-i18n="send.send_via_webhook"></span>
+              </label>
+            </div>
+          </div>
         </section>
 
         <!-- LOGS -->
@@ -353,6 +371,10 @@
             <div id="voice-status" class="muted small"></div>
           </div>
           <div class="card">
+            <div class="card-title" data-i18n="voice.members_title"></div>
+            <div id="voice-members-list" class="muted small" data-i18n="voice.no_members"></div>
+          </div>
+          <div class="card">
             <div class="card-title" data-i18n="voice.playback_title"></div>
             <p class="muted small" data-i18n="voice.playback_desc"></p>
             <div class="field">
@@ -468,6 +490,11 @@
     <div id="modal-view-profile">
       <h3 data-i18n="modal.user_profile"></h3>
       <div id="profile-details" class="profile-details"></div>
+      <div class="profile-roles-manage" style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border);">
+        <div class="label" data-i18n="modal.manage_roles"></div>
+        <div id="profile-roles-list" class="role-list" style="max-height:150px; overflow-y:auto; gap:6px;"></div>
+        <div class="error hidden" id="role-error" style="margin-top:8px"></div>
+      </div>
       <!-- data holder for nick/timeout/kick/ban handlers; the visible id row is
            rendered by renderProfileDetails() inside #profile-details. -->
       <span id="modal-uid" class="hidden"></span>

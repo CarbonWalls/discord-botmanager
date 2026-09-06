@@ -987,7 +987,8 @@ function connectGateway(botId, token) {
     const ws = new WebSocket(GATEWAY_URL);
     const session = {
       botId, ws, token, user: null, heartbeatTimer: null, seq: null,
-      presence: 'online', voice: {}, voiceWaiters: [], voiceConnection: null
+      presence: 'online', voice: {}, voiceWaiters: [], voiceConnection: null,
+      guildVoiceStates: new Map()
     };
     sessions.set(botId, session);
 
@@ -1037,7 +1038,13 @@ function connectGateway(botId, token) {
           else if (data.t === 'MESSAGE_UPDATE' && data.d.channel_id) saveMessage(data.d);
           else if (data.t === 'MESSAGE_DELETE' && data.d.channel_id) markDeleted(data.d.channel_id, data.d.id);
           else if (data.t === 'MESSAGE_DELETE_BULK' && data.d.channel_id) data.d.ids.forEach(id => markDeleted(data.d.channel_id, id));
-          else if (data.t === 'VOICE_STATE_UPDATE' && session.user && data.d.user_id === session.user.id) {
+          else if (data.t === 'VOICE_STATE_UPDATE') {
+            // track every member's voice state (used by the voice moderation list)
+            if (data.d.guild_id) {
+              if (!data.d.channel_id) session.guildVoiceStates.delete(data.d.user_id);
+              else session.guildVoiceStates.set(data.d.user_id, data.d);
+            }
+            if (session.user && data.d.user_id === session.user.id) {
             session.voice = session.voice || {};
             session.voice.state = data.d;
             console.log('[gateway] VOICE_STATE_UPDATE:', {
@@ -1059,6 +1066,7 @@ function connectGateway(botId, token) {
             // Check if we now have both state and server for this guild/channel
             maybeResolveVoiceJoin(session, data.d.guild_id, data.d.channel_id);
             resolveVoiceWaiters(session, data.d);
+            }
           }
           else if (data.t === 'VOICE_SERVER_UPDATE') {
             session.voice = session.voice || {};
@@ -1217,6 +1225,26 @@ http.createServer(async (req, res) => {
     const s = sessions.get(m[1]);
     if (s) stopPlayback(s);
     return json(res, 200, { ok: true });
+  }
+
+  // webhook execute proxy (bypasses CORS: webhook endpoints reject browser origins)
+  if ((m = p.match(/^\/gateway\/webhook\/(\d+)\/([a-zA-Z0-9_-]+)$/)) && req.method === 'POST') {
+    const body = await readBody(req);
+    const headers = { 'Content-Type': req.headers['content-type'] || 'application/json' };
+    try {
+      const up = await fetch(`${API}/webhooks/${m[1]}/${m[2]}${url.search}`, { method: 'POST', headers, body });
+      const buf = Buffer.from(await up.arrayBuffer());
+      res.writeHead(up.status, { 'Content-Type': up.headers.get('content-type') || 'application/json' });
+      res.end(buf);
+    } catch (e) { json(res, 502, { error: e.message }); }
+    return;
+  }
+
+  // tracked voice states of every member in the guild (gateway cache)
+  if ((m = p.match(/^\/gateway\/([^/]+)\/voice\/states$/)) && req.method === 'GET') {
+    const s = sessions.get(m[1]);
+    const states = s?.guildVoiceStates ? [...s.guildVoiceStates.values()] : [];
+    return json(res, 200, { states });
   }
 
   if (p.startsWith('/discord/')) return proxyDiscord(req, res, p.slice('/discord'.length) + url.search);

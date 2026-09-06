@@ -416,7 +416,10 @@ function friendlyError(msg, action) {
       kick: 'error.perm_kick',
       delete: 'error.perm_delete',
       send: 'error.perm_send',
-      clone: 'error.perm_clone'
+      clone: 'error.perm_clone',
+      roles: 'error.perm_roles',
+      webhook: 'error.perm_webhook',
+      voice_mod: 'error.perm_voice_mod'
     };
     return t(map[action] || 'error.perm_generic');
   }
@@ -1230,6 +1233,7 @@ function resetTargets() {
   const cs = document.getElementById('chan-select');
   cs.disabled = true;
   setPlaceholderOption(cs, 'select.server');
+  hideWebhookCard();
 }
 async function loadGuilds() {
   gs.disabled = false;
@@ -1371,11 +1375,39 @@ document.getElementById('send-btn').onclick = async () => {
     err.classList.remove('hidden');
     return;
   }
+  const useWebhook = !!(sendViaWebhook && sendViaWebhook.checked);
+  if (useWebhook) {
+    // the webhook proxy carries json only: attachments and voice notes
+    // still go through the bot path
+    if (isVoice || fileToSend) {
+      err.textContent = t('send.webhook_no_files');
+      err.classList.remove('hidden');
+      return;
+    }
+    const wOpt = webhookSel && webhookSel.selectedOptions ? webhookSel.selectedOptions[0] : null;
+    if (!webhookSel.value || !wOpt || !wOpt.dataset.token) {
+      err.textContent = t('send.error_no_webhook');
+      err.classList.remove('hidden');
+      return;
+    }
+  }
   const b = document.getElementById('send-btn');
   b.disabled = true;
   b.textContent = t('send.sending');
   try {
-    if (fileToSend) {
+    if (useWebhook) {
+      const wOpt = webhookSel.selectedOptions[0];
+      const r = await fetch(`/gateway/webhook/${webhookSel.value}/${wOpt.dataset.token}?wait=true`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!r.ok) {
+        let msg = 'HTTP ' + r.status;
+        try { const j = await r.json(); if (j.message) msg = j.message; } catch {}
+        throw new Error(msg);
+      }
+    } else if (fileToSend) {
       const fd = new FormData();
       fd.append('payload_json', JSON.stringify(payload));
       fd.append('files[0]', fileToSend);
@@ -1409,6 +1441,81 @@ document.getElementById('send-btn').onclick = async () => {
     b.textContent = t('send.send');
   }
 };
+
+/* ===== webhooks (send tab) ===== */
+let currentWebhooks = [];
+const webhookCard = document.getElementById('webhook-card');
+const webhookSel = document.getElementById('webhook-select');
+const sendViaWebhook = document.getElementById('send-via-webhook');
+
+function hideWebhookCard() {
+  currentWebhooks = [];
+  if (webhookCard) webhookCard.classList.add('hidden');
+  if (webhookSel) webhookSel.innerHTML = '';
+  if (sendViaWebhook) sendViaWebhook.checked = false;
+}
+
+async function loadWebhooks(chanId) {
+  if (!webhookCard || !webhookSel) return;
+  if (!chanId || !selToken) { hideWebhookCard(); return; }
+  try {
+    // requires manage webhooks: without it the card stays hidden, the bot
+    // path keeps working as before
+    currentWebhooks = await api('/channels/' + chanId + '/webhooks');
+    webhookSel.innerHTML = '';
+    setPlaceholderOption(webhookSel, 'send.webhook_none');
+    currentWebhooks.forEach(w => {
+      const o = document.createElement('option');
+      o.value = w.id;
+      o.textContent = w.name + ' (' + w.id + ')';
+      o.dataset.token = w.token || '';
+      webhookSel.appendChild(o);
+    });
+    translateSelectOptions(webhookSel);
+    webhookCard.classList.remove('hidden');
+  } catch {
+    hideWebhookCard();
+  }
+}
+
+document.getElementById('webhook-create-btn').onclick = () => {
+  const chan = getChannelId();
+  if (!chan || !selToken) { tt(t('send.error_no_channel')); return; }
+  showInputModal(t('send.webhook_create'), t('send.webhook_name_prompt'), 'webhook', async (name) => {
+    if (!name || !name.trim()) return;
+    try {
+      await api('/channels/' + chan + '/webhooks', {
+        method: 'POST',
+        body: JSON.stringify({ name: name.trim() })
+      });
+      tt(t('send.webhook_created'));
+      loadWebhooks(chan);
+    } catch (e) {
+      tt(friendlyError(e.message, 'webhook'));
+    }
+  });
+};
+
+document.getElementById('webhook-delete-btn').onclick = () => {
+  const id = webhookSel ? webhookSel.value : '';
+  if (!id) return;
+  const w = currentWebhooks.find(x => x.id === id);
+  showConfirmModal(t('send.webhook_delete'), t('send.webhook_delete_confirm').replace('{name}', w?.name || id), async () => {
+    try {
+      await api('/webhooks/' + id, { method: 'DELETE' });
+      tt(t('send.webhook_deleted'));
+      loadWebhooks(getChannelId());
+    } catch (e) {
+      tt(friendlyError(e.message, 'webhook'));
+    }
+  });
+};
+
+document.getElementById('chan-select').addEventListener('change', () => loadWebhooks(getChannelId()));
+document.getElementById('manual-chan').addEventListener('input', () => loadWebhooks(getChannelId()));
+document.getElementById('mode-auto').addEventListener('click', () => loadWebhooks(getChannelId()));
+document.getElementById('mode-manual').addEventListener('click', () => loadWebhooks(getChannelId()));
+
 
 /* ===== logs ===== */
 let logBot = null;
@@ -1789,6 +1896,70 @@ async function fetchUser(uid, token) {
     selToken = old;
   }
 }
+function renderRolesManage(uid, member, roles, gid) {
+  const listEl = document.getElementById('profile-roles-list');
+  const manageEl = listEl ? listEl.closest('.profile-roles-manage') : null;
+  const errEl = document.getElementById('role-error');
+  if (!listEl || !manageEl || !errEl) return;
+  errEl.classList.add('hidden');
+
+  // without the member record we cannot know the current roles, so editing
+  // would risk replacing them all: show nothing instead
+  if (!gid || !member || !Array.isArray(member.roles) || !roles || !roles.length) {
+    manageEl.classList.add('hidden');
+    listEl.innerHTML = '';
+    return;
+  }
+
+  const manageable = roles
+    .filter(r => r.id !== gid && r.name !== '@everyone' && !r.managed)
+    .sort((a, b) => (b.position || 0) - (a.position || 0));
+  if (!manageable.length) {
+    manageEl.classList.add('hidden');
+    listEl.innerHTML = '';
+    return;
+  }
+
+  manageEl.classList.remove('hidden');
+  listEl.innerHTML = manageable.map(r => {
+    const hasRole = member.roles.includes(r.id);
+    const color = r.color ? '#' + r.color.toString(16).padStart(6, '0') : 'var(--text-muted)';
+    return `<label class="check-row" style="margin-bottom:4px; padding:6px 10px;">
+      <input type="checkbox" class="role-toggle" data-roleid="${r.id}" ${hasRole ? 'checked' : ''}>
+      <span class="role-badge" style="border-color:${color};color:${color}">${esc(r.name)}</span>
+    </label>`;
+  }).join('');
+
+  listEl.querySelectorAll('.role-toggle').forEach(cb => {
+    cb.onchange = async () => {
+      const roleId = cb.dataset.roleid;
+      const currentRoles = [...member.roles];
+      const newRoles = cb.checked
+        ? [...currentRoles, roleId]
+        : currentRoles.filter(r => r !== roleId);
+      errEl.classList.add('hidden');
+      cb.disabled = true;
+      const old = selToken;
+      selToken = logToken;
+      try {
+        await api(`/guilds/${gid}/members/${uid}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ roles: newRoles })
+        });
+        member.roles = newRoles;
+        tt(t('profile.roles_updated'));
+      } catch (e) {
+        cb.checked = !cb.checked; // revert
+        errEl.textContent = friendlyError(e.message, 'roles');
+        errEl.classList.remove('hidden');
+      } finally {
+        selToken = old;
+        cb.disabled = false;
+      }
+    };
+  });
+}
+
 function renderProfileDetails(container, uid, user, member, roles, gid) {
   const displayName = user?.global_name || user?.username || t('common.unknown');
   const username = user?.username || t('common.unknown');
@@ -1896,6 +2067,7 @@ async function openUserModal(uid, uname, gid) {
     try { roles = await fetchGuildRoles(gid, logToken); } catch {}
 
     renderProfileDetails(details, uid, user, member, roles, gid);
+    renderRolesManage(uid, member, roles, gid);
   } catch (e) {
     const details = document.getElementById('profile-details');
     if (details) {
@@ -2244,6 +2416,7 @@ document.getElementById('voice-join').onclick = async () => {
   } finally {
     btn.disabled = false;
     updateVoiceControls();
+    updateVoiceMembers();
   }
 };
 document.getElementById('voice-leave').onclick = async () => {
@@ -2351,6 +2524,7 @@ if (voiceStopBtn) {
 async function updateVoiceStatus() {
   const el = document.getElementById('voice-status');
   if (!el) return;
+  updateVoiceMembers();
   if (!voiceBot) {
     el.textContent = '';
     voiceCurrentlyInChannel = false;
@@ -2385,6 +2559,99 @@ async function updateVoiceStatus() {
     voiceCurrentlyPlaying = false;
   }
   updateVoiceControls();
+  updateVoiceMembers();
+}
+
+/* ===== voice moderation ===== */
+const voiceUserCache = {};
+async function updateVoiceMembers() {
+  const list = document.getElementById('voice-members-list');
+  if (!list) return;
+  const botUserId = (voiceBot && voiceToken) ? clientIdFromToken(voiceToken) : null;
+  if (!voiceBot || !voiceGuild) {
+    list.innerHTML = `<span class="muted small">${esc(t('voice.no_members'))}</span>`;
+    return;
+  }
+  let states = null;
+  // REST first (works even before the gateway cache fills up), then the
+  // bridge cache as fallback
+  const oldTok = selToken;
+  try {
+    selToken = voiceToken;
+    states = await api('/guilds/' + voiceGuild + '/voice-states');
+  } catch {
+    try {
+      const res = await gatewayGet('/' + voiceBot.id + '/voice/states');
+      states = res.states || [];
+    } catch {}
+  } finally {
+    selToken = oldTok;
+  }
+  const members = (states || []).filter(s => s.channel_id && s.user_id !== botUserId);
+  // prefer the members actually in the channel selected in the dropdown
+  const inChannel = voiceChannel ? members.filter(s => s.channel_id === voiceChannel) : [];
+  const shown = inChannel.length ? inChannel : members;
+
+  if (!shown.length) {
+    list.innerHTML = `<span class="muted small">${esc(t('voice.no_members'))}</span>`;
+    return;
+  }
+
+  // resolve usernames once per user; fall back to the raw id
+  const oldTok2 = selToken;
+  for (const s of shown) {
+    if (!voiceUserCache[s.user_id]) {
+      try {
+        selToken = voiceToken;
+        const u = await fetchUser(s.user_id, voiceToken);
+        voiceUserCache[s.user_id] = u.global_name || u.username || s.user_id;
+      } catch {
+        voiceUserCache[s.user_id] = s.user_id;
+      }
+    }
+  }
+  selToken = oldTok2;
+
+  list.innerHTML = shown.map(s => {
+    const name = voiceUserCache[s.user_id] || s.user_id;
+    const flags = [s.mute ? 'mute' : '', s.deaf ? 'deaf' : '', s.self_mute ? 'self-mute' : '', s.self_deaf ? 'self-deaf' : ''].filter(Boolean).join(' · ');
+    return `<div class="session-item" data-uid="${esc(s.user_id)}">
+      <div class="dot ${s.self_deaf || s.deaf ? 'dot-ko' : 'dot-ok'}"></div>
+      <div style="flex:1;min-width:0">
+        <div class="bold small">${esc(name)}</div>
+        ${flags ? `<div class="muted small">${esc(flags)}</div>` : ''}
+      </div>
+      <button class="btn btn-ghost btn-small v-mute" data-uid="${esc(s.user_id)}" data-state="${s.mute ? '0' : '1'}">${esc(s.mute ? t('voice.unmute') : t('voice.mute'))}</button>
+      <button class="btn btn-ghost btn-small v-deaf" data-uid="${esc(s.user_id)}" data-state="${s.deaf ? '0' : '1'}">${esc(s.deaf ? t('voice.undeafen') : t('voice.deafen'))}</button>
+      <button class="btn btn-danger btn-small v-disconnect" data-uid="${esc(s.user_id)}">${esc(t('voice.disconnect'))}</button>
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('.v-mute, .v-deaf, .v-disconnect').forEach(btn => {
+    btn.onclick = async () => {
+      const uid = btn.dataset.uid;
+      const payload = {};
+      if (btn.classList.contains('v-disconnect')) payload.channel_id = null;
+      else if (btn.classList.contains('v-mute')) payload.mute = btn.dataset.state === '1';
+      else if (btn.classList.contains('v-deaf')) payload.deaf = btn.dataset.state === '1';
+      btn.disabled = true;
+      const old = selToken;
+      selToken = voiceToken;
+      try {
+        await api(`/guilds/${voiceGuild}/members/${uid}`, {
+          method: 'PATCH',
+          body: JSON.stringify(payload)
+        });
+        tt(t('voice.member_updated'));
+        setTimeout(updateVoiceMembers, 600);
+      } catch (e) {
+        tt(friendlyError(e.message, 'voice_mod'));
+      } finally {
+        selToken = old;
+        btn.disabled = false;
+      }
+    };
+  });
 }
 
 /* ===== cleaner ===== */
