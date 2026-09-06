@@ -424,23 +424,11 @@
   <div class="modal-content">
     <button class="close-modal" id="close-modal"><i data-icon="x"></i></button>
     <div id="modal-view-profile">
-  <div id="profile-details" class="profile-details"></div>
-  <div class="modal-actions">
-    <button class="btn btn-ghost" id="btn-nick" data-i18n="modal.change_nick"></button>
-    <button class="btn btn-ghost" id="btn-timeout" data-i18n="modal.timeout"></button>
-    <button class="btn btn-danger" id="btn-kick" data-i18n="modal.kick"></button>
-    <button class="btn btn-danger" id="btn-ban" data-i18n="modal.ban"></button>
-  </div>
-</div>
       <h3 data-i18n="modal.user_profile"></h3>
       <div id="profile-details" class="profile-details"></div>
-      <div class="modal-field" style="margin-top:12px">
-        <label class="label" data-i18n="modal.user_id"></label>
-        <div class="id-row">
-          <code id="modal-uid"></code>
-          <button class="btn btn-ghost btn-small" id="copy-uid" data-i18n="modal.copy"></button>
-        </div>
-      </div>
+      <!-- data holder for nick/timeout/kick/ban handlers; the visible id row is
+           rendered by renderProfileDetails() inside #profile-details. -->
+      <span id="modal-uid" class="hidden"></span>
       <p class="muted small" data-i18n-html="modal.nick_note"></p>
       <div class="modal-actions">
         <button class="btn btn-ghost" id="btn-nick" data-i18n="modal.change_nick"></button>

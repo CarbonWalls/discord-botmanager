@@ -1734,8 +1734,17 @@ function renderProfileDetails(container, uid, user, member, roles, gid) {
   }
 }
 
+function showView(view) {
+  for (const v of ['profile', 'nick', 'timeout']) {
+    const el = document.getElementById('modal-view-' + v);
+    if (el) el.classList.toggle('hidden', v !== view);
+  }
+}
+
 async function openUserModal(uid, uname, gid) {
   try {
+    const uidEl = document.getElementById('modal-uid');
+    if (uidEl) uidEl.textContent = uid;
     const nickInput = document.getElementById('nick-input');
     if (nickInput) nickInput.value = '';
     const timeoutInput = document.getElementById('timeout-input');
@@ -1770,17 +1779,6 @@ document.getElementById('close-modal').onclick = () => document.getElementById('
 document.getElementById('user-modal').onclick = (e) => {
   if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
 };
-// keep this for backwards compat if the old element still exists somewhere
-const copyUidBtn = document.getElementById('copy-uid');
-if (copyUidBtn) {
-  copyUidBtn.onclick = () => {
-    const uidEl = document.getElementById('modal-uid');
-    if (uidEl) {
-      navigator.clipboard.writeText(uidEl.textContent);
-      tt(t('common.copied'));
-    }
-  };
-}
 document.getElementById('btn-nick').onclick = () => showView('nick');
 document.getElementById('nick-cancel').onclick = () => showView('profile');
 document.getElementById('btn-timeout').onclick = () => showView('timeout');
