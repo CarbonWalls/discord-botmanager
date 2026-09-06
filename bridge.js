@@ -32,6 +32,13 @@ const LOCALES_DIR = process.env.LOCALES_DIR || path.join(WWW, 'locales');
 const API = 'https://discord.com/api/v10';
 const GATEWAY_URL = 'wss://gateway.discord.gg/?v=10&encoding=json';
 const INTENTS = (1 << 0) | (1 << 9) | (1 << 15) | (1 << 7);
+const INTENT_GUILD_MEMBERS = 1 << 1; // privileged: needs SERVER MEMBERS INTENT in the dev portal
+// bots that got 4014 (disallowed intents) reconnect without the members intent,
+// degrading member data instead of losing the connection entirely
+const reducedIntentsBots = new Set();
+function intentsFor(botId) {
+  return reducedIntentsBots.has(botId) ? INTENTS : (INTENTS | INTENT_GUILD_MEMBERS);
+}
 
 const MIME = {
   '.html': 'text/html',
@@ -187,6 +194,87 @@ setInterval(() => {
     if (now - data.updatedAt > RATE_LIMIT_TTL) rateLimits.delete(bucket);
   }
 }, 60000).unref();
+
+/* ===== scheduler ===== */
+const JOBS_FILE = path.join(DATA_DIR, 'scheduled-jobs.json');
+const MIN_INTERVAL_MS = 10000;
+const scheduledJobs = new Map(); // id -> job
+const jobTimers = new Map(); // id -> timer
+
+function loadJobs() {
+  try {
+    if (fs.existsSync(JOBS_FILE)) {
+      const data = JSON.parse(fs.readFileSync(JOBS_FILE, 'utf8'));
+      if (Array.isArray(data)) data.forEach(j => scheduledJobs.set(j.id, j));
+    }
+  } catch (e) {
+    console.error('[scheduler] load error:', e.message);
+  }
+}
+
+function saveJobs() {
+  try {
+    fs.writeFileSync(JOBS_FILE, JSON.stringify([...scheduledJobs.values()], null, 2));
+  } catch (e) {
+    console.error('[scheduler] save error:', e.message);
+  }
+}
+
+async function runJob(job) {
+  job.lastRun = Date.now();
+  job.runCount = (job.runCount || 0) + 1;
+  try {
+    if (job.type === 'send_message') {
+      const headers = {
+        Authorization: `Bot ${job.payload.token}`,
+        'User-Agent': 'DiscordBot (local-manager, 1.0)',
+        'Content-Type': 'application/json'
+      };
+      const r = await fetch(`${API}/channels/${job.payload.channelId}/messages`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ content: job.payload.content })
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+    } else if (job.type === 'change_presence') {
+      const s = sessions.get(job.payload.botId);
+      if (!s || s.ws.readyState !== WebSocket.OPEN) throw new Error('bot not connected');
+      s.ws.send(JSON.stringify({
+        op: 3,
+        d: { status: job.payload.status, afk: false, since: null, activities: [] }
+      }));
+    } else {
+      throw new Error('unknown job type: ' + job.type);
+    }
+    job.lastStatus = 'success';
+  } catch (e) {
+    job.lastStatus = 'error: ' + e.message;
+  }
+  saveJobs();
+}
+
+function scheduleJob(job) {
+  if (jobTimers.has(job.id)) {
+    clearInterval(jobTimers.get(job.id));
+    jobTimers.delete(job.id);
+  }
+  if (!job.active) return;
+  const timer = setInterval(() => runJob(job), Math.max(job.intervalMs, MIN_INTERVAL_MS));
+  jobTimers.set(job.id, timer);
+}
+
+function unscheduleJob(id) {
+  if (jobTimers.has(id)) {
+    clearInterval(jobTimers.get(id));
+    jobTimers.delete(id);
+  }
+}
+
+loadJobs();
+for (const job of scheduledJobs.values()) {
+  if (job.active) scheduleJob(job);
+}
+
 
 function archivePath(channelId) { return path.join(DATA_DIR, `${channelId}.json`); }
 function loadArchive(channelId) {
@@ -1038,7 +1126,7 @@ function connectGateway(botId, token) {
           ws.send(JSON.stringify({
             op: 2,
             d: {
-              token, intents: INTENTS,
+              token, intents: intentsFor(botId),
               properties: { os: 'linux', browser: 'local-manager', device: 'local-manager' },
               presence: { status: 'online', afk: false, activities: [], since: null }
             }
@@ -1118,7 +1206,15 @@ function connectGateway(botId, token) {
       } catch (e) { console.error('[gateway] parse error:', e.message); }
     });
 
-    ws.on('close', () => {
+    ws.on('close', (code) => {
+      if (code === 4014 && !reducedIntentsBots.has(botId)) {
+        // disallowed intents: retry once without the privileged members intent
+        console.warn(`[gateway] bot ${botId}: GUILD_MEMBERS intent not enabled in the portal, reconnecting without it`);
+        reducedIntentsBots.add(botId);
+        sessions.delete(botId);
+        setTimeout(() => { connectGateway(botId, token).catch(() => {}); }, 2000);
+        return;
+      }
       console.log(`[gateway] closed bot ${botId}`);
       if (session.heartbeatTimer) clearInterval(session.heartbeatTimer);
       cleanupVoice(session); sessions.delete(botId);
@@ -1316,6 +1412,96 @@ http.createServer(async (req, res) => {
       fs.writeFileSync(path.join(backupDir, filename), JSON.stringify({ channel, messages }, null, 2));
 
       return json(res, 200, { ok: true, filename, messageCount: messages.length });
+    } catch (e) {
+      return json(res, 500, { error: e.message });
+    }
+  }
+
+  // ===== scheduler =====
+  if (p === '/gateway/scheduler/jobs' && req.method === 'GET') {
+    // never round-trip stored tokens back to the client: mask them
+    const jobs = [...scheduledJobs.values()].map(j => ({
+      ...j,
+      payload: j.payload && j.payload.token
+        ? { ...j.payload, token: '••••' + String(j.payload.token).slice(-4) }
+        : j.payload
+    }));
+    return json(res, 200, { jobs });
+  }
+
+  if ((m = p.match(/^\/gateway\/scheduler\/job\/([a-zA-Z0-9_-]{1,64})$/)) && req.method === 'POST') {
+    const id = m[1];
+    const body = await readJson(req);
+    if (!['send_message', 'change_presence'].includes(body.type)) {
+      return json(res, 400, { error: 'invalid job type' });
+    }
+    if (body.type === 'send_message' && (!body.payload?.token || !body.payload?.channelId)) {
+      return json(res, 400, { error: 'send_message jobs need payload.token and payload.channelId' });
+    }
+    if (body.type === 'change_presence' && !body.payload?.botId) {
+      return json(res, 400, { error: 'change_presence jobs need payload.botId' });
+    }
+    const intervalMs = Math.max(parseInt(body.intervalMs, 10) || MIN_INTERVAL_MS, MIN_INTERVAL_MS);
+    const job = {
+      id,
+      name: String(body.name || 'unnamed').slice(0, 80),
+      type: body.type,
+      intervalMs,
+      active: body.active !== false,
+      payload: body.payload || {},
+      createdAt: Date.now(),
+      lastRun: null,
+      runCount: 0,
+      lastStatus: null
+    };
+    scheduledJobs.set(id, job);
+    saveJobs();
+    if (job.active) scheduleJob(job);
+    return json(res, 200, { ok: true, job: { ...job, payload: job.payload.token ? { ...job.payload, token: '••••' + String(job.payload.token).slice(-4) } : job.payload } });
+  }
+
+  if ((m = p.match(/^\/gateway\/scheduler\/job\/([a-zA-Z0-9_-]{1,64})\/toggle$/)) && req.method === 'POST') {
+    const job = scheduledJobs.get(m[1]);
+    if (!job) return json(res, 404, { error: 'job not found' });
+    job.active = !job.active;
+    saveJobs();
+    if (job.active) scheduleJob(job);
+    else unscheduleJob(job.id);
+    return json(res, 200, { ok: true, active: job.active });
+  }
+
+  if ((m = p.match(/^\/gateway\/scheduler\/job\/([a-zA-Z0-9_-]{1,64})$/)) && req.method === 'DELETE') {
+    unscheduleJob(m[1]);
+    if (!scheduledJobs.delete(m[1])) return json(res, 404, { error: 'job not found' });
+    saveJobs();
+    return json(res, 200, { ok: true });
+  }
+
+  // ===== guild members (paginated REST; needs the GUILD_MEMBERS intent enabled) =====
+  if ((m = p.match(/^\/gateway\/([^/]+)\/members\/([^/]+)$/)) && req.method === 'GET') {
+    const s = sessions.get(m[1]);
+    if (!s || s.ws.readyState !== WebSocket.OPEN) return json(res, 400, { error: 'bot not connected' });
+    const headers = { Authorization: `Bot ${s.token}`, 'User-Agent': 'DiscordBot (local-manager, 1.0)' };
+    try {
+      const probe = await fetch(`${API}/guilds/${m[2]}/members?limit=1`, { headers });
+      if (probe.status === 403) {
+        return json(res, 403, { error: 'missing GUILD_MEMBERS privileged intent (enable SERVER MEMBERS INTENT in the developer portal) or members permission', hasIntent: false });
+      }
+      if (!probe.ok) return json(res, probe.status, { error: 'HTTP ' + probe.status });
+
+      const members = [];
+      let after = null;
+      while (true) {
+        const pgRes = await fetch(`${API}/guilds/${m[2]}/members?limit=1000${after ? '&after=' + after : ''}`, { headers });
+        if (!pgRes.ok) break;
+        const batch = await pgRes.json();
+        if (!Array.isArray(batch) || !batch.length) break;
+        members.push(...batch);
+        after = batch[batch.length - 1].user?.id;
+        if (!after || batch.length < 1000) break;
+        await sleep(500);
+      }
+      return json(res, 200, { members, hasIntent: !!(intentsFor(m[1]) & INTENT_GUILD_MEMBERS) });
     } catch (e) {
       return json(res, 500, { error: e.message });
     }

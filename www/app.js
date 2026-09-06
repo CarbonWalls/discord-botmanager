@@ -137,6 +137,8 @@ const ICONS = {
   x: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>',
   plus: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>',
   hash: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M10.54 5l-.42 2H7.96l.42-2h2.16zm3 0h2.16l-.42 2h-2.16l.42-2zM8.38 11H6.22l.42-2h2.16l-.42 2zm7.4-2h2.16l-.42 2h-2.16l.42-2zM9.22 17H7.06l.42-2h2.16l-.42 2zm3 0h2.16l-.42-2h-2.16l.42 2zM20.5 9h-1.94l.42-2h1.6c.55 0 1-.45 1-1s-.45-1-1-1h-1.98l.48-2.29c.11-.54-.23-1.07-.77-1.18-.54-.11-1.07.23-1.18.77L16.53 5h-2.16l.48-2.29c.11-.54-.23-1.07-.77-1.18-.54-.11-1.07.23-1.18.77L12.5 5h-2.16l.48-2.29c.11-.54-.23-1.07-.77-1.18-.54-.11-1.07.23-1.18.77L8.47 5H5c-.55 0-1 .45-1 1s.45 1 1 1h3.09l-.42 2H5.13c-.55 0-1 .45-1 1s.45 1 1 1h2.16l-.42 2H4.71c-.55 0-1 .45-1 1s.45 1 1 1h1.74l-.48 2.29c-.11.54.23 1.07.77 1.18.54.11 1.07-.23 1.18-.77L8.32 15h2.16l-.48 2.29c-.11.54.23 1.07.77 1.18.54.11 1.07-.23 1.18-.77l.39-2.7h2.16l-.48 2.29c-.11.54.23 1.07.77 1.18.54.11 1.07-.23 1.18-.77l.39-2.7H19c.55 0 1-.45 1-1s-.45-1-1-1h-2.6l.42-2h1.68c.55 0 1-.45 1-1s-.45-1-1-1z"/></svg>',
+  clock: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>',
+  users: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>',
   trashSmall: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>'
 };
 function injectIcons(root = document) {
@@ -1042,6 +1044,8 @@ const TAB_MAP = {
   voice: 'voice',
   cleaner: 'cleaner',
   channels: 'channels',
+  scheduler: 'scheduler',
+  members: 'members',
   settings: 'ss'
 };
 function switchTab(tab) {
@@ -1058,6 +1062,8 @@ function switchTab(tab) {
   if (tab === 'presence') refreshSessions();
   if (tab === 'voice') updateVoiceStatus();
   if (tab === 'channels') loadChannelsList();
+  if (tab === 'scheduler') loadJobs();
+  if (tab === 'members') refreshMembersCount();
 }
 document.querySelectorAll('.nav-btn').forEach(b => {
   if (b.id !== 'lk-side') b.onclick = () => switchTab(b.dataset.tab);
@@ -3252,6 +3258,400 @@ async function loadChannelsList() {
 
 document.getElementById('channels-refresh').onclick = () => loadChannelsList();
 
+/* ===== scheduler tab ===== */
+let editingJobId = null;
+
+function populateJobBotSelect() {
+  const sel = document.getElementById('job-bot-select');
+  if (!sel) return;
+  sel.innerHTML = '';
+  setPlaceholderOption(sel, 'select.bot');
+  if (V) {
+    V.bots.forEach(b => {
+      const o = document.createElement('option');
+      o.value = b.id;
+      o.textContent = b.name;
+      sel.appendChild(o);
+    });
+  }
+  translateSelectOptions(sel);
+}
+
+function populateJobPayloadFields() {
+  const type = document.getElementById('job-type').value;
+  const container = document.getElementById('job-payload-fields');
+  container.innerHTML = '';
+
+  if (type === 'send_message') {
+    container.innerHTML = `
+      <div class="field">
+        <label class="label" data-i18n="scheduler.bot"></label>
+        <select id="job-bot-select"></select>
+      </div>
+      <div class="field">
+        <label class="label" data-i18n="scheduler.channel_id"></label>
+        <input type="text" id="job-channel-id" class="mono" data-i18n-placeholder="scheduler.channel_id_placeholder">
+      </div>
+      <div class="field">
+        <label class="label" data-i18n="scheduler.message_content"></label>
+        <textarea id="job-content" rows="3" data-i18n-placeholder="scheduler.message_content_placeholder"></textarea>
+      </div>
+    `;
+  } else if (type === 'change_presence') {
+    container.innerHTML = `
+      <div class="field">
+        <label class="label" data-i18n="scheduler.bot"></label>
+        <select id="job-bot-select"></select>
+      </div>
+      <div class="field">
+        <label class="label" data-i18n="scheduler.presence_status"></label>
+        <select id="job-status">
+          <option value="online" data-i18n-key="presence.online"></option>
+          <option value="idle" data-i18n-key="presence.idle"></option>
+          <option value="dnd" data-i18n-key="presence.dnd"></option>
+          <option value="invisible" data-i18n-key="presence.invisible"></option>
+        </select>
+      </div>
+    `;
+  }
+  populateJobBotSelect();
+  translateStaticDom();
+}
+
+document.getElementById('job-type').onchange = populateJobPayloadFields;
+
+document.getElementById('scheduler-add').onclick = () => {
+  editingJobId = null;
+  document.getElementById('job-name').value = '';
+  document.getElementById('job-interval').value = '60';
+  document.getElementById('job-type').value = 'send_message';
+  populateJobPayloadFields();
+  document.getElementById('scheduler-form').classList.remove('hidden');
+};
+
+document.getElementById('job-cancel').onclick = () => {
+  document.getElementById('scheduler-form').classList.add('hidden');
+  editingJobId = null;
+};
+
+document.getElementById('job-save').onclick = async () => {
+  const err = document.getElementById('job-error');
+  err.classList.add('hidden');
+  const name = document.getElementById('job-name').value.trim();
+  const type = document.getElementById('job-type').value;
+  const intervalSec = parseInt(document.getElementById('job-interval').value, 10);
+
+  const showErr = k => { err.textContent = t(k); err.classList.remove('hidden'); };
+
+  if (!name) return showErr('scheduler.error_need_name');
+  if (!intervalSec || intervalSec < 10) return showErr('scheduler.error_invalid_interval');
+
+  const payload = {};
+  if (type === 'send_message') {
+    const botSel = document.getElementById('job-bot-select');
+    const bot = V.bots.find(b => b.id === botSel.value);
+    const channelId = document.getElementById('job-channel-id').value.trim();
+    const content = document.getElementById('job-content').value;
+    if (!bot) return showErr('scheduler.error_no_bot');
+    if (!channelId || !content.trim()) return showErr('scheduler.error_incomplete');
+    try {
+      payload.token = await db(bot, K);
+    } catch (e) {
+      return showErr('scheduler.error_no_bot');
+    }
+    payload.botId = bot.id;
+    payload.channelId = channelId;
+    payload.content = content;
+  } else if (type === 'change_presence') {
+    const botSel = document.getElementById('job-bot-select');
+    const bot = V.bots.find(b => b.id === botSel.value);
+    if (!bot) return showErr('scheduler.error_no_bot');
+    payload.botId = bot.id;
+    payload.status = document.getElementById('job-status').value;
+  }
+
+  const id = editingJobId || 'job-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+  const btn = document.getElementById('job-save');
+  btn.disabled = true;
+  btn.textContent = t('common.saving');
+
+  try {
+    await gateway('/scheduler/job/' + id, {
+      name,
+      type,
+      intervalMs: intervalSec * 1000,
+      active: true,
+      payload
+    });
+    tt(t('scheduler.job_saved'));
+    document.getElementById('scheduler-form').classList.add('hidden');
+    editingJobId = null;
+    loadJobs();
+  } catch (e) {
+    err.textContent = e.message;
+    err.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = t('common.save');
+  }
+};
+
+function jobTypeLabel(type) {
+  return type === 'send_message' ? t('scheduler.type_send') : t('scheduler.type_presence');
+}
+
+async function loadJobs() {
+  const list = document.getElementById('scheduler-list');
+  if (!list) return;
+  try {
+    const res = await gatewayGet('/scheduler/jobs');
+    const jobs = res.jobs || [];
+
+    if (!jobs.length) {
+      list.innerHTML = '<span class="muted small">' + esc(t('scheduler.no_jobs')) + '</span>';
+      return;
+    }
+
+    list.innerHTML = jobs.map(j => {
+      const statusColor = j.lastStatus === 'success' ? 'dot-ok' : (j.lastStatus && String(j.lastStatus).startsWith('error')) ? 'dot-ko' : 'dot-idle';
+      const statusText = j.lastStatus === 'success' ? t('scheduler.status_success') : (j.lastStatus || t('scheduler.never_run'));
+      const lastRun = j.lastRun ? fmtDateTime(j.lastRun) : t('scheduler.never');
+      return `
+        <div class="session-item">
+          <div class="dot ${statusColor}"></div>
+          <div style="flex:1;min-width:0">
+            <div class="bold small">${esc(j.name)}</div>
+            <div class="muted small">${esc(jobTypeLabel(j.type))} · ${Math.round(j.intervalMs / 1000)}s · ${esc(statusText)}</div>
+            <div class="muted small">${esc(t('scheduler.last_run'))}: ${esc(lastRun)} · ${esc(t('scheduler.run_count'))}: ${j.runCount || 0}</div>
+          </div>
+          <button class="btn btn-ghost btn-small job-toggle" data-id="${j.id}">${j.active ? t('scheduler.disable') : t('scheduler.enable')}</button>
+          <button class="btn btn-danger btn-small job-delete" data-id="${j.id}">${esc(t('common.delete'))}</button>
+        </div>
+      `;
+    }).join('');
+
+    list.querySelectorAll('.job-toggle').forEach(btn => {
+      btn.onclick = async () => {
+        btn.disabled = true;
+        try {
+          await gateway('/scheduler/job/' + btn.dataset.id + '/toggle');
+          tt(t('scheduler.job_toggled'));
+          await loadJobs();
+        } catch (e) {
+          tt(e.message);
+        } finally {
+          btn.disabled = false;
+        }
+      };
+    });
+
+    list.querySelectorAll('.job-delete').forEach(btn => {
+      btn.onclick = () => {
+        const id = btn.dataset.id;
+        showConfirmModal(t('scheduler.delete_job'), t('scheduler.delete_confirm'), async () => {
+          btn.disabled = true;
+          try {
+            await fetch('/gateway/scheduler/job/' + id, { method: 'DELETE' });
+            tt(t('scheduler.job_deleted'));
+            await loadJobs();
+          } catch (e) {
+            tt(e.message);
+          } finally {
+            btn.disabled = false;
+          }
+        });
+      };
+    });
+  } catch (e) {
+    list.innerHTML = '<span class="muted small">' + esc(t('common.error')) + ': ' + esc(e.message) + '</span>';
+  }
+}
+
+// refresh the job list while the scheduler tab is open
+setInterval(() => {
+  const tab = document.getElementById('scheduler');
+  if (tab && !tab.classList.contains('hidden')) loadJobs();
+}, 10000);
+
+/* ===== members tab ===== */
+let membersBot = null;
+let membersToken = null;
+let membersGuild = null;
+let allMembers = [];
+let allRoles = [];
+
+const membersBotSel = document.getElementById('members-bot-select');
+const membersGs = document.getElementById('members-guild-select');
+
+function populateMembersBotSelect() {
+  if (!membersBotSel) return;
+  const cur = membersBotSel.value;
+  membersBotSel.innerHTML = '';
+  setPlaceholderOption(membersBotSel, 'select.bot');
+  if (V) {
+    V.bots.forEach(b => {
+      const o = document.createElement('option');
+      o.value = b.id;
+      o.textContent = b.name;
+      membersBotSel.appendChild(o);
+    });
+  }
+  if (cur) membersBotSel.value = cur;
+  translateSelectOptions(membersBotSel);
+}
+
+membersBotSel.onchange = async () => {
+  const id = membersBotSel.value;
+  membersBot = V.bots.find(b => b.id === id) || null;
+  membersToken = membersBot ? await db(membersBot, K) : null;
+  membersGs.disabled = true;
+  setPlaceholderOption(membersGs, 'select.bot_first');
+  document.getElementById('members-fetch').disabled = true;
+  if (membersToken) loadMembersGuilds();
+};
+
+async function loadMembersGuilds() {
+  membersGs.disabled = false;
+  setPlaceholderOption(membersGs, 'select.loading');
+  try {
+    const old = selToken;
+    selToken = membersToken;
+    const g = await api('/users/@me/guilds');
+    selToken = old;
+    membersGs.innerHTML = '';
+    setPlaceholderOption(membersGs, 'select.choose_server');
+    g.forEach(x => {
+      const o = document.createElement('option');
+      o.value = x.id;
+      o.textContent = x.name;
+      membersGs.appendChild(o);
+    });
+    translateSelectOptions(membersGs);
+  } catch (e) {
+    setPlaceholderOption(membersGs, 'select.error');
+    tt(e.message);
+  }
+}
+
+membersGs.onchange = async () => {
+  membersGuild = membersGs.value;
+  document.getElementById('members-fetch').disabled = !membersGuild;
+};
+
+document.getElementById('members-fetch').onclick = async () => {
+  const err = document.getElementById('members-error');
+  err.classList.add('hidden');
+  if (!membersBot || !membersGuild || !membersToken) return;
+
+  const btn = document.getElementById('members-fetch');
+  btn.disabled = true;
+  btn.textContent = t('common.loading');
+
+  try {
+    const r = await fetch('/gateway/' + membersBot.id + '/members/' + membersGuild);
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      if (r.status === 403) {
+        err.textContent = t('members.missing_intent');
+        err.classList.remove('hidden');
+        return;
+      }
+      if (data.error === 'bot not connected') {
+        err.textContent = t('members.need_connection');
+        err.classList.remove('hidden');
+        return;
+      }
+      throw new Error(data.error || 'HTTP ' + r.status);
+    }
+    allMembers = data.members || [];
+    showMembersSnapshotNote(data.hasIntent === false);
+    try {
+      const old = selToken;
+      selToken = membersToken;
+      allRoles = await api('/guilds/' + membersGuild + '/roles');
+      selToken = old;
+    } catch {
+      allRoles = [];
+    }
+    const roleFilter = document.getElementById('members-role-filter');
+    roleFilter.innerHTML = '<option value="" data-i18n-key="members.all_roles">' + esc(t('members.all_roles')) + '</option>';
+    allRoles.filter(r => r.name !== '@everyone').forEach(r => {
+      const o = document.createElement('option');
+      o.value = r.id;
+      o.textContent = r.name;
+      roleFilter.appendChild(o);
+    });
+    translateSelectOptions(roleFilter);
+
+    filterMembers();
+  } catch (e) {
+    err.textContent = e.message;
+    err.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = t('members.fetch');
+  }
+};
+
+function showMembersSnapshotNote(show) {
+  const note = document.getElementById('members-note');
+  if (note) note.classList.toggle('hidden', !show);
+}
+
+function refreshMembersCount() {
+  if (allMembers.length) filterMembers();
+}
+
+function filterMembers() {
+  const search = document.getElementById('members-search').value.toLowerCase();
+  const roleFilter = document.getElementById('members-role-filter').value;
+  const list = document.getElementById('members-list');
+  const count = document.getElementById('members-count');
+
+  let filtered = allMembers;
+  if (search) {
+    filtered = filtered.filter(m =>
+      m.user && (
+        m.user.username.toLowerCase().includes(search) ||
+        (m.user.global_name || '').toLowerCase().includes(search) ||
+        (m.nick || '').toLowerCase().includes(search)
+      )
+    );
+  }
+  if (roleFilter) filtered = filtered.filter(m => (m.roles || []).includes(roleFilter));
+
+  if (!filtered.length) {
+    list.innerHTML = '<span class="muted small">' + esc(t('members.no_members')) + '</span>';
+    count.textContent = '';
+    return;
+  }
+
+  list.innerHTML = filtered.slice(0, 100).map(m => {
+    const displayName = m.nick || m.user.global_name || m.user.username;
+    const avatar = m.user.avatar
+      ? `https://cdn.discordapp.com/avatars/${m.user.id}/${m.user.avatar}.png?size=64`
+      : `https://cdn.discordapp.com/embed/avatars/${(BigInt(m.user.id) >> 22n) % 6n}.png`;
+    return `
+      <div class="session-item" data-uid="${m.user.id}">
+        <img src="${avatar}" class="msg-avatar" data-uid="${m.user.id}" data-uname="${esc(m.user.username)}" data-guild="${membersGuild}" alt="">
+        <div style="flex:1;min-width:0">
+          <div class="bold small">${esc(displayName)}</div>
+          <div class="muted small">@${esc(m.user.username)} · ${(m.roles || []).length} ${esc(t('members.roles'))}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  count.textContent = `${filtered.length} ${t('members.members_found')}` + (filtered.length > 100 ? ' · ' + t('members.showing_first_100') : '');
+
+  list.querySelectorAll('.msg-avatar').forEach(el => {
+    el.onclick = () => openUserModal(el.dataset.uid, el.dataset.uname, el.dataset.guild);
+  });
+}
+
+document.getElementById('members-search').oninput = filterMembers;
+document.getElementById('members-role-filter').onchange = filterMembers;
+
 /* ===== bot selects helper ===== */
 function populateAllBotSelects() {
   populateBotSelect();
@@ -3260,6 +3660,7 @@ function populateAllBotSelects() {
   populateVoiceBotSelect();
   populateCleanBotSelect();
   populateChannelsBotSelect();
+  populateMembersBotSelect();
 }
 
 /* ===== init ===== */

@@ -34,6 +34,8 @@
       <button class="nav-btn" data-tab="voice"><i data-icon="volume"></i><span data-i18n="nav.voice"></span></button>
       <button class="nav-btn" data-tab="cleaner"><i data-icon="trash"></i><span data-i18n="nav.cleaner"></span></button>
       <button class="nav-btn" data-tab="channels"><i data-icon="hash"></i><span data-i18n="nav.channels"></span></button>
+      <button class="nav-btn" data-tab="scheduler"><i data-icon="clock"></i><span data-i18n="nav.scheduler"></span></button>
+      <button class="nav-btn" data-tab="members"><i data-icon="users"></i><span data-i18n="nav.members"></span></button>
       <button class="nav-btn" data-tab="settings"><i data-icon="settings"></i><span data-i18n="nav.settings"></span></button>
     </nav>
     <div class="nav-spacer"></div>
@@ -425,6 +427,85 @@
           <div class="card">
             <div class="card-title" data-i18n="channels.list_title"></div>
             <div id="channels-list" class="muted small" data-i18n="channels.no_channels"></div>
+          </div>
+        </section>
+
+        <!-- SCHEDULER -->
+        <section id="scheduler" class="hidden">
+          <div class="page-header">
+            <h1 data-i18n="scheduler.title"></h1>
+            <button class="btn btn-primary" id="scheduler-add"><i data-icon="plus"></i><span data-i18n="scheduler.add"></span></button>
+          </div>
+          <div class="info-card">
+            <div class="info-title"><i data-icon="info"></i><span data-i18n="scheduler.info_title"></span></div>
+            <p data-i18n="scheduler.info_desc"></p>
+          </div>
+          <div id="scheduler-form" class="card hidden">
+            <div class="card-title" data-i18n="scheduler.new_job"></div>
+            <div class="field">
+              <label class="label" data-i18n="scheduler.job_name"></label>
+              <input type="text" id="job-name" data-i18n-placeholder="scheduler.job_name_placeholder">
+            </div>
+            <div class="field">
+              <label class="label" data-i18n="scheduler.job_type"></label>
+              <select id="job-type">
+                <option value="send_message" data-i18n-key="scheduler.type_send"></option>
+                <option value="change_presence" data-i18n-key="scheduler.type_presence"></option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="label" data-i18n="scheduler.interval"></label>
+              <input type="number" id="job-interval" min="10" value="60" step="10">
+              <div class="muted small" style="margin-top:4px" data-i18n="scheduler.interval_help"></div>
+            </div>
+            <div id="job-payload-fields"></div>
+            <div class="btn-row">
+              <button class="btn btn-primary" id="job-save" data-i18n="common.save"></button>
+              <button class="btn btn-ghost" id="job-cancel" data-i18n="common.cancel"></button>
+            </div>
+            <div class="error hidden" id="job-error"></div>
+          </div>
+          <div class="card">
+            <div class="card-title" data-i18n="scheduler.jobs_list"></div>
+            <div id="scheduler-list" class="muted small" data-i18n="scheduler.no_jobs"></div>
+          </div>
+        </section>
+
+        <!-- MEMBERS -->
+        <section id="members" class="hidden">
+          <div class="page-header"><h1 data-i18n="members.title"></h1></div>
+          <div class="card">
+            <div class="field">
+              <label class="label" data-i18n="members.bot"></label>
+              <select id="members-bot-select"><option value="" data-i18n-key="select.bot"></option></select>
+            </div>
+            <div class="field">
+              <label class="label" data-i18n="members.guild"></label>
+              <select id="members-guild-select" disabled><option data-i18n-key="select.bot_first"></option></select>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-primary" id="members-fetch" disabled data-i18n="members.fetch"></button>
+            </div>
+            <div class="error hidden" id="members-error"></div>
+          </div>
+          <div class="card">
+            <div class="card-title" data-i18n="members.search_title"></div>
+            <div class="field">
+              <input type="text" id="members-search" data-i18n-placeholder="members.search_placeholder">
+            </div>
+            <div class="field">
+              <label class="label" data-i18n="members.filter_role"></label>
+              <select id="members-role-filter"><option value="" data-i18n-key="members.all_roles"></option></select>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title" data-i18n="members.list_title"></div>
+            <div class="info-card hidden" id="members-note">
+              <div class="info-title"><i data-icon="info"></i><span data-i18n="members.snapshot_note"></span></div>
+              <p data-i18n="members.snapshot_desc"></p>
+            </div>
+            <div id="members-list" class="muted small" data-i18n="members.no_members"></div>
+            <div id="members-count" class="muted small" style="margin-top:8px"></div>
           </div>
         </section>
 
