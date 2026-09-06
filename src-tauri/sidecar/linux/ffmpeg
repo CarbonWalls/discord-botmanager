@@ -1,0 +1,5 @@
+#!/bin/bash
+echo "FFmpeg sidecar binary not found."
+echo "Please download ffmpeg from https://ffmpeg.org/download.html"
+echo "and place ffmpeg and ffprobe in src-tauri/sidecar/linux/"
+exit 1

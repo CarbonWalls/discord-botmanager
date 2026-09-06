@@ -1,0 +1,27 @@
+[package]
+name = "discord-manager"
+version = "1.0.0"
+description = "Discord Bot Manager - Tauri shell for bridge.js backend"
+edition = "2021"
+license = "ISC"
+
+[build-dependencies]
+tauri-build = { version = "2.0", features = [] }
+
+[dependencies]
+tauri = { version = "2.0", features = ["macros", "shell-open", "process-relaunch", "isolation", "process", "sidecar"] }
+tauri-plugin-shell = "2.0"
+tauri-plugin-process = "2.0"
+tauri-plugin-opener = "2.0"
+tauri-plugin-store = "2.0"
+tauri-plugin-notification = "2.0"
+tauri-plugin-dialog = "2.0"
+tauri-plugin-fs = "2.0"
+tauri-plugin-http = "2.0"
+tauri-plugin-clipboard-manager = "2.0"
+tokio = { version = "1.40", features = ["full", "rt-multi-thread"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2.0"
+anyhow = "1.0"
+dirs = "5.0"

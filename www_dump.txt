@@ -1,0 +1,3853 @@
+# Discord Manager - www/ folder dump
+# Generated: 2026-09-03T22:55:57.746557
+# Total files: 7
+================================================================================
+
+# FILE: app.js
+# PATH: C:\Users\ww163\Documents\projects\messing\discord-manager-backup2\discord-manager\www\app.js
+--------------------------------------------------------------------------------
+document.documentElement.classList.add('i18n-loading');
+
+const CRITICAL_CSS = `
+html.i18n-loading body { visibility: hidden; }
+`;
+(function injectCriticalCss() {
+const style = document.createElement('style');
+style.textContent = CRITICAL_CSS;
+document.head.appendChild(style);
+})();
+
+const ICONS = {
+chevron: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>',
+archive: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>',
+circle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></svg>',
+trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+volume: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>',
+settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>',
+plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+record: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/></svg>',
+stop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>',
+attach: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.49"/></svg>',
+info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>',
+warn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+external: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>',
+};
+
+let T = {};
+let currentLang = 'en';
+let availableLangs = [];
+
+let V = null; // vault
+let K = null; // master key
+let activeTab = 'vault';
+
+let selBot = null;
+let selToken = null;
+
+let voiceBot = null;
+let voiceToken = null;
+let voiceGuild = null;
+let voiceChannel = null;
+let voiceCurrentlyInChannel = false;
+let voiceCurrentlyPlaying = false;
+let voiceOperationInProgress = false;
+let voicePlayFile = null;
+let voiceRecordStream = null;
+let voiceRecordChunks = [];
+
+let logBot = null;
+let logToken = null;
+let logGuild = null;
+let logChannel = null;
+
+let presenceBot = null;
+let presenceToken = null;
+
+let cleanBot = null;
+let cleanToken = null;
+let cleanGuild = null;
+let cleanChannel = null;
+
+const PORT = 8787;
+const BASE = `http://127.0.0.1:${PORT}`;
+const API = 'https://discord.com/api/v10';
+
+async function api(path, opts = {}) {
+const headers = { 'Content-Type': 'application/json' };
+if (selToken) headers['X-Bot-Token'] = selToken;
+const res = await fetch(BASE + path, { ...opts, headers });
+if (!res.ok) throw new Error((await res.json()).error || `HTTP ${res.status}`);
+return res.json();
+}
+
+function esc(s) { const map = {'&':'&','<':'<','>':'>','"':'"',"'":"'"}; return String(s).replace(/[&<>"']/g, c => map[c]); }
+
+function t(key, params) {
+let str = T[key] || key;
+if (params) Object.entries(params).forEach(([k,v]) => { str = str.replace(new RegExp(`\\{${k}\\}`,'g'), v); });
+return str;
+}
+
+function tt(msg, isError = false) {
+const el = document.getElementById('toast');
+if (!el) return;
+el.textContent = msg;
+el.className = isError ? 'toast error' : 'toast';
+el.classList.remove('hidden');
+setTimeout(() => el.classList.add('hidden'), 3000);
+}
+
+function showError(el, msg) { if (el) { el.textContent = msg; el.classList.remove('hidden'); } }
+function hideError(el) { if (el) { el.classList.add('hidden'); el.textContent = ''; } }
+
+async function initI18n() {
+try {
+const res = await fetch(BASE + '/i18n/languages');
+const { languages } = await res.json();
+availableLangs = languages;
+const saved = localStorage.getItem('lang') || 'en';
+currentLang = languages.some(l => l.code === saved) ? saved : 'en';
+await loadLang(currentLang);
+populateLangSelects();
+document.documentElement.classList.remove('i18n-loading');
+document.documentElement.lang = currentLang;
+} catch (e) {
+console.error('i18n init failed:', e);
+T = {};
+document.documentElement.classList.remove('i18n-loading');
+}
+}
+
+async function loadLang(code) {
+try {
+const res = await fetch(BASE + '/i18n/locales/' + code);
+T = await res.json();
+currentLang = code;
+localStorage.setItem('lang', code);
+translatePage();
+updateTabLabels();
+} catch (e) { console.error('loadLang failed:', e); }
+}
+
+function populateLangSelects() {
+const selects = document.querySelectorAll('#lang-select, #lang-setting');
+selects.forEach(sel => {
+const current = sel.value;
+sel.innerHTML = '';
+availableLangs.forEach(l => {
+const opt = document.createElement('option');
+opt.value = l.code;
+opt.textContent = `${l.flag || ''} ${l.native || l.name}`;
+sel.appendChild(opt);
+});
+sel.value = current || currentLang;
+});
+}
+
+function translatePage() {
+document.querySelectorAll('[data-i18n]').forEach(el => {
+const key = el.dataset.i18n;
+if (T[key]) el.textContent = T[key];
+});
+document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+const key = el.dataset.i18nPlaceholder;
+if (T[key]) el.placeholder = T[key];
+});
+document.querySelectorAll('[data-i18n-html]').forEach(el => {
+const key = el.dataset.i18nHtml;
+if (T[key]) el.innerHTML = T[key];
+});
+document.querySelectorAll('[data-i18n-key]').forEach(el => {
+const key = el.dataset.i18nKey;
+if (T[key]) el.textContent = T[key];
+});
+}
+
+function updateTabLabels() {
+const tabMap = {
+vault: 'nav.tokens',
+send: 'nav.send',
+logs: 'nav.archive',
+presence: 'nav.presence',
+voice: 'nav.voice',
+cleaner: 'nav.cleaner',
+settings: 'nav.settings'
+};
+document.querySelectorAll('.tab-btn').forEach(btn => {
+const tab = btn.dataset.tab;
+if (tabMap[tab] && T[tabMap[tab]]) {
+const icon = btn.querySelector('svg');
+btn.innerHTML = (icon ? icon.outerHTML : '') + T[tabMap[tab]];
+}
+});
+}
+
+async function gateway(path, body) {
+const headers = { 'Content-Type': 'application/json' };
+if (arguments.length > 1 && body && body.token) { headers['X-Bot-Token'] = body.token; delete body.token; }
+const res = await fetch(BASE + path, { method: 'POST', headers, body: JSON.stringify(body) });
+if (!res.ok) throw new Error((await res.json()).error || `HTTP ${res.status}`);
+return res.json();
+}
+
+async function gatewayGet(path) {
+const headers = {};
+if (selToken) headers['X-Bot-Token'] = selToken;
+const res = await fetch(BASE + path, { headers });
+if (!res.ok) throw new Error((await res.json()).error || `HTTP ${res.status}`);
+return res.json();
+}
+
+function lv() { try { return JSON.parse(localStorage.getItem('v')); } catch { return null; } }
+function sv(v) { localStorage.setItem('v', JSON.stringify(v)); }
+
+async function db(bot, key) {
+const enc = bot.tokens[bot.tokens.findIndex(t => t.id === bot.id)] || bot.tokens[0];
+return enc; // placeholder - actual decryption in app
+}
+
+// ===== Crypto helpers =====
+async function deriveKey(password, salt) {
+const enc = new TextEncoder().encode(password);
+const base = await crypto.subtle.importKey('raw', enc, 'PBKDF2', false, ['deriveBits']);
+return crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' }, base, 256);
+}
+
+async function decryptToken(enc, key) {
+const iv = new Uint8Array(enc.iv);
+const data = new Uint8Array(enc.data);
+const auth = new Uint8Array(enc.auth);
+const buf = new Uint8Array(data.length + auth.length);
+buf.set(data, 0);
+buf.set(auth, data.length);
+const cryptoKey = await crypto.subtle.importKey('raw', key, { name: 'AES-GCM' }, false, ['decrypt']);
+const dec = await crypto.subtle.decrypt({ name: 'AES-GCM', iv, additionalData: new TextEncoder().encode(enc.id) }, cryptoKey, buf);
+return new TextDecoder().decode(dec);
+}
+
+async function unlockVault(password) {
+const vault = lv();
+if (!vault) return false;
+const salt = new Uint8Array(vault.salt);
+const key = await deriveKey(password, salt);
+const verify = await decryptToken(vault.verify, key);
+if (verify !== 'vault-ok') return false;
+for (const bot of vault.bots) {
+for (const t of bot.tokens) {
+bot.token = await decryptToken(t, key);
+}
+}
+K = key;
+V = vault;
+return true;
+}
+
+function lockVault() { V = null; K = null; activeTab = 'vault'; renderTabs(); renderVault(); }
+
+async function createVault(password) {
+const salt = crypto.getRandomValues(new Uint8Array(16));
+const key = await deriveKey(password, salt);
+const verify = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: crypto.getRandomValues(new Uint8Array(12)) }, await crypto.subtle.importKey('raw', key, { name: 'AES-GCM' }, false, ['encrypt']), new TextEncoder().encode('vault-ok'));
+V = { salt: Array.from(salt), verify: { id: 'verify', iv: Array.from(new Uint8Array(12)), data: Array.from(new Uint8Array(verify.slice(0, -16))), auth: Array.from(new Uint8Array(verify.slice(-16))) }, bots: [] };
+K = key;
+sv(V);
+}
+
+async function addBot(name, token) {
+const id = crypto.randomUUID();
+const iv = crypto.getRandomValues(new Uint8Array(12));
+const cryptoKey = await crypto.subtle.importKey('raw', K, { name: 'AES-GCM' }, false, ['encrypt']);
+const enc = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, cryptoKey, new TextEncoder().encode(token));
+const auth = new Uint8Array(enc.slice(-16));
+const data = new Uint8Array(enc.slice(0, -16));
+V.bots.push({ id, name, tokens: [{ id, iv: Array.from(iv), data: Array.from(data), auth: Array.from(auth) }] });
+sv(V);
+}
+
+function removeBot(id) { V.bots = V.bots.filter(b => b.id !== id); sv(V); renderVault(); }
+
+function testBot(bot) {
+selToken = bot.token;
+return api('/discord/users/@me').then(u => { tt(`${t('vault.connected_as')} @${u.username}`); }).catch(e => { throw new Error(t('vault.invalid_token')); });
+}
+
+function inviteBot(bot) {
+const url = `https://discord.com/oauth2/authorize?client_id=${bot.token.split('.')[0]}&scope=bot&permissions=8`;
+window.open(url, '_blank');
+}
+
+// ===== UI Rendering =====
+function renderTabs() {
+const container = document.getElementById('main-tabs');
+const tabs = ['vault','send','logs','presence','voice','cleaner','settings'];
+container.innerHTML = '';
+tabs.forEach(tab => {
+const btn = document.createElement('button');
+btn.className = 'tab-btn' + (tab === activeTab ? ' active' : '');
+btn.dataset.tab = tab;
+const iconMap = { vault:'lock', send:'send', logs:'archive', presence:'circle', voice:'volume', cleaner:'trash', settings:'settings' };
+btn.innerHTML = `${ICONS[iconMap[tab]]} <span>${t('nav.'+tab)}</span>`;
+btn.onclick = () => switchTab(tab);
+container.appendChild(btn);
+});
+}
+
+function switchTab(tab) {
+if (!V && tab !== 'vault' && tab !== 'settings') { switchTab('vault'); return; }
+activeTab = tab;
+document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+document.querySelectorAll('.panel').forEach(p => p.classList.toggle('hidden', p.id !== 'panel-'+tab));
+if (tab === 'vault') renderVault();
+else if (tab === 'send') { renderSendBotSelect(); }
+else if (tab === 'logs') { renderLogBotSelect(); }
+else if (tab === 'presence') { renderPresenceBotSelect(); }
+else if (tab === 'voice') { renderVoiceBotSelect(); }
+else if (tab === 'cleaner') { renderCleanBotSelect(); }
+else if (tab === 'settings') { renderSettings(); }
+}
+
+function renderVault() {
+const container = document.getElementById('bot-cards');
+if (!V || !V.bots.length) {
+container.innerHTML = `<div class="muted center" style="padding:40px;">${t('vault.none')}</div>`;
+return;
+}
+container.innerHTML = '';
+V.bots.forEach(bot => {
+const card = document.createElement('div');
+card.className = 'bot-card';
+card.innerHTML = `
+<div class="bot-card-header">
+<div class="bot-card-info">
+<div class="bot-card-name"><span class="bot-card-dot ${bot.status || 'offline'}"></span>${esc(bot.name)}</div>
+<div class="bot-card-meta">${bot.tokens[0]?.id ? 'ID: '+esc(bot.tokens[0].id.slice(0,20))+'...' : ''}</div>
+</div>
+<div class="bot-card-actions">
+<button class="btn btn-ghost btn-sm" data-act="test">${t('vault.test')}</button>
+<button class="btn btn-ghost btn-sm" data-act="invite">${t('vault.invite')}</button>
+<button class="btn btn-danger btn-sm" data-act="delete">${t('vault.delete')}</button>
+</div>
+</div>`;
+card.querySelector('[data-act="test"]').onclick = async () => { await testBot(bot); };
+card.querySelector('[data-act="invite"]').onclick = () => inviteBot(bot);
+card.querySelector('[data-act="delete"]').onclick = () => confirm(t('vault.remove_desc',{name:bot.name})) && (removeBot(bot.id), tt(t('vault.removed')));
+container.appendChild(card);
+});
+}
+
+function renderBotSelect(selId, placeholderKey, bots, current) {
+const sel = document.getElementById(selId);
+if (!sel) return;
+const cur = sel.value || current;
+sel.innerHTML = '';
+const ph = document.createElement('option');
+ph.value = '';
+ph.dataset.i18nKey = placeholderKey;
+ph.textContent = t(placeholderKey);
+sel.appendChild(ph);
+bots.forEach(b => {
+const opt = document.createElement('option');
+opt.value = b.id;
+opt.textContent = b.name;
+sel.appendChild(opt);
+});
+if (cur) sel.value = cur;
+sel.onchange = () => { /* handled by callers */ };
+}
+
+function renderSendBotSelect() {
+renderBotSelect('send-bot', 'select.bot', V.bots, selBot ? selBot.id : '');
+const sel = document.getElementById('send-bot');
+sel.onchange = async () => {
+selBot = V.bots.find(b => b.id === sel.value) || null;
+selToken = selBot ? selBot.token : null;
+document.getElementById('send-guild').disabled = !selBot;
+document.getElementById('send-chan').disabled = !selBot;
+if (selBot) await loadSendGuilds();
+updateSendPreview();
+};
+if (selBot) loadSendGuilds();
+updateSendPreview();
+}
+
+async function loadSendGuilds() {
+if (!selBot || !selToken) return;
+try {
+const guilds = await gatewayGet('/discord/users/@me/guilds');
+const sel = document.getElementById('send-guild');
+const cur = sel.value;
+sel.innerHTML = '<option data-i18n-key="select.choose_server">'+t('select.choose_server')+'</option>';
+guilds.forEach(g => { const o = document.createElement('option'); o.value = g.id; o.textContent = g.name; sel.appendChild(o); });
+sel.disabled = false;
+if (cur) sel.value = cur;
+loadSendChannels(sel.value);
+} catch (e) { showError(document.getElementById('send-error'), e.message); }
+}
+
+function loadSendChannels(guildId) {
+if (!guildId || !selToken) return;
+gatewayGet('/discord/guilds/'+guildId+'/channels').then(channels => {
+const sel = document.getElementById('send-chan');
+const cur = sel.value;
+sel.innerHTML = '<option data-i18n-key="select.choose_channel">'+t('select.choose_channel')+'</option>';
+channels.filter(c => c.type === 0 || c.type === 5 || c.type === 13).forEach(c => { const o = document.createElement('option'); o.value = c.id; o.textContent = (c.type===5?'📁 ':'# ') + c.name; sel.appendChild(o); });
+sel.disabled = false;
+if (cur) sel.value = cur;
+}).catch(e => showError(document.getElementById('send-error'), e.message));
+}
+
+document.getElementById('send-guild').onchange = e => loadSendChannels(e.target.value);
+
+function updateSendPreview() {
+const preview = document.getElementById('send-preview');
+if (!preview) return;
+const content = document.getElementById('send-content')?.value || '';
+const hasEmbed = document.getElementById('send-embed-toggle')?.checked;
+if (!content && !hasEmbed) { preview.className = 'preview empty'; preview.textContent = t('send.preview_empty'); return; }
+preview.className = 'preview';
+let html = esc(content).replace(/\n/g,'<br>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\|\|(.+?)\|\|/g,'<span class="spoiler">$1</span>');
+if (hasEmbed) {
+const title = document.getElementById('e-title')?.value || '';
+const desc = document.getElementById('e-desc')?.value || '';
+const color = document.getElementById('e-color')?.value || '#2563eb';
+html += `<div class="embed" style="border-left-color:${esc(color)}"><strong>${esc(title)}</strong><br>${esc(desc).replace(/\n/g,'<br>')}</div>`;
+}
+preview.innerHTML = html;
+}
+
+const send_content = document.getElementById('send-content'); if (send_content) send_content.addEventListener('input', updateSendPreview);
+const send_embed_toggle = document.getElementById('send-embed-toggle'); if (send_embed_toggle) send_embed_toggle.addEventListener('change', e => {
+document.getElementById('send-embed-form').classList.toggle('hidden', !e.target.checked);
+updateSendPreview();
+});
+document.querySelectorAll('#e-title, #e-desc, #e-color').forEach(el => el?.addEventListener('input', updateSendPreview));
+
+document.getElementById('send-mode')?.querySelectorAll('.seg-btn').forEach(btn => {
+btn.onclick = () => {
+document.getElementById('send-mode').querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+btn.classList.add('active');
+document.getElementById('send-auto').classList.toggle('hidden', btn.dataset.mode !== 'auto');
+document.getElementById('send-manual').classList.toggle('hidden', btn.dataset.mode === 'auto');
+};
+});
+
+const send_attach_btn = document.getElementById('send-attach-btn'); if (send_attach_btn) send_attach_btn.onclick = () => document.getElementById('send-attachment').click();
+const send_attachment = document.getElementById('send-attachment'); if (send_attachment) send_attachment.addEventListener('change', e => {
+const f = e.target.files[0];
+if (!f) return;
+const wrap = document.getElementById('send-file-preview');
+wrap.innerHTML = `<div class="file-preview"><img src="${URL.createObjectURL(f)}" alt=""><div class="file-preview-info"><div class="file-preview-name">${esc(f.name)}</div><div class="file-preview-meta">${(f.size/1024).toFixed(1)} KB</div></div><button class="file-preview-remove">${ICONS.x}</button></div>`;
+wrap.querySelector('.file-preview-remove').onclick = () => { wrap.innerHTML = ''; document.getElementById('send-attachment').value = ''; };
+wrap.classList.remove('hidden');
+});
+
+const send_btn = document.getElementById('send-btn'); if (send_btn) send_btn.onclick = async () => {
+if (!selBot || !selToken) return tt(t('send.error_no_bot'), true);
+const content = document.getElementById('send-content').value.trim();
+const hasEmbed = document.getElementById('send-embed-toggle').checked;
+const isVoice = document.getElementById('send-voice-msg').checked;
+const file = document.getElementById('send-attachment').files[0];
+if (!content && !hasEmbed && !isVoice && !file) return tt(t('send.error_empty'), true);
+
+const err = document.getElementById('send-error');
+hideError(err);
+const btn = document.getElementById('send-btn');
+btn.disabled = true;
+
+try {
+let channelId;
+if (document.getElementById('send-auto').classList.contains('hidden')) {
+channelId = document.getElementById('send-manual-chan').value.trim();
+if (!channelId) throw new Error(t('send.error_no_channel'));
+} else {
+channelId = document.getElementById('send-chan').value;
+if (!channelId) throw new Error(t('send.error_no_channel'));
+}
+
+const payload = { content: content || undefined };
+if (hasEmbed) {
+const embed = { title: document.getElementById('e-title').value || undefined, description: document.getElementById('e-desc').value || undefined, color: parseInt(document.getElementById('e-color').value.slice(1), 16) };
+if (document.getElementById('e-url').value) embed.url = document.getElementById('e-url').value;
+if (document.getElementById('e-ts').value === 'now') embed.timestamp = new Date().toISOString();
+if (document.getElementById('e-aname').value) embed.author = { name: document.getElementById('e-aname').value, icon_url: document.getElementById('e-aicon').value || undefined };
+if (document.getElementById('e-img').value) embed.image = { url: document.getElementById('e-img').value };
+if (document.getElementById('e-thumb').value) embed.thumbnail = { url: document.getElementById('e-thumb').value };
+if (document.getElementById('e-footer').value) embed.footer = { text: document.getElementById('e-footer').value, icon_url: document.getElementById('e-ficon').value || undefined };
+payload.embeds = [embed];
+}
+
+if (file) {
+const form = new FormData();
+form.append('payload_json', JSON.stringify(payload));
+form.append('file', file);
+const res = await fetch(BASE + '/discord/channels/' + channelId + '/messages', { method: 'POST', headers: { 'X-Bot-Token': selToken }, body: form });
+if (!res.ok) throw new Error((await res.json()).error || 'Upload failed');
+} else if (isVoice) {
+await handleVoiceMessage(selBot.id, channelId);
+} else {
+await gateway('/discord/channels/' + channelId + '/messages', payload);
+}
+tt(t('send.sent'));
+} catch (e) { showError(err, e.message); }
+finally { btn.disabled = false; }
+};
+
+async function handleVoiceMessage(botId, channelId) {
+const file = document.getElementById('voice-file')?.files[0];
+const recordBlob = document.getElementById('voice-record-preview')?.src?.startsWith('blob:') ? await fetch(document.getElementById('voice-record-preview').src).then(r => r.blob()) : null;
+const audioFile = file || recordBlob;
+if (!audioFile) throw new Error(t('send.voice_need_file'));
+const isOgg = audioFile.name.endsWith('.ogg') || audioFile.name.endsWith('.opus') || audioFile.type.includes('ogg');
+let audioBase64, filename = audioFile.name;
+if (!isOgg) {
+document.getElementById('voice-play-status').textContent = t('voice.play_transcoding');
+const dataUrl = await readFileAsDataURL(audioFile);
+const res = await gateway('/gateway/tools/transcode-voice', { audio_base64: dataUrl, filename: audioFile.name });
+audioBase64 = res.audio_base64;
+filename = res.filename;
+} else {
+audioBase64 = await readFileAsDataURL(audioFile);
+}
+await gateway('/discord/channels/' + channelId + '/messages', { flags: 8192, attachments: [{ id: 0, filename, content_type: 'audio/ogg', description: 'voice-message' }] });
+// Note: actual voice message sending needs the voice message endpoint
+}
+
+function readFileAsDataURL(file) { return new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result.split(',')[1]); fr.readAsDataURL(file); }); }
+
+function renderLogBotSelect() {
+renderBotSelect('log-bot', 'select.bot', V.bots, logBot ? logBot.id : '');
+document.getElementById('log-bot').onchange = async () => {
+logBot = V.bots.find(b => b.id === document.getElementById('log-bot').value) || null;
+logToken = logBot ? logBot.token : null;
+document.getElementById('log-guild').disabled = true;
+document.getElementById('log-chan').disabled = true;
+if (logToken) await loadLogGuilds();
+};
+if (logBot) loadLogGuilds();
+}
+
+async function loadLogGuilds() {
+if (!logToken) return;
+try {
+const guilds = await gatewayGet('/discord/users/@me/guilds');
+const sel = document.getElementById('log-guild');
+sel.innerHTML = '<option data-i18n-key="select.choose_server">'+t('select.choose_server')+'</option>';
+guilds.forEach(g => { const o = document.createElement('option'); o.value = g.id; o.textContent = g.name; sel.appendChild(o); });
+sel.disabled = false;
+loadLogChannels(sel.value);
+} catch (e) { showError(document.getElementById('log-error'), e.message); }
+}
+
+function loadLogChannels(guildId) {
+if (!guildId || !logToken) return;
+gatewayGet('/discord/guilds/'+guildId+'/channels').then(channels => {
+const sel = document.getElementById('log-chan');
+sel.innerHTML = '<option data-i18n-key="select.choose_channel">'+t('select.choose_channel')+'</option>';
+channels.filter(c => c.type === 0 || c.type === 5 || c.type === 13).forEach(c => { const o = document.createElement('option'); o.value = c.id; o.textContent = (c.type===5?'📁 ':'# ') + c.name; sel.appendChild(o); });
+sel.disabled = false;
+}).catch(e => showError(document.getElementById('log-error'), e.message));
+}
+
+const log_guild = document.getElementById('log-guild'); if (log_guild) log_guild.onchange = e => loadLogChannels(e.target.value);
+const log_chan = document.getElementById('log-chan'); if (log_chan) log_chan.onchange = e => { logChannel = e.target.value; document.getElementById('log-rest').disabled = !logChannel; document.getElementById('log-archive').disabled = !logChannel; };
+
+const log_rest = document.getElementById('log-rest'); if (log_rest) log_rest.onclick = async () => {
+if (!logChannel) return;
+hideError(document.getElementById('log-error'));
+const btn = document.getElementById('log-rest');
+btn.disabled = true;
+btn.textContent = t('common.loading');
+try {
+const old = selToken; selToken = logToken;
+const msgs = await gatewayGet('/channels/' + logChannel + '/messages?limit=50');
+selToken = old;
+renderLogs(msgs.reverse().map(m => ({ ...m, _deleted: false })));
+} catch (e) { showError(document.getElementById('log-error'), e.message); }
+finally { btn.disabled = false; btn.textContent = t('logs.load_rest'); }
+};
+
+const log_archive = document.getElementById('log-archive'); if (log_archive) log_archive.onclick = async () => {
+if (!logChannel) return;
+hideError(document.getElementById('log-error'));
+const btn = document.getElementById('log-archive');
+btn.disabled = true;
+btn.textContent = t('common.loading');
+try {
+const msgs = loadArchive(logChannel);
+renderLogs(msgs.reverse().map(m => ({ ...m, _archived: true })));
+} catch (e) { showError(document.getElementById('log-error'), e.message); }
+finally { btn.disabled = false; btn.textContent = t('logs.load_archive'); }
+};
+
+function loadArchive(channelId) { try { return JSON.parse(localStorage.getItem('archive_'+channelId) || '[]'); } catch { return []; } }
+
+function renderLogs(msgs) {
+const feed = document.getElementById('log-feed');
+feed.innerHTML = '';
+msgs.forEach(m => {
+const div = document.createElement('div');
+div.className = 'log-msg' + (m._deleted ? ' deleted' : '');
+const badge = m._deleted ? `<span class="log-msg-badge deleted">${t('logs.deleted')}</span>` : (m._edited ? `<span class="log-msg-badge edited">${t('logs.edited')}</span>` : '');
+div.innerHTML = `<div class="log-msg-header"><span class="log-msg-author">${esc(m.author?.username || 'Unknown')}</span>${badge}<span class="log-msg-time">${m.timestamp ? new Date(m.timestamp).toLocaleString() : ''}</span></div><div class="log-msg-content">${esc(m.content || '')}</div>`;
+feed.appendChild(div);
+});
+feed.scrollTop = feed.scrollHeight;
+}
+
+function renderPresenceBotSelect() {
+renderBotSelect('presence-bot', 'select.bot', V.bots, presenceBot ? presenceBot.id : '');
+document.getElementById('presence-bot').onchange = () => {
+presenceBot = V.bots.find(b => b.id === document.getElementById('presence-bot').value) || null;
+presenceToken = presenceBot ? presenceBot.token : null;
+document.getElementById('presence-apply').disabled = !presenceBot;
+document.getElementById('presence-disc').disabled = !presenceBot;
+};
+if (presenceBot) { document.getElementById('presence-apply').disabled = false; document.getElementById('presence-disc').disabled = false; }
+}
+
+const presence_apply = document.getElementById('presence-apply'); if (presence_apply) presence_apply.onclick = async () => {
+if (!presenceBot || !presenceToken) return;
+hideError(document.getElementById('presence-error'));
+const btn = document.getElementById('presence-apply');
+btn.disabled = true;
+try {
+await gateway(`/${presenceBot.id}/presence`, { status: document.getElementById('presence-status').value, activity: document.getElementById('presence-activity').value });
+tt(t('presence.updated'));
+updatePresenceSessions();
+} catch (e) { showError(document.getElementById('presence-error'), e.message); }
+finally { btn.disabled = false; }
+};
+
+const presence_disc = document.getElementById('presence-disc'); if (presence_disc) presence_disc.onclick = async () => {
+if (!presenceBot) return;
+hideError(document.getElementById('presence-error'));
+await gateway(`/${presenceBot.id}/disconnect`);
+tt(t('presence.disconnected'));
+updatePresenceSessions();
+};
+
+async function updatePresenceSessions() {
+const el = document.getElementById('presence-sessions');
+try {
+const { sessions } = await gatewayGet('/gateway/status');
+const botSessions = sessions.filter(s => !presenceBot || s.id === presenceBot.id);
+if (!botSessions.length) { el.textContent = t('presence.no_sessions'); el.className = 'muted small'; return; }
+el.className = '';
+el.innerHTML = botSessions.map(s => `<div style="padding:8px;background:var(--bg-input);border-radius:var(--radius);margin-bottom:8px;"><strong>${esc(s.user?.username||'Unknown')}</strong> <span class="muted">${esc(s.presence)}</span> ${s.connected ? '<span style="color:var(--success)">●</span>' : '<span style="color:var(--danger)">●</span>'}</div>`).join('');
+} catch (e) { el.textContent = e.message; }
+}
+
+function renderVoiceBotSelect() {
+renderBotSelect('voice-bot', 'select.bot', V.bots, voiceBot ? voiceBot.id : '');
+document.getElementById('voice-bot').onchange = async () => {
+voiceBot = V.bots.find(b => b.id === document.getElementById('voice-bot').value) || null;
+voiceToken = voiceBot ? voiceBot.token : null;
+document.getElementById('voice-guild').disabled = true;
+document.getElementById('voice-chan').disabled = true;
+if (voiceToken) loadVoiceGuilds().then(() => updateVoiceStatus());
+updateVoiceStatus();
+};
+if (voiceBot) { loadVoiceGuilds().then(() => updateVoiceStatus()); }
+}
+
+async function loadVoiceGuilds() {
+if (!voiceToken) return;
+try {
+const guilds = await gatewayGet('/discord/users/@me/guilds');
+const sel = document.getElementById('voice-guild');
+sel.innerHTML = '<option data-i18n-key="select.choose_server">'+t('select.choose_server')+'</option>';
+guilds.forEach(g => { const o = document.createElement('option'); o.value = g.id; o.textContent = g.name; sel.appendChild(o); });
+sel.disabled = false;
+loadVoiceChannels(sel.value);
+} catch (e) { showError(document.getElementById('voice-error'), e.message); }
+}
+
+function loadVoiceChannels(guildId) {
+if (!guildId || !voiceToken) return;
+gatewayGet('/discord/guilds/'+guildId+'/channels').then(channels => {
+const sel = document.getElementById('voice-chan');
+sel.innerHTML = '<option data-i18n-key="select.choose_channel">'+t('select.choose_channel')+'</option>';
+channels.filter(c => c.type === 2).forEach(c => { const o = document.createElement('option'); o.value = c.id; o.textContent = '🔊 ' + c.name; sel.appendChild(o); });
+sel.disabled = false;
+}).catch(e => showError(document.getElementById('voice-error'), e.message));
+}
+
+const voice_guild = document.getElementById('voice-guild'); if (voice_guild) voice_guild.onchange = e => loadVoiceChannels(e.target.value);
+
+const voice_join = document.getElementById('voice-join'); if (voice_join) voice_join.onclick = async () => {
+if (!voiceBot || !voiceChannel) return;
+voiceOperationInProgress = true;
+const btn = document.getElementById('voice-join');
+btn.disabled = true;
+hideError(document.getElementById('voice-error'));
+try {
+await ensureVoiceJoined();
+tt(voiceCurrentlyInChannel ? t('voice.updated') : t('voice.joined'));
+await updateVoiceStatus();
+} catch (e) { showError(document.getElementById('voice-error'), e.message); }
+finally { btn.disabled = false; voiceOperationInProgress = false; updateVoiceControls(); }
+};
+
+const voice_leave = document.getElementById('voice-leave'); if (voice_leave) voice_leave.onclick = async () => {
+if (!voiceBot) return;
+voiceOperationInProgress = true;
+const btn = document.getElementById('voice-leave');
+btn.disabled = true;
+hideError(document.getElementById('voice-error'));
+try {
+await gateway(`/${voiceBot.id}/voice/leave`);
+tt(t('voice.left'));
+await updateVoiceStatus();
+} catch (e) { showError(document.getElementById('voice-error'), e.message); }
+finally { btn.disabled = false; voiceOperationInProgress = false; updateVoiceControls(); }
+};
+
+const voice_refresh = document.getElementById('voice-refresh'); if (voice_refresh) voice_refresh.onclick = () => updateVoiceStatus();
+['voice-mute','voice-deaf'].forEach(id => {
+document.getElementById(id)?.addEventListener('change', async () => {
+if (!voiceCurrentlyInChannel) return;
+try { await ensureVoiceJoined(); await updateVoiceStatus(); } catch (e) { showError(document.getElementById('voice-error'), e.message); }
+});
+});
+
+async function ensureVoiceJoined() {
+if (!voiceBot || !voiceGuild || !voiceChannel) throw new Error(t('voice.not_in_channel'));
+await gateway(`/${voiceBot.id}/connect`, { token: voiceToken });
+await gateway(`/${voiceBot.id}/voice/join`, {
+guild_id: voiceGuild,
+channel_id: voiceChannel,
+self_mute: document.getElementById('voice-mute').checked,
+self_deaf: document.getElementById('voice-deaf').checked,
+auto_leave_seconds: parseInt(document.getElementById('voice-autoleave').value) || 0,
+timeout_ms: 12000
+});
+}
+
+async function updateVoiceStatus() {
+const el = document.getElementById('voice-status');
+if (!el) return;
+if (!voiceBot) { el.innerHTML = '<div class="muted center">'+t('voice.select_bot')+'</div>'; updateVoiceControls(); return; }
+try {
+const s = await gatewayGet(`/${voiceBot.id}/voice/status`);
+voiceCurrentlyInChannel = !!s.voice?.channel_id;
+voiceGuild = s.voice?.guild_id || null;
+voiceChannel = s.voice?.channel_id || null;
+el.innerHTML = `
+<div class="status-row"><span class="status-dot ${s.connected ? 'online' : 'offline'}"></span><span>${s.connected ? t('common.connected') : t('common.disconnected')}</span></div>
+${s.voice?.channel_id ? `<div class="status-row"><span>${t('voice.in_channel')}</span><code class="mono">${esc(s.voice.channel_id)}</code></div>` : ''}
+${s.voiceTransportReady ? `<div class="status-row"><span class="status-dot online"></span><span>${t('voice.transport_ready')}</span></div>` : ''}
+${s.playing ? `<div class="status-row"><span class="status-dot online"></span><span>${t('voice.play_playing')}</span></div>` : ''}
+`;
+} catch (e) { el.innerHTML = '<div class="muted">'+e.message+'</div>'; }
+updateVoiceControls();
+}
+
+function updateVoiceControls() {
+const joinBtn = document.getElementById('voice-join');
+const leaveBtn = document.getElementById('voice-leave');
+const playBtn = document.getElementById('voice-play');
+const stopBtn = document.getElementById('voice-stop');
+
+if (joinBtn) {
+joinBtn.disabled = !voiceBot || !voiceChannel || voiceOperationInProgress;
+joinBtn.textContent = voiceCurrentlyInChannel ? t('voice.update') : t('voice.join');
+joinBtn.innerHTML = (voiceCurrentlyInChannel ? '' : '') + joinBtn.textContent;
+}
+if (leaveBtn) leaveBtn.disabled = !voiceBot || (!voiceChannel && !voiceCurrentlyInChannel) || voiceOperationInProgress;
+if (playBtn) playBtn.disabled = !voiceBot || !voiceChannel || !voicePlayFile || voiceOperationInProgress || voiceCurrentlyPlaying;
+if (stopBtn) stopBtn.disabled = !voiceBot || !voiceCurrentlyPlaying || voiceOperationInProgress;
+}
+
+const voice_play_file = document.getElementById('voice-play-file'); if (voice_play_file) voice_play_file.addEventListener('change', async e => {
+voicePlayFile = e.target.files?.[0] || null;
+const preview = document.getElementById('voice-play-preview');
+const audio = document.getElementById('voice-play-audio');
+if (voicePlayFile) {
+audio.src = URL.createObjectURL(voicePlayFile);
+preview.classList.remove('hidden');
+} else {
+audio.removeAttribute('src');
+preview.classList.add('hidden');
+}
+updateVoiceControls();
+});
+
+const voice_play = document.getElementById('voice-play'); if (voice_play) voice_play.onclick = async () => {
+if (!voiceBot || !voiceChannel || !voicePlayFile) return;
+voiceOperationInProgress = true;
+const btn = document.getElementById('voice-play');
+const statusEl = document.getElementById('voice-play-status');
+btn.disabled = true;
+statusEl.textContent = t('voice.play_preparing');
+updateVoiceControls();
+try {
+await ensureVoiceJoined();
+let audioBase64, filename = voicePlayFile.name;
+const isOgg = /\.ogg$/i.test(filename) || /\.opus$/i.test(filename) || voicePlayFile.type?.includes('ogg');
+if (!isOgg) {
+statusEl.textContent = t('voice.play_transcoding');
+const dataUrl = await readFileAsDataURL(voicePlayFile);
+const res = await gateway('/gateway/tools/transcode-voice', { audio_base64: dataUrl, filename });
+audioBase64 = res.audio_base64;
+filename = res.filename || 'voice-message.ogg';
+} else {
+audioBase64 = await readFileAsDataURL(voicePlayFile);
+}
+voiceCurrentlyPlaying = true;
+updateVoiceControls();
+statusEl.textContent = t('voice.play_playing');
+const res = await gateway(`/${voiceBot.id}/voice/play`, {
+guild_id: voiceGuild,
+channel_id: voiceChannel,
+filename,
+audio_base64: audioBase64,
+self_mute: document.getElementById('voice-mute').checked,
+self_deaf: document.getElementById('voice-deaf').checked
+});
+statusEl.textContent = `${t('voice.play_playing')} · ${Math.round((res.duration_ms||0)/1000)}s`;
+setTimeout(() => { voiceCurrentlyPlaying = false; updateVoiceControls(); updateVoiceStatus(); }, (res.duration_ms||0)+1500);
+} catch (e) {
+statusEl.textContent = t('common.error') + ': ' + e.message;
+showError(document.getElementById('voice-error'), e.message);
+} finally {
+btn.disabled = false;
+voiceOperationInProgress = false;
+updateVoiceControls();
+}
+};
+
+const voice_stop = document.getElementById('voice-stop'); if (voice_stop) voice_stop.onclick = async () => {
+if (!voiceBot) return;
+voiceOperationInProgress = true;
+try {
+await gateway(`/${voiceBot.id}/voice/stop`);
+voiceCurrentlyPlaying = false;
+document.getElementById('voice-play-status').textContent = t('voice.play_stopped');
+updateVoiceControls();
+updateVoiceStatus();
+} catch (e) { showError(document.getElementById('voice-error'), e.message); }
+finally { voiceOperationInProgress = false; }
+};
+
+document.getElementById('voice-mode')?.querySelectorAll('.seg-btn').forEach(btn => {
+btn.onclick = () => {
+document.getElementById('voice-mode').querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+btn.classList.add('active');
+document.getElementById('voice-upload').classList.toggle('hidden', btn.dataset.mode !== 'upload');
+document.getElementById('voice-record').classList.toggle('hidden', btn.dataset.mode !== 'record');
+};
+});
+
+const voice_file = document.getElementById('voice-file'); if (voice_file) voice_file.addEventListener('change', e => {
+const f = e.target.files[0];
+if (f) {
+const audio = document.getElementById('voice-file-preview');
+audio.src = URL.createObjectURL(f);
+audio.classList.remove('hidden');
+}
+});
+
+let mediaRecorder = null;
+const voice_record_start = document.getElementById('voice-record-start'); if (voice_record_start) voice_record_start.onclick = async () => {
+try {
+const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 48000, channelCount: 1 } });
+mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/ogg;codecs=opus' });
+voiceRecordChunks = [];
+mediaRecorder.ondataavailable = e => { if (e.data.size) voiceRecordChunks.push(e.data); };
+mediaRecorder.onstop = () => {
+const blob = new Blob(voiceRecordChunks, { type: 'audio/ogg;codecs=opus' });
+const audio = document.getElementById('voice-record-preview');
+audio.src = URL.createObjectURL(blob);
+audio.classList.remove('hidden');
+document.getElementById('voice-record-status').textContent = t('send.voice_ready');
+document.getElementById('voice-record-start').classList.remove('hidden');
+document.getElementById('voice-record-stop').classList.add('hidden');
+document.getElementById('voice-record-status').classList.remove('recording');
+stream.getTracks().forEach(t => t.stop());
+};
+mediaRecorder.start(100);
+document.getElementById('voice-record-start').classList.add('hidden');
+document.getElementById('voice-record-stop').classList.remove('hidden');
+document.getElementById('voice-record-status').textContent = t('send.voice_recording');
+document.getElementById('voice-record-status').classList.add('recording');
+} catch (e) { showError(document.getElementById('voice-error'), t('send.voice_record_unsupported')); }
+};
+
+const voice_record_stop = document.getElementById('voice-record-stop'); if (voice_record_stop) voice_record_stop.onclick = () => {
+if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+};
+
+function renderCleanBotSelect() {
+renderBotSelect('clean-bot', 'select.bot', V.bots, cleanBot ? cleanBot.id : '');
+document.getElementById('clean-bot').onchange = async () => {
+cleanBot = V.bots.find(b => b.id === document.getElementById('clean-bot').value) || null;
+cleanToken = cleanBot ? cleanBot.token : null;
+document.getElementById('clean-guild').disabled = true;
+document.getElementById('clean-chan').disabled = true;
+if (cleanToken) loadCleanGuilds();
+};
+if (cleanBot) loadCleanGuilds();
+}
+
+async function loadCleanGuilds() {
+if (!cleanToken) return;
+try {
+const guilds = await gatewayGet('/discord/users/@me/guilds');
+const sel = document.getElementById('clean-guild');
+sel.innerHTML = '<option data-i18n-key="select.choose_server">'+t('select.choose_server')+'</option>';
+guilds.forEach(g => { const o = document.createElement('option'); o.value = g.id; o.textContent = g.name; sel.appendChild(o); });
+sel.disabled = false;
+loadCleanChannels(sel.value);
+} catch (e) { showError(document.getElementById('clean-error'), e.message); }
+}
+
+function loadCleanChannels(guildId) {
+if (!guildId || !cleanToken) return;
+gatewayGet('/discord/guilds/'+guildId+'/channels').then(channels => {
+const sel = document.getElementById('clean-chan');
+sel.innerHTML = '<option data-i18n-key="select.choose_channel">'+t('select.choose_channel')+'</option>';
+channels.filter(c => c.type === 0 || c.type === 5 || c.type === 13).forEach(c => { const o = document.createElement('option'); o.value = c.id; o.textContent = (c.type===5?'📁 ':'# ') + c.name; sel.appendChild(o); });
+sel.disabled = false;
+}).catch(e => showError(document.getElementById('clean-error'), e.message));
+}
+
+const clean_guild = document.getElementById('clean-guild'); if (clean_guild) clean_guild.onchange = e => loadCleanChannels(e.target.value);
+const clean_chan = document.getElementById('clean-chan'); if (clean_chan) clean_chan.onchange = e => {
+cleanChannel = e.target.value;
+const target = document.getElementById('clean-target');
+target.textContent = cleanChannel ? `${document.getElementById('clean-guild').selectedOptions[0]?.text} / ${e.target.selectedOptions[0]?.text}` : '';
+};
+
+const clean_clone = document.getElementById('clean-clone'); if (clean_clone) clean_clone.onclick = async () => {
+if (!cleanBot || !cleanChannel) return;
+if (!confirm(t('cleaner.clone_confirm'))) return;
+hideError(document.getElementById('clean-error'));
+const btn = document.getElementById('clean-clone');
+btn.disabled = true;
+try {
+await gateway(`/discord/channels/${cleanChannel}`, { method: 'DELETE' });
+const ch = await gatewayGet(`/discord/channels/${cleanChannel}`);
+await gateway(`/discord/guilds/${cleanGuild}/channels`, { method: 'POST', body: { name: ch.name, type: ch.type, parent_id: ch.parent_id, permission_overwrites: ch.permission_overwrites } });
+tt(t('cleaner.cloned'));
+} catch (e) { showError(document.getElementById('clean-error'), e.message); }
+finally { btn.disabled = false; }
+};
+
+const clean_delete = document.getElementById('clean-delete'); if (clean_delete) clean_delete.onclick = async () => {
+if (!cleanBot || !cleanChannel) return;
+if (!confirm(t('cleaner.delete_confirm'))) return;
+hideError(document.getElementById('clean-error'));
+const btn = document.getElementById('clean-delete');
+const prog = document.getElementById('clean-progress');
+const progText = document.getElementById('clean-progress-text');
+btn.disabled = true;
+prog.classList.remove('hidden');
+progText.classList.remove('hidden');
+try {
+let total = 0;
+while (true) {
+const msgs = await gatewayGet(`/channels/${cleanChannel}/messages?limit=100`);
+if (!msgs.length) break;
+const ids = msgs.map(m => m.id);
+const chunks = [];
+for (let i = 0; i < ids.length; i += 100) chunks.push(ids.slice(i, i + 100));
+for (const chunk of chunks) {
+await gateway(`/discord/channels/${cleanChannel}/messages/bulk-delete`, { method: 'POST', body: { messages: chunk } });
+total += chunk.length;
+progText.textContent = `${t('cleaner.deleted')} ${total}`;
+}
+if (msgs.length < 100) break;
+}
+tt(`${t('cleaner.deleted')} ${total}`);
+} catch (e) { showError(document.getElementById('clean-error'), e.message); }
+finally { btn.disabled = false; prog.classList.add('hidden'); progText.classList.add('hidden'); }
+};
+
+function renderSettings() {
+document.getElementById('lang-setting').value = currentLang;
+document.getElementById('lang-setting').onchange = e => loadLang(e.target.value);
+document.querySelectorAll('#autolock-seg .seg-btn').forEach(btn => {
+btn.classList.toggle('active', btn.dataset.v === localStorage.getItem('autolock'));
+btn.onclick = () => { document.querySelectorAll('#autolock-seg .seg-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); localStorage.setItem('autolock', btn.dataset.v); };
+});
+document.querySelectorAll('#theme-seg .seg-btn').forEach(btn => {
+btn.classList.toggle('active', btn.dataset.v === (document.documentElement.dataset.theme || 'auto'));
+btn.onclick = () => { document.querySelectorAll('#theme-seg .seg-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); document.documentElement.dataset.theme = btn.dataset.v; localStorage.setItem('theme', btn.dataset.v); };
+});
+const changepw_btn = document.getElementById('changepw-btn'); if (changepw_btn) changepw_btn.onclick = () => showModal('modal-changepw');
+const reset_vault = document.getElementById('reset-vault'); if (reset_vault) reset_vault.onclick = () => confirmModal(t('settings.reset_confirm'), () => { localStorage.removeItem('v'); lockVault(); location.reload(); });
+}
+
+const changepw_form = document.getElementById('changepw-form'); if (changepw_form) changepw_form.onsubmit = async e => {
+e.preventDefault();
+const old = document.getElementById('cpw-old').value;
+const neu = document.getElementById('cpw-new').value;
+const neu2 = document.getElementById('cpw-new2').value;
+const err = document.getElementById('changepw-error');
+if (neu !== neu2) return showError(err, t('error.password_mismatch'));
+if (neu.length < 8) return showError(err, t('error.min_password'));
+hideError(err);
+try {
+await unlockVault(old);
+await createVault(neu);
+for (const bot of V.bots) {
+for (const tok of bot.tokens) {
+const plain = await decryptToken(tok, K);
+const iv = crypto.getRandomValues(new Uint8Array(12));
+const ck = await crypto.subtle.importKey('raw', K, { name: 'AES-GCM' }, false, ['encrypt']);
+const enc = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, ck, new TextEncoder().encode(plain));
+tok.iv = Array.from(iv);
+tok.data = Array.from(new Uint8Array(enc.slice(0, -16)));
+tok.auth = Array.from(new Uint8Array(enc.slice(-16)));
+}
+}
+sv(V);
+closeModal('modal-changepw');
+tt(t('settings.password_changed'));
+} catch (e) { showError(err, e.message); }
+};
+
+function showModal(id) { document.getElementById(id).classList.remove('hidden'); document.body.style.overflow = 'hidden'; }
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); document.body.style.overflow = ''; }
+function confirmModal(msg, fn) { const m = document.getElementById('modal-generic'); document.getElementById('modal-title').textContent = t('common.confirm'); document.getElementById('modal-desc').textContent = msg; document.getElementById('modal-body').innerHTML = ''; document.getElementById('modal-confirm').onclick = () => { closeModal('modal-generic'); fn(); }; showModal('modal-generic'); }
+document.querySelectorAll('.modal-close, .modal-backdrop').forEach(el => el.onclick = () => closeModal(el.closest('.modal').id));
+document.querySelectorAll('.modal-box [data-i18n="common.cancel"]').forEach(btn => btn.onclick = () => closeModal(btn.closest('.modal').id));
+
+const lock_btn = document.getElementById('lock-btn'); if (lock_btn) lock_btn.onclick = () => { lockVault(); tt(t('vault.locked')); };
+const menu_toggle = document.getElementById('menu-toggle'); if (menu_toggle) menu_toggle.onclick = () => document.getElementById('sidebar').classList.toggle('open');
+const backdrop = document.getElementById('backdrop'); if (backdrop) backdrop.onclick = () => document.getElementById('sidebar').classList.remove('open');
+const theme_toggle = document.getElementById('theme-toggle'); if (theme_toggle) theme_toggle.onclick = () => { const themes = ['light','dark','auto']; const cur = document.documentElement.dataset.theme || 'auto'; const next = themes[(themes.indexOf(cur)+1)%3]; document.documentElement.dataset.theme = next; localStorage.setItem('theme', next); document.querySelectorAll('#theme-seg .seg-btn').forEach(b => b.classList.toggle('active', b.dataset.v === next)); };
+const add_bot_btn = document.getElementById('add-bot-btn'); if (add_bot_btn) add_bot_btn.onclick = () => { const n = prompt(t('vault.name_placeholder')); if (!n) return; const tkn = prompt(t('vault.token_placeholder')); if (!tkn) return; addBot(n, tkn).then(() => { renderVault(); tt(t('vault.added_bot')); }); };
+
+function initUnlock() {
+const form = document.getElementById('unlock-form');
+const pw = document.getElementById('pw');
+const pw2 = document.getElementById('pw2');
+const pw2Field = document.getElementById('pw2-field');
+const btn = document.getElementById('submit-btn');
+const err = document.getElementById('unlock-error');
+const title = document.getElementById('unlock-title');
+const desc = document.getElementById('unlock-desc');
+const vault = lv();
+if (vault) {
+title.textContent = t('unlock.unlock_title');
+desc.textContent = t('unlock.unlock_desc');
+btn.textContent = t('unlock.unlock');
+pw2Field.classList.add('hidden');
+} else {
+title.textContent = t('unlock.create_title');
+desc.textContent = t('unlock.create_desc');
+btn.textContent = t('unlock.create');
+pw2Field.classList.remove('hidden');
+}
+
+form.onsubmit = async e => {
+e.preventDefault();
+hideError(err);
+const p = pw.value;
+if (!vault && p !== pw2.value) return showError(err, t('error.password_mismatch'));
+if (p.length < 8) return showError(err, t('error.min_password'));
+btn.disabled = true;
+try {
+if (vault) { if (!await unlockVault(p)) return showError(err, t('error.invalid_password')); }
+else { await createVault(p); }
+initApp();
+} catch (e) { showError(err, e.message); }
+finally { btn.disabled = false; }
+};
+}
+
+function initApp() {
+document.getElementById('panel-unlock').classList.add('hidden');
+document.getElementById('main-content').classList.remove('hidden');
+document.querySelector('.sidebar').classList.remove('hidden');
+renderTabs();
+switchTab('vault');
+applyTheme();
+updatePresenceSessions();
+setInterval(() => { if (activeTab === 'presence') updatePresenceSessions(); if (activeTab === 'voice') updateVoiceStatus(); }, 30000);
+}
+
+function applyTheme() {
+const saved = localStorage.getItem('theme') || 'auto';
+document.documentElement.dataset.theme = saved;
+document.querySelectorAll('#theme-seg .seg-btn').forEach(b => b.classList.toggle('active', b.dataset.v === saved));
+}
+
+async function initAll() {
+await initI18n();
+initUnlock();
+}
+
+initAll();
+================================================================================
+
+# FILE: app_test.js
+# PATH: C:\Users\ww163\Documents\projects\messing\discord-manager-backup2\discord-manager\www\app_test.js
+--------------------------------------------------------------------------------
+document.documentElement.classList.add('i18n-loading');
+
+const CRITICAL_CSS = `
+html.i18n-loading body { visibility: hidden; }
+`;
+(function injectCriticalCss() {
+const style = document.createElement('style');
+style.textContent = CRITICAL_CSS;
+document.head.appendChild(style);
+})();
+
+const ICONS = {
+chevron: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+send: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>',
+archive: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>',
+circle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/></svg>',
+trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+volume: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>',
+settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>',
+plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+record: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/></svg>',
+stop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>',
+attach: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.49"/></svg>',
+info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>',
+warn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',
+external: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>',
+};
+
+let T = {};
+let currentLang = 'en';
+let availableLangs = [];
+
+let V = null; // vault
+let K = null; // master key
+let activeTab = 'vault';
+
+let selBot = null;
+let selToken = null;
+
+let voiceBot = null;
+let voiceToken = null;
+let voiceGuild = null;
+let voiceChannel = null;
+let voiceCurrentlyInChannel = false;
+let voiceCurrentlyPlaying = false;
+let voiceOperationInProgress = false;
+let voicePlayFile = null;
+let voiceRecordStream = null;
+let voiceRecordChunks = [];
+
+let logBot = null;
+let logToken = null;
+let logGuild = null;
+let logChannel = null;
+
+let presenceBot = null;
+let presenceToken = null;
+
+let cleanBot = null;
+let cleanToken = null;
+let cleanGuild = null;
+let cleanChannel = null;
+
+const PORT = 8787;
+const BASE = `http://127.0.0.1:${PORT}`;
+const API = 'https://discord.com/api/v10';
+
+async function api(path, opts = {}) {
+const headers = { 'Content-Type': 'application/json' };
+if (selToken) headers['X-Bot-Token'] = selToken;
+const res = await fetch(BASE + path, { ...opts, headers });
+if (!res.ok) throw new Error((await res.json()).error || `HTTP ${res.status}`);
+return res.json();
+}
+
+function esc(s) { const map = {'&':'&','<':'<','>':'>','"':'"',"'":"'"}; return String(s).replace(/[&<>"']/g, c => map[c]); }
+
+function t(key, params) {
+let str = T[key] || key;
+if (params) Object.entries(params).forEach(([k,v]) => { str = str.replace(new RegExp(`\\{${k}\\}`,'g'), v); });
+return str;
+}
+
+function tt(msg, isError = false) {
+const el = document.getElementById('toast');
+if (!el) return;
+el.textContent = msg;
+el.className = isError ? 'toast error' : 'toast';
+el.classList.remove('hidden');
+setTimeout(() => el.classList.add('hidden'), 3000);
+}
+
+function showError(el, msg) { if (el) { el.textContent = msg; el.classList.remove('hidden'); } }
+function hideError(el) { if (el) { el.classList.add('hidden'); el.textContent = ''; } }
+
+async function initI18n() {
+try {
+const res = await fetch(BASE + '/i18n/languages');
+const { languages } = await res.json();
+availableLangs = languages;
+const saved = localStorage.getItem('lang') || 'en';
+currentLang = languages.some(l => l.code === saved) ? saved : 'en';
+await loadLang(currentLang);
+populateLangSelects();
+document.documentElement.classList.remove('i18n-loading');
+document.documentElement.lang = currentLang;
+} catch (e) {
+console.error('i18n init failed:', e);
+T = {};
+document.documentElement.classList.remove('i18n-loading');
+}
+}
+
+async function loadLang(code) {
+try {
+const res = await fetch(BASE + '/i18n/locales/' + code);
+T = await res.json();
+currentLang = code;
+localStorage.setItem('lang', code);
+translatePage();
+updateTabLabels();
+} catch (e) { console.error('loadLang failed:', e); }
+}
+
+function populateLangSelects() {
+const selects = document.querySelectorAll('#lang-select, #lang-setting');
+selects.forEach(sel => {
+const current = sel.value;
+sel.innerHTML = '';
+availableLangs.forEach(l => {
+const opt = document.createElement('option');
+opt.value = l.code;
+opt.textContent = `${l.flag || ''} ${l.native || l.name}`;
+sel.appendChild(opt);
+});
+sel.value = current || currentLang;
+});
+}
+
+function translatePage() {
+document.querySelectorAll('[data-i18n]').forEach(el => {
+const key = el.dataset.i18n;
+if (T[key]) el.textContent = T[key];
+});
+document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+const key = el.dataset.i18nPlaceholder;
+if (T[key]) el.placeholder = T[key];
+});
+document.querySelectorAll('[data-i18n-html]').forEach(el => {
+const key = el.dataset.i18nHtml;
+if (T[key]) el.innerHTML = T[key];
+});
+document.querySelectorAll('[data-i18n-key]').forEach(el => {
+const key = el.dataset.i18nKey;
+if (T[key]) el.textContent = T[key];
+});
+}
+
+function updateTabLabels() {
+const tabMap = {
+vault: 'nav.tokens',
+send: 'nav.send',
+logs: 'nav.archive',
+presence: 'nav.presence',
+voice: 'nav.voice',
+cleaner: 'nav.cleaner',
+settings: 'nav.settings'
+};
+document.querySelectorAll('.tab-btn').forEach(btn => {
+const tab = btn.dataset.tab;
+if (tabMap[tab] && T[tabMap[tab]]) {
+const icon = btn.querySelector('svg');
+btn.innerHTML = (icon ? icon.outerHTML : '') + T[tabMap[tab]];
+}
+});
+}
+
+async function gateway(path, body) {
+const headers = { 'Content-Type': 'application/json' };
+if (arguments.length > 1 && body && body.token) { headers['X-Bot-Token'] = body.token; delete body.token; }
+const res = await fetch(BASE + path, { method: 'POST', headers, body: JSON.stringify(body) });
+if (!res.ok) throw new Error((await res.json()).error || `HTTP ${res.status}`);
+return res.json();
+}
+
+async function gatewayGet(path) {
+const headers = {};
+if (selToken) headers['X-Bot-Token'] = selToken;
+const res = await fetch(BASE + path, { headers });
+if (!res.ok) throw new Error((await res.json()).error || `HTTP ${res.status}`);
+return res.json();
+}
+
+function lv() { try { return JSON.parse(localStorage.getItem('v')); } catch { return null; } }
+function sv(v) { localStorage.setItem('v', JSON.stringify(v)); }
+
+async function db(bot, key) {
+const enc = bot.tokens[bot.tokens.findIndex(t => t.id === bot.id)] || bot.tokens[0];
+return enc; // placeholder - actual decryption in app
+}
+
+// ===== Crypto helpers =====
+async function deriveKey(password, salt) {
+const enc = new TextEncoder().encode(password);
+const base = await crypto.subtle.importKey('raw', enc, 'PBKDF2', false, ['deriveBits']);
+return crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' }, base, 256);
+}
+
+async function decryptToken(enc, key) {
+const iv = new Uint8Array(enc.iv);
+const data = new Uint8Array(enc.data);
+const auth = new Uint8Array(enc.auth);
+const buf = new Uint8Array(data.length + auth.length);
+buf.set(data, 0);
+buf.set(auth, data.length);
+const cryptoKey = await crypto.subtle.importKey('raw', key, { name: 'AES-GCM' }, false, ['decrypt']);
+const dec = await crypto.subtle.decrypt({ name: 'AES-GCM', iv, additionalData: new TextEncoder().encode(enc.id) }, cryptoKey, buf);
+return new TextDecoder().decode(dec);
+}
+
+async function unlockVault(password) {
+const vault = lv();
+if (!vault) return false;
+const salt = new Uint8Array(vault.salt);
+const key = await deriveKey(password, salt);
+const verify = await decryptToken(vault.verify, key);
+if (verify !== 'vault-ok') return false;
+for (const bot of vault.bots) {
+for (const t of bot.tokens) {
+bot.token = await decryptToken(t, key);
+}
+}
+K = key;
+V = vault;
+return true;
+}
+
+function lockVault() { V = null; K = null; activeTab = 'vault'; renderTabs(); renderVault(); }
+
+async function createVault(password) {
+const salt = crypto.getRandomValues(new Uint8Array(16));
+const key = await deriveKey(password, salt);
+const verify = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: crypto.getRandomValues(new Uint8Array(12)) }, await crypto.subtle.importKey('raw', key, { name: 'AES-GCM' }, false, ['encrypt']), new TextEncoder().encode('vault-ok'));
+V = { salt: Array.from(salt), verify: { id: 'verify', iv: Array.from(new Uint8Array(12)), data: Array.from(new Uint8Array(verify.slice(0, -16))), auth: Array.from(new Uint8Array(verify.slice(-16))) }, bots: [] };
+K = key;
+sv(V);
+}
+
+async function addBot(name, token) {
+const id = crypto.randomUUID();
+const iv = crypto.getRandomValues(new Uint8Array(12));
+const cryptoKey = await crypto.subtle.importKey('raw', K, { name: 'AES-GCM' }, false, ['encrypt']);
+const enc = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, cryptoKey, new TextEncoder().encode(token));
+const auth = new Uint8Array(enc.slice(-16));
+const data = new Uint8Array(enc.slice(0, -16));
+V.bots.push({ id, name, tokens: [{ id, iv: Array.from(iv), data: Array.from(data), auth: Array.from(auth) }] });
+sv(V);
+}
+
+function removeBot(id) { V.bots = V.bots.filter(b => b.id !== id); sv(V); renderVault(); }
+
+function testBot(bot) {
+selToken = bot.token;
+return api('/discord/users/@me').then(u => { tt(`${t('vault.connected_as')} @${u.username}`); }).catch(e => { throw new Error(t('vault.invalid_token')); });
+}
+
+function inviteBot(bot) {
+const url = `https://discord.com/oauth2/authorize?client_id=${bot.token.split('.')[0]}&scope=bot&permissions=8`;
+window.open(url, '_blank');
+}
+
+// ===== UI Rendering =====
+function renderTabs() {
+const container = document.getElementById('main-tabs');
+const tabs = ['vault','send','logs','presence','voice','cleaner','settings'];
+container.innerHTML = '';
+tabs.forEach(tab => {
+const btn = document.createElement('button');
+btn.className = 'tab-btn' + (tab === activeTab ? ' active' : '');
+btn.dataset.tab = tab;
+const iconMap = { vault:'lock', send:'send', logs:'archive', presence:'circle', voice:'volume', cleaner:'trash', settings:'settings' };
+btn.innerHTML = `${ICONS[iconMap[tab]]} <span>${t('nav.'+tab)}</span>`;
+btn.onclick = () => switchTab(tab);
+container.appendChild(btn);
+});
+}
+
+function switchTab(tab) {
+if (!V && tab !== 'vault' && tab !== 'settings') { switchTab('vault'); return; }
+activeTab = tab;
+document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+document.querySelectorAll('.panel').forEach(p => p.classList.toggle('hidden', p.id !== 'panel-'+tab));
+if (tab === 'vault') renderVault();
+else if (tab === 'send') { renderSendBotSelect(); }
+else if (tab === 'logs') { renderLogBotSelect(); }
+else if (tab === 'presence') { renderPresenceBotSelect(); }
+else if (tab === 'voice') { renderVoiceBotSelect(); }
+else if (tab === 'cleaner') { renderCleanBotSelect(); }
+else if (tab === 'settings') { renderSettings(); }
+}
+
+function renderVault() {
+const container = document.getElementById('bot-cards');
+if (!V || !V.bots.length) {
+container.innerHTML = `<div class="muted center" style="padding:40px;">${t('vault.none')}</div>`;
+return;
+}
+container.innerHTML = '';
+V.bots.forEach(bot => {
+const card = document.createElement('div');
+card.className = 'bot-card';
+card.innerHTML = `
+<div class="bot-card-header">
+<div class="bot-card-info">
+<div class="bot-card-name"><span class="bot-card-dot ${bot.status || 'offline'}"></span>${esc(bot.name)}</div>
+<div class="bot-card-meta">${bot.tokens[0]?.id ? 'ID: '+esc(bot.tokens[0].id.slice(0,20))+'...' : ''}</div>
+</div>
+<div class="bot-card-actions">
+<button class="btn btn-ghost btn-sm" data-act="test">${t('vault.test')}</button>
+<button class="btn btn-ghost btn-sm" data-act="invite">${t('vault.invite')}</button>
+<button class="btn btn-danger btn-sm" data-act="delete">${t('vault.delete')}</button>
+</div>
+</div>`;
+card.querySelector('[data-act="test"]').onclick = async () => { await testBot(bot); };
+card.querySelector('[data-act="invite"]').onclick = () => inviteBot(bot);
+card.querySelector('[data-act="delete"]').onclick = () => confirm(t('vault.remove_desc',{name:bot.name})) && (removeBot(bot.id), tt(t('vault.removed')));
+container.appendChild(card);
+});
+}
+
+function renderBotSelect(selId, placeholderKey, bots, current) {
+const sel = document.getElementById(selId);
+if (!sel) return;
+const cur = sel.value || current;
+sel.innerHTML = '';
+const ph = document.createElement('option');
+ph.value = '';
+ph.dataset.i18nKey = placeholderKey;
+ph.textContent = t(placeholderKey);
+sel.appendChild(ph);
+bots.forEach(b => {
+const opt = document.createElement('option');
+opt.value = b.id;
+opt.textContent = b.name;
+sel.appendChild(opt);
+});
+if (cur) sel.value = cur;
+sel.onchange = () => { /* handled by callers */ };
+}
+
+function renderSendBotSelect() {
+renderBotSelect('send-bot', 'select.bot', V.bots, selBot ? selBot.id : '');
+const sel = document.getElementById('send-bot');
+sel.onchange = async () => {
+selBot = V.bots.find(b => b.id === sel.value) || null;
+selToken = selBot ? selBot.token : null;
+document.getElementById('send-guild').disabled = !selBot;
+document.getElementById('send-chan').disabled = !selBot;
+if (selBot) await loadSendGuilds();
+updateSendPreview();
+};
+if (selBot) loadSendGuilds();
+updateSendPreview();
+}
+
+async function loadSendGuilds() {
+if (!selBot || !selToken) return;
+try {
+const guilds = await gatewayGet('/discord/users/@me/guilds');
+const sel = document.getElementById('send-guild');
+const cur = sel.value;
+sel.innerHTML = '<option data-i18n-key="select.choose_server">'+t('select.choose_server')+'</option>';
+guilds.forEach(g => { const o = document.createElement('option'); o.value = g.id; o.textContent = g.name; sel.appendChild(o); });
+sel.disabled = false;
+if (cur) sel.value = cur;
+loadSendChannels(sel.value);
+} catch (e) { showError(document.getElementById('send-error'), e.message); }
+}
+
+function loadSendChannels(guildId) {
+if (!guildId || !selToken) return;
+gatewayGet('/discord/guilds/'+guildId+'/channels').then(channels => {
+const sel = document.getElementById('send-chan');
+const cur = sel.value;
+sel.innerHTML = '<option data-i18n-key="select.choose_channel">'+t('select.choose_channel')+'</option>';
+channels.filter(c => c.type === 0 || c.type === 5 || c.type === 13).forEach(c => { const o = document.createElement('option'); o.value = c.id; o.textContent = (c.type===5?'📁 ':'# ') + c.name; sel.appendChild(o); });
+sel.disabled = false;
+if (cur) sel.value = cur;
+}).catch(e => showError(document.getElementById('send-error'), e.message));
+}
+
+document.getElementById('send-guild').onchange = e => loadSendChannels(e.target.value);
+
+function updateSendPreview() {
+const preview = document.getElementById('send-preview');
+if (!preview) return;
+const content = document.getElementById('send-content')?.value || '';
+const hasEmbed = document.getElementById('send-embed-toggle')?.checked;
+if (!content && !hasEmbed) { preview.className = 'preview empty'; preview.textContent = t('send.preview_empty'); return; }
+preview.className = 'preview';
+let html = esc(content).replace(/\n/g,'<br>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\|\|(.+?)\|\|/g,'<span class="spoiler">$1</span>');
+if (hasEmbed) {
+const title = document.getElementById('e-title')?.value || '';
+const desc = document.getElementById('e-desc')?.value || '';
+const color = document.getElementById('e-color')?.value || '#2563eb';
+html += `<div class="embed" style="border-left-color:${esc(color)}"><strong>${esc(title)}</strong><br>${esc(desc).replace(/\n/g,'<br>')}</div>`;
+}
+preview.innerHTML = html;
+}
+
+const send_content = document.getElementById('send-content'); if (send_content) send_content.addEventListener('input', updateSendPreview);
+const send_embed_toggle = document.getElementById('send-embed-toggle'); if (send_embed_toggle) send_embed_toggle.addEventListener('change', e => {
+document.getElementById('send-embed-form').classList.toggle('hidden', !e.target.checked);
+updateSendPreview();
+});
+document.querySelectorAll('#e-title, #e-desc, #e-color').forEach(el => el?.addEventListener('input', updateSendPreview));
+
+document.getElementById('send-mode')?.querySelectorAll('.seg-btn').forEach(btn => {
+btn.onclick = () => {
+document.getElementById('send-mode').querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+btn.classList.add('active');
+document.getElementById('send-auto').classList.toggle('hidden', btn.dataset.mode !== 'auto');
+document.getElementById('send-manual').classList.toggle('hidden', btn.dataset.mode === 'auto');
+};
+});
+
+const send_attach_btn = document.getElementById('send-attach-btn'); if (send_attach_btn) send_attach_btn.onclick = () => document.getElementById('send-attachment').click();
+const send_attachment = document.getElementById('send-attachment'); if (send_attachment) send_attachment.addEventListener('change', e => {
+const f = e.target.files[0];
+if (!f) return;
+const wrap = document.getElementById('send-file-preview');
+wrap.innerHTML = `<div class="file-preview"><img src="${URL.createObjectURL(f)}" alt=""><div class="file-preview-info"><div class="file-preview-name">${esc(f.name)}</div><div class="file-preview-meta">${(f.size/1024).toFixed(1)} KB</div></div><button class="file-preview-remove">${ICONS.x}</button></div>`;
+wrap.querySelector('.file-preview-remove').onclick = () => { wrap.innerHTML = ''; document.getElementById('send-attachment').value = ''; };
+wrap.classList.remove('hidden');
+});
+
+const send_btn = document.getElementById('send-btn'); if (send_btn) send_btn.onclick = async () => {
+if (!selBot || !selToken) return tt(t('send.error_no_bot'), true);
+const content = document.getElementById('send-content').value.trim();
+const hasEmbed = document.getElementById('send-embed-toggle').checked;
+const isVoice = document.getElementById('send-voice-msg').checked;
+const file = document.getElementById('send-attachment').files[0];
+if (!content && !hasEmbed && !isVoice && !file) return tt(t('send.error_empty'), true);
+
+const err = document.getElementById('send-error');
+hideError(err);
+const btn = document.getElementById('send-btn');
+btn.disabled = true;
+
+try {
+let channelId;
+if (document.getElementById('send-auto').classList.contains('hidden')) {
+channelId = document.getElementById('send-manual-chan').value.trim();
+if (!channelId) throw new Error(t('send.error_no_channel'));
+} else {
+channelId = document.getElementById('send-chan').value;
+if (!channelId) throw new Error(t('send.error_no_channel'));
+}
+
+const payload = { content: content || undefined };
+if (hasEmbed) {
+const embed = { title: document.getElementById('e-title').value || undefined, description: document.getElementById('e-desc').value || undefined, color: parseInt(document.getElementById('e-color').value.slice(1), 16) };
+if (document.getElementById('e-url').value) embed.url = document.getElementById('e-url').value;
+if (document.getElementById('e-ts').value === 'now') embed.timestamp = new Date().toISOString();
+if (document.getElementById('e-aname').value) embed.author = { name: document.getElementById('e-aname').value, icon_url: document.getElementById('e-aicon').value || undefined };
+if (document.getElementById('e-img').value) embed.image = { url: document.getElementById('e-img').value };
+if (document.getElementById('e-thumb').value) embed.thumbnail = { url: document.getElementById('e-thumb').value };
+if (document.getElementById('e-footer').value) embed.footer = { text: document.getElementById('e-footer').value, icon_url: document.getElementById('e-ficon').value || undefined };
+payload.embeds = [embed];
+}
+
+if (file) {
+const form = new FormData();
+form.append('payload_json', JSON.stringify(payload));
+form.append('file', file);
+const res = await fetch(BASE + '/discord/channels/' + channelId + '/messages', { method: 'POST', headers: { 'X-Bot-Token': selToken }, body: form });
+if (!res.ok) throw new Error((await res.json()).error || 'Upload failed');
+} else if (isVoice) {
+await handleVoiceMessage(selBot.id, channelId);
+} else {
+await gateway('/discord/channels/' + channelId + '/messages', payload);
+}
+tt(t('send.sent'));
+} catch (e) { showError(err, e.message); }
+finally { btn.disabled = false; }
+
+async function handleVoiceMessage(botId, channelId) {
+const file = document.getElementById('voice-file')?.files[0];
+const recordBlob = document.getElementById('voice-record-preview')?.src?.startsWith('blob:') ? await fetch(document.getElementById('voice-record-preview').src).then(r => r.blob()) : null;
+const audioFile = file || recordBlob;
+if (!audioFile) throw new Error(t('send.voice_need_file'));
+const isOgg = audioFile.name.endsWith('.ogg') || audioFile.name.endsWith('.opus') || audioFile.type.includes('ogg');
+let audioBase64, filename = audioFile.name;
+if (!isOgg) {
+document.getElementById('voice-play-status').textContent = t('voice.play_transcoding');
+const dataUrl = await readFileAsDataURL(audioFile);
+const res = await gateway('/gateway/tools/transcode-voice', { audio_base64: dataUrl, filename: audioFile.name });
+audioBase64 = res.audio_base64;
+filename = res.filename;
+} else {
+audioBase64 = await readFileAsDataURL(audioFile);
+}
+await gateway('/discord/channels/' + channelId + '/messages', { flags: 8192, attachments: [{ id: 0, filename, content_type: 'audio/ogg', description: 'voice-message' }] });
+// Note: actual voice message sending needs the voice message endpoint
+}
+
+function readFileAsDataURL(file) { return new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result.split(',')[1]); fr.readAsDataURL(file); }); }
+
+function renderLogBotSelect() {
+renderBotSelect('log-bot', 'select.bot', V.bots, logBot ? logBot.id : '');
+document.getElementById('log-bot').onchange = async () => {
+logBot = V.bots.find(b => b.id === document.getElementById('log-bot').value) || null;
+logToken = logBot ? logBot.token : null;
+document.getElementById('log-guild').disabled = true;
+document.getElementById('log-chan').disabled = true;
+if (logToken) await loadLogGuilds();
+};
+if (logBot) loadLogGuilds();
+}
+
+async function loadLogGuilds() {
+if (!logToken) return;
+try {
+const guilds = await gatewayGet('/discord/users/@me/guilds');
+const sel = document.getElementById('log-guild');
+sel.innerHTML = '<option data-i18n-key="select.choose_server">'+t('select.choose_server')+'</option>';
+guilds.forEach(g => { const o = document.createElement('option'); o.value = g.id; o.textContent = g.name; sel.appendChild(o); });
+sel.disabled = false;
+loadLogChannels(sel.value);
+} catch (e) { showError(document.getElementById('log-error'), e.message); }
+}
+
+function loadLogChannels(guildId) {
+if (!guildId || !logToken) return;
+gatewayGet('/discord/guilds/'+guildId+'/channels').then(channels => {
+const sel = document.getElementById('log-chan');
+sel.innerHTML = '<option data-i18n-key="select.choose_channel">'+t('select.choose_channel')+'</option>';
+channels.filter(c => c.type === 0 || c.type === 5 || c.type === 13).forEach(c => { const o = document.createElement('option'); o.value = c.id; o.textContent = (c.type===5?'📁 ':'# ') + c.name; sel.appendChild(o); });
+sel.disabled = false;
+}).catch(e => showError(document.getElementById('log-error'), e.message));
+}
+
+const log_guild = document.getElementById('log-guild'); if (log_guild) log_guild.onchange = e => loadLogChannels(e.target.value);
+const log_chan = document.getElementById('log-chan'); if (log_chan) log_chan.onchange = e => { logChannel = e.target.value; document.getElementById('log-rest').disabled = !logChannel; document.getElementById('log-archive').disabled = !logChannel; };
+
+const log_rest = document.getElementById('log-rest'); if (log_rest) log_rest.onclick = async () => {
+if (!logChannel) return;
+hideError(document.getElementById('log-error'));
+const btn = document.getElementById('log-rest');
+btn.disabled = true;
+btn.textContent = t('common.loading');
+try {
+const old = selToken; selToken = logToken;
+const msgs = await gatewayGet('/channels/' + logChannel + '/messages?limit=50');
+selToken = old;
+renderLogs(msgs.reverse().map(m => ({ ...m, _deleted: false })));
+} catch (e) { showError(document.getElementById('log-error'), e.message); }
+finally { btn.disabled = false; btn.textContent = t('logs.load_rest'); }
+};
+
+const log_archive = document.getElementById('log-archive'); if (log_archive) log_archive.onclick = async () => {
+if (!logChannel) return;
+hideError(document.getElementById('log-error'));
+const btn = document.getElementById('log-archive');
+btn.disabled = true;
+btn.textContent = t('common.loading');
+try {
+const msgs = loadArchive(logChannel);
+renderLogs(msgs.reverse().map(m => ({ ...m, _archived: true })));
+} catch (e) { showError(document.getElementById('log-error'), e.message); }
+finally { btn.disabled = false; btn.textContent = t('logs.load_archive'); }
+};
+
+function loadArchive(channelId) { try { return JSON.parse(localStorage.getItem('archive_'+channelId) || '[]'); } catch { return []; } }
+
+function renderLogs(msgs) {
+const feed = document.getElementById('log-feed');
+feed.innerHTML = '';
+msgs.forEach(m => {
+const div = document.createElement('div');
+div.className = 'log-msg' + (m._deleted ? ' deleted' : '');
+const badge = m._deleted ? `<span class="log-msg-badge deleted">${t('logs.deleted')}</span>` : (m._edited ? `<span class="log-msg-badge edited">${t('logs.edited')}</span>` : '');
+div.innerHTML = `<div class="log-msg-header"><span class="log-msg-author">${esc(m.author?.username || 'Unknown')}</span>${badge}<span class="log-msg-time">${m.timestamp ? new Date(m.timestamp).toLocaleString() : ''}</span></div><div class="log-msg-content">${esc(m.content || '')}</div>`;
+feed.appendChild(div);
+});
+feed.scrollTop = feed.scrollHeight;
+}
+
+function renderPresenceBotSelect() {
+renderBotSelect('presence-bot', 'select.bot', V.bots, presenceBot ? presenceBot.id : '');
+document.getElementById('presence-bot').onchange = () => {
+presenceBot = V.bots.find(b => b.id === document.getElementById('presence-bot').value) || null;
+presenceToken = presenceBot ? presenceBot.token : null;
+document.getElementById('presence-apply').disabled = !presenceBot;
+document.getElementById('presence-disc').disabled = !presenceBot;
+};
+if (presenceBot) { document.getElementById('presence-apply').disabled = false; document.getElementById('presence-disc').disabled = false; }
+}
+
+const presence_apply = document.getElementById('presence-apply'); if (presence_apply) presence_apply.onclick = async () => {
+if (!presenceBot || !presenceToken) return;
+hideError(document.getElementById('presence-error'));
+const btn = document.getElementById('presence-apply');
+btn.disabled = true;
+try {
+await gateway(`/${presenceBot.id}/presence`, { status: document.getElementById('presence-status').value, activity: document.getElementById('presence-activity').value });
+tt(t('presence.updated'));
+updatePresenceSessions();
+} catch (e) { showError(document.getElementById('presence-error'), e.message); }
+finally { btn.disabled = false; }
+};
+
+const presence_disc = document.getElementById('presence-disc'); if (presence_disc) presence_disc.onclick = async () => {
+if (!presenceBot) return;
+hideError(document.getElementById('presence-error'));
+await gateway(`/${presenceBot.id}/disconnect`);
+tt(t('presence.disconnected'));
+updatePresenceSessions();
+};
+
+async function updatePresenceSessions() {
+const el = document.getElementById('presence-sessions');
+try {
+const { sessions } = await gatewayGet('/gateway/status');
+const botSessions = sessions.filter(s => !presenceBot || s.id === presenceBot.id);
+if (!botSessions.length) { el.textContent = t('presence.no_sessions'); el.className = 'muted small'; return; }
+el.className = '';
+el.innerHTML = botSessions.map(s => `<div style="padding:8px;background:var(--bg-input);border-radius:var(--radius);margin-bottom:8px;"><strong>${esc(s.user?.username||'Unknown')}</strong> <span class="muted">${esc(s.presence)}</span> ${s.connected ? '<span style="color:var(--success)">●</span>' : '<span style="color:var(--danger)">●</span>'}</div>`).join('');
+} catch (e) { el.textContent = e.message; }
+}
+
+function renderVoiceBotSelect() {
+renderBotSelect('voice-bot', 'select.bot', V.bots, voiceBot ? voiceBot.id : '');
+document.getElementById('voice-bot').onchange = async () => {
+voiceBot = V.bots.find(b => b.id === document.getElementById('voice-bot').value) || null;
+voiceToken = voiceBot ? voiceBot.token : null;
+document.getElementById('voice-guild').disabled = true;
+document.getElementById('voice-chan').disabled = true;
+if (voiceToken) loadVoiceGuilds().then(() => updateVoiceStatus());
+updateVoiceStatus();
+};
+if (voiceBot) { loadVoiceGuilds().then(() => updateVoiceStatus()); }
+}
+
+async function loadVoiceGuilds() {
+if (!voiceToken) return;
+try {
+const guilds = await gatewayGet('/discord/users/@me/guilds');
+const sel = document.getElementById('voice-guild');
+sel.innerHTML = '<option data-i18n-key="select.choose_server">'+t('select.choose_server')+'</option>';
+guilds.forEach(g => { const o = document.createElement('option'); o.value = g.id; o.textContent = g.name; sel.appendChild(o); });
+sel.disabled = false;
+loadVoiceChannels(sel.value);
+} catch (e) { showError(document.getElementById('voice-error'), e.message); }
+}
+
+function loadVoiceChannels(guildId) {
+if (!guildId || !voiceToken) return;
+gatewayGet('/discord/guilds/'+guildId+'/channels').then(channels => {
+const sel = document.getElementById('voice-chan');
+sel.innerHTML = '<option data-i18n-key="select.choose_channel">'+t('select.choose_channel')+'</option>';
+channels.filter(c => c.type === 2).forEach(c => { const o = document.createElement('option'); o.value = c.id; o.textContent = '🔊 ' + c.name; sel.appendChild(o); });
+sel.disabled = false;
+}).catch(e => showError(document.getElementById('voice-error'), e.message));
+}
+
+const voice_guild = document.getElementById('voice-guild'); if (voice_guild) voice_guild.onchange = e => loadVoiceChannels(e.target.value);
+
+const voice_join = document.getElementById('voice-join'); if (voice_join) voice_join.onclick = async () => {
+if (!voiceBot || !voiceChannel) return;
+voiceOperationInProgress = true;
+const btn = document.getElementById('voice-join');
+btn.disabled = true;
+hideError(document.getElementById('voice-error'));
+try {
+await ensureVoiceJoined();
+tt(voiceCurrentlyInChannel ? t('voice.updated') : t('voice.joined'));
+await updateVoiceStatus();
+} catch (e) { showError(document.getElementById('voice-error'), e.message); }
+finally { btn.disabled = false; voiceOperationInProgress = false; updateVoiceControls(); }
+};
+
+const voice_leave = document.getElementById('voice-leave'); if (voice_leave) voice_leave.onclick = async () => {
+if (!voiceBot) return;
+voiceOperationInProgress = true;
+const btn = document.getElementById('voice-leave');
+btn.disabled = true;
+hideError(document.getElementById('voice-error'));
+try {
+await gateway(`/${voiceBot.id}/voice/leave`);
+tt(t('voice.left'));
+await updateVoiceStatus();
+} catch (e) { showError(document.getElementById('voice-error'), e.message); }
+finally { btn.disabled = false; voiceOperationInProgress = false; updateVoiceControls(); }
+};
+
+const voice_refresh = document.getElementById('voice-refresh'); if (voice_refresh) voice_refresh.onclick = () => updateVoiceStatus();
+['voice-mute','voice-deaf'].forEach(id => {
+document.getElementById(id)?.addEventListener('change', async () => {
+if (!voiceCurrentlyInChannel) return;
+try { await ensureVoiceJoined(); await updateVoiceStatus(); } catch (e) { showError(document.getElementById('voice-error'), e.message); }
+});
+});
+
+async function ensureVoiceJoined() {
+if (!voiceBot || !voiceGuild || !voiceChannel) throw new Error(t('voice.not_in_channel'));
+await gateway(`/${voiceBot.id}/connect`, { token: voiceToken });
+await gateway(`/${voiceBot.id}/voice/join`, {
+guild_id: voiceGuild,
+channel_id: voiceChannel,
+self_mute: document.getElementById('voice-mute').checked,
+self_deaf: document.getElementById('voice-deaf').checked,
+auto_leave_seconds: parseInt(document.getElementById('voice-autoleave').value) || 0,
+timeout_ms: 12000
+});
+}
+
+async function updateVoiceStatus() {
+const el = document.getElementById('voice-status');
+if (!el) return;
+if (!voiceBot) { el.innerHTML = '<div class="muted center">'+t('voice.select_bot')+'</div>'; updateVoiceControls(); return; }
+try {
+const s = await gatewayGet(`/${voiceBot.id}/voice/status`);
+voiceCurrentlyInChannel = !!s.voice?.channel_id;
+voiceGuild = s.voice?.guild_id || null;
+voiceChannel = s.voice?.channel_id || null;
+el.innerHTML = `
+<div class="status-row"><span class="status-dot ${s.connected ? 'online' : 'offline'}"></span><span>${s.connected ? t('common.connected') : t('common.disconnected')}</span></div>
+${s.voice?.channel_id ? `<div class="status-row"><span>${t('voice.in_channel')}</span><code class="mono">${esc(s.voice.channel_id)}</code></div>` : ''}
+${s.voiceTransportReady ? `<div class="status-row"><span class="status-dot online"></span><span>${t('voice.transport_ready')}</span></div>` : ''}
+${s.playing ? `<div class="status-row"><span class="status-dot online"></span><span>${t('voice.play_playing')}</span></div>` : ''}
+`;
+} catch (e) { el.innerHTML = '<div class="muted">'+e.message+'</div>'; }
+updateVoiceControls();
+}
+
+function updateVoiceControls() {
+const joinBtn = document.getElementById('voice-join');
+const leaveBtn = document.getElementById('voice-leave');
+const playBtn = document.getElementById('voice-play');
+const stopBtn = document.getElementById('voice-stop');
+
+if (joinBtn) {
+joinBtn.disabled = !voiceBot || !voiceChannel || voiceOperationInProgress;
+joinBtn.textContent = voiceCurrentlyInChannel ? t('voice.update') : t('voice.join');
+joinBtn.innerHTML = (voiceCurrentlyInChannel ? '' : '') + joinBtn.textContent;
+}
+if (leaveBtn) leaveBtn.disabled = !voiceBot || (!voiceChannel && !voiceCurrentlyInChannel) || voiceOperationInProgress;
+if (playBtn) playBtn.disabled = !voiceBot || !voiceChannel || !voicePlayFile || voiceOperationInProgress || voiceCurrentlyPlaying;
+if (stopBtn) stopBtn.disabled = !voiceBot || !voiceCurrentlyPlaying || voiceOperationInProgress;
+}
+
+const voice_play_file = document.getElementById('voice-play-file'); if (voice_play_file) voice_play_file.addEventListener('change', async e => {
+voicePlayFile = e.target.files?.[0] || null;
+const preview = document.getElementById('voice-play-preview');
+const audio = document.getElementById('voice-play-audio');
+if (voicePlayFile) {
+audio.src = URL.createObjectURL(voicePlayFile);
+preview.classList.remove('hidden');
+} else {
+audio.removeAttribute('src');
+preview.classList.add('hidden');
+}
+updateVoiceControls();
+});
+
+const voice_play = document.getElementById('voice-play'); if (voice_play) voice_play.onclick = async () => {
+if (!voiceBot || !voiceChannel || !voicePlayFile) return;
+voiceOperationInProgress = true;
+const btn = document.getElementById('voice-play');
+const statusEl = document.getElementById('voice-play-status');
+btn.disabled = true;
+statusEl.textContent = t('voice.play_preparing');
+updateVoiceControls();
+try {
+await ensureVoiceJoined();
+let audioBase64, filename = voicePlayFile.name;
+const isOgg = /\.ogg$/i.test(filename) || /\.opus$/i.test(filename) || voicePlayFile.type?.includes('ogg');
+if (!isOgg) {
+statusEl.textContent = t('voice.play_transcoding');
+const dataUrl = await readFileAsDataURL(voicePlayFile);
+const res = await gateway('/gateway/tools/transcode-voice', { audio_base64: dataUrl, filename });
+audioBase64 = res.audio_base64;
+filename = res.filename || 'voice-message.ogg';
+} else {
+audioBase64 = await readFileAsDataURL(voicePlayFile);
+}
+voiceCurrentlyPlaying = true;
+updateVoiceControls();
+statusEl.textContent = t('voice.play_playing');
+const res = await gateway(`/${voiceBot.id}/voice/play`, {
+guild_id: voiceGuild,
+channel_id: voiceChannel,
+filename,
+audio_base64: audioBase64,
+self_mute: document.getElementById('voice-mute').checked,
+self_deaf: document.getElementById('voice-deaf').checked
+});
+statusEl.textContent = `${t('voice.play_playing')} · ${Math.round((res.duration_ms||0)/1000)}s`;
+setTimeout(() => { voiceCurrentlyPlaying = false; updateVoiceControls(); updateVoiceStatus(); }, (res.duration_ms||0)+1500);
+} catch (e) {
+statusEl.textContent = t('common.error') + ': ' + e.message;
+showError(document.getElementById('voice-error'), e.message);
+} finally {
+btn.disabled = false;
+voiceOperationInProgress = false;
+updateVoiceControls();
+}
+};
+
+const voice_stop = document.getElementById('voice-stop'); if (voice_stop) voice_stop.onclick = async () => {
+if (!voiceBot) return;
+voiceOperationInProgress = true;
+try {
+await gateway(`/${voiceBot.id}/voice/stop`);
+voiceCurrentlyPlaying = false;
+document.getElementById('voice-play-status').textContent = t('voice.play_stopped');
+updateVoiceControls();
+updateVoiceStatus();
+} catch (e) { showError(document.getElementById('voice-error'), e.message); }
+finally { voiceOperationInProgress = false; }
+};
+
+document.getElementById('voice-mode')?.querySelectorAll('.seg-btn').forEach(btn => {
+btn.onclick = () => {
+document.getElementById('voice-mode').querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+btn.classList.add('active');
+document.getElementById('voice-upload').classList.toggle('hidden', btn.dataset.mode !== 'upload');
+document.getElementById('voice-record').classList.toggle('hidden', btn.dataset.mode !== 'record');
+};
+});
+
+const voice_file = document.getElementById('voice-file'); if (voice_file) voice_file.addEventListener('change', e => {
+const f = e.target.files[0];
+if (f) {
+const audio = document.getElementById('voice-file-preview');
+audio.src = URL.createObjectURL(f);
+audio.classList.remove('hidden');
+}
+});
+
+let mediaRecorder = null;
+const voice_record_start = document.getElementById('voice-record-start'); if (voice_record_start) voice_record_start.onclick = async () => {
+try {
+const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 48000, channelCount: 1 } });
+mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/ogg;codecs=opus' });
+voiceRecordChunks = [];
+mediaRecorder.ondataavailable = e => { if (e.data.size) voiceRecordChunks.push(e.data); };
+mediaRecorder.onstop = () => {
+const blob = new Blob(voiceRecordChunks, { type: 'audio/ogg;codecs=opus' });
+const audio = document.getElementById('voice-record-preview');
+audio.src = URL.createObjectURL(blob);
+audio.classList.remove('hidden');
+document.getElementById('voice-record-status').textContent = t('send.voice_ready');
+document.getElementById('voice-record-start').classList.remove('hidden');
+document.getElementById('voice-record-stop').classList.add('hidden');
+document.getElementById('voice-record-status').classList.remove('recording');
+stream.getTracks().forEach(t => t.stop());
+};
+mediaRecorder.start(100);
+document.getElementById('voice-record-start').classList.add('hidden');
+document.getElementById('voice-record-stop').classList.remove('hidden');
+document.getElementById('voice-record-status').textContent = t('send.voice_recording');
+document.getElementById('voice-record-status').classList.add('recording');
+} catch (e) { showError(document.getElementById('voice-error'), t('send.voice_record_unsupported')); }
+};
+
+const voice_record_stop = document.getElementById('voice-record-stop'); if (voice_record_stop) voice_record_stop.onclick = () => {
+if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+};
+
+function renderCleanBotSelect() {
+renderBotSelect('clean-bot', 'select.bot', V.bots, cleanBot ? cleanBot.id : '');
+document.getElementById('clean-bot').onchange = async () => {
+cleanBot = V.bots.find(b => b.id === document.getElementById('clean-bot').value) || null;
+cleanToken = cleanBot ? cleanBot.token : null;
+document.getElementById('clean-guild').disabled = true;
+document.getElementById('clean-chan').disabled = true;
+if (cleanToken) loadCleanGuilds();
+};
+if (cleanBot) loadCleanGuilds();
+}
+
+async function loadCleanGuilds() {
+if (!cleanToken) return;
+try {
+const guilds = await gatewayGet('/discord/users/@me/guilds');
+const sel = document.getElementById('clean-guild');
+sel.innerHTML = '<option data-i18n-key="select.choose_server">'+t('select.choose_server')+'</option>';
+guilds.forEach(g => { const o = document.createElement('option'); o.value = g.id; o.textContent = g.name; sel.appendChild(o); });
+sel.disabled = false;
+loadCleanChannels(sel.value);
+} catch (e) { showError(document.getElementById('clean-error'), e.message); }
+}
+
+function loadCleanChannels(guildId) {
+if (!guildId || !cleanToken) return;
+gatewayGet('/discord/guilds/'+guildId+'/channels').then(channels => {
+const sel = document.getElementById('clean-chan');
+sel.innerHTML = '<option data-i18n-key="select.choose_channel">'+t('select.choose_channel')+'</option>';
+channels.filter(c => c.type === 0 || c.type === 5 || c.type === 13).forEach(c => { const o = document.createElement('option'); o.value = c.id; o.textContent = (c.type===5?'📁 ':'# ') + c.name; sel.appendChild(o); });
+sel.disabled = false;
+}).catch(e => showError(document.getElementById('clean-error'), e.message));
+}
+
+const clean_guild = document.getElementById('clean-guild'); if (clean_guild) clean_guild.onchange = e => loadCleanChannels(e.target.value);
+const clean_chan = document.getElementById('clean-chan'); if (clean_chan) clean_chan.onchange = e => {
+cleanChannel = e.target.value;
+const target = document.getElementById('clean-target');
+target.textContent = cleanChannel ? `${document.getElementById('clean-guild').selectedOptions[0]?.text} / ${e.target.selectedOptions[0]?.text}` : '';
+};
+
+const clean_clone = document.getElementById('clean-clone'); if (clean_clone) clean_clone.onclick = async () => {
+if (!cleanBot || !cleanChannel) return;
+if (!confirm(t('cleaner.clone_confirm'))) return;
+hideError(document.getElementById('clean-error'));
+const btn = document.getElementById('clean-clone');
+btn.disabled = true;
+try {
+await gateway(`/discord/channels/${cleanChannel}`, { method: 'DELETE' });
+const ch = await gatewayGet(`/discord/channels/${cleanChannel}`);
+await gateway(`/discord/guilds/${cleanGuild}/channels`, { method: 'POST', body: { name: ch.name, type: ch.type, parent_id: ch.parent_id, permission_overwrites: ch.permission_overwrites } });
+tt(t('cleaner.cloned'));
+} catch (e) { showError(document.getElementById('clean-error'), e.message); }
+finally { btn.disabled = false; }
+};
+
+const clean_delete = document.getElementById('clean-delete'); if (clean_delete) clean_delete.onclick = async () => {
+if (!cleanBot || !cleanChannel) return;
+if (!confirm(t('cleaner.delete_confirm'))) return;
+hideError(document.getElementById('clean-error'));
+const btn = document.getElementById('clean-delete');
+const prog = document.getElementById('clean-progress');
+const progText = document.getElementById('clean-progress-text');
+btn.disabled = true;
+prog.classList.remove('hidden');
+progText.classList.remove('hidden');
+try {
+let total = 0;
+while (true) {
+const msgs = await gatewayGet(`/channels/${cleanChannel}/messages?limit=100`);
+if (!msgs.length) break;
+const ids = msgs.map(m => m.id);
+const chunks = [];
+for (let i = 0; i < ids.length; i += 100) chunks.push(ids.slice(i, i + 100));
+for (const chunk of chunks) {
+await gateway(`/discord/channels/${cleanChannel}/messages/bulk-delete`, { method: 'POST', body: { messages: chunk } });
+total += chunk.length;
+progText.textContent = `${t('cleaner.deleted')} ${total}`;
+}
+if (msgs.length < 100) break;
+}
+tt(`${t('cleaner.deleted')} ${total}`);
+} catch (e) { showError(document.getElementById('clean-error'), e.message); }
+finally { btn.disabled = false; prog.classList.add('hidden'); progText.classList.add('hidden'); }
+};
+
+function renderSettings() {
+document.getElementById('lang-setting').value = currentLang;
+document.getElementById('lang-setting').onchange = e => loadLang(e.target.value);
+document.querySelectorAll('#autolock-seg .seg-btn').forEach(btn => {
+btn.classList.toggle('active', btn.dataset.v === localStorage.getItem('autolock'));
+btn.onclick = () => { document.querySelectorAll('#autolock-seg .seg-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); localStorage.setItem('autolock', btn.dataset.v); };
+});
+document.querySelectorAll('#theme-seg .seg-btn').forEach(btn => {
+btn.classList.toggle('active', btn.dataset.v === (document.documentElement.dataset.theme || 'auto'));
+btn.onclick = () => { document.querySelectorAll('#theme-seg .seg-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); document.documentElement.dataset.theme = btn.dataset.v; localStorage.setItem('theme', btn.dataset.v); };
+});
+const changepw_btn = document.getElementById('changepw-btn'); if (changepw_btn) changepw_btn.onclick = () => showModal('modal-changepw');
+const reset_vault = document.getElementById('reset-vault'); if (reset_vault) reset_vault.onclick = () => confirmModal(t('settings.reset_confirm'), () => { localStorage.removeItem('v'); lockVault(); location.reload(); });
+}
+
+const changepw_form = document.getElementById('changepw-form'); if (changepw_form) changepw_form.onsubmit = async e => {
+e.preventDefault();
+const old = document.getElementById('cpw-old').value;
+const neu = document.getElementById('cpw-new').value;
+const neu2 = document.getElementById('cpw-new2').value;
+const err = document.getElementById('changepw-error');
+if (neu !== neu2) return showError(err, t('error.password_mismatch'));
+if (neu.length < 8) return showError(err, t('error.min_password'));
+hideError(err);
+try {
+await unlockVault(old);
+await createVault(neu);
+for (const bot of V.bots) {
+for (const tok of bot.tokens) {
+const plain = await decryptToken(tok, K);
+const iv = crypto.getRandomValues(new Uint8Array(12));
+const ck = await crypto.subtle.importKey('raw', K, { name: 'AES-GCM' }, false, ['encrypt']);
+const enc = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, ck, new TextEncoder().encode(plain));
+tok.iv = Array.from(iv);
+tok.data = Array.from(new Uint8Array(enc.slice(0, -16)));
+tok.auth = Array.from(new Uint8Array(enc.slice(-16)));
+}
+}
+sv(V);
+closeModal('modal-changepw');
+tt(t('settings.password_changed'));
+} catch (e) { showError(err, e.message); }
+};
+
+function showModal(id) { document.getElementById(id).classList.remove('hidden'); document.body.style.overflow = 'hidden'; }
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); document.body.style.overflow = ''; }
+function confirmModal(msg, fn) { const m = document.getElementById('modal-generic'); document.getElementById('modal-title').textContent = t('common.confirm'); document.getElementById('modal-desc').textContent = msg; document.getElementById('modal-body').innerHTML = ''; document.getElementById('modal-confirm').onclick = () => { closeModal('modal-generic'); fn(); }; showModal('modal-generic'); }
+document.querySelectorAll('.modal-close, .modal-backdrop').forEach(el => el.onclick = () => closeModal(el.closest('.modal').id));
+document.querySelectorAll('.modal-box [data-i18n="common.cancel"]').forEach(btn => btn.onclick = () => closeModal(btn.closest('.modal').id));
+
+const lock_btn = document.getElementById('lock-btn'); if (lock_btn) lock_btn.onclick = () => { lockVault(); tt(t('vault.locked')); };
+const menu_toggle = document.getElementById('menu-toggle'); if (menu_toggle) menu_toggle.onclick = () => document.getElementById('sidebar').classList.toggle('open');
+const backdrop = document.getElementById('backdrop'); if (backdrop) backdrop.onclick = () => document.getElementById('sidebar').classList.remove('open');
+const theme_toggle = document.getElementById('theme-toggle'); if (theme_toggle) theme_toggle.onclick = () => { const themes = ['light','dark','auto']; const cur = document.documentElement.dataset.theme || 'auto'; const next = themes[(themes.indexOf(cur)+1)%3]; document.documentElement.dataset.theme = next; localStorage.setItem('theme', next); document.querySelectorAll('#theme-seg .seg-btn').forEach(b => b.classList.toggle('active', b.dataset.v === next)); };
+const add_bot_btn = document.getElementById('add-bot-btn'); if (add_bot_btn) add_bot_btn.onclick = () => { const n = prompt(t('vault.name_placeholder')); if (!n) return; const tkn = prompt(t('vault.token_placeholder')); if (!tkn) return; addBot(n, tkn).then(() => { renderVault(); tt(t('vault.added_bot')); }); };
+
+function initUnlock() {
+const form = document.getElementById('unlock-form');
+const pw = document.getElementById('pw');
+const pw2 = document.getElementById('pw2');
+const pw2Field = document.getElementById('pw2-field');
+const btn = document.getElementById('submit-btn');
+const err = document.getElementById('unlock-error');
+const title = document.getElementById('unlock-title');
+const desc = document.getElementById('unlock-desc');
+const vault = lv();
+if (vault) {
+title.textContent = t('unlock.unlock_title');
+desc.textContent = t('unlock.unlock_desc');
+btn.textContent = t('unlock.unlock');
+pw2Field.classList.add('hidden');
+} else {
+title.textContent = t('unlock.create_title');
+desc.textContent = t('unlock.create_desc');
+btn.textContent = t('unlock.create');
+pw2Field.classList.remove('hidden');
+}
+
+form.onsubmit = async e => {
+e.preventDefault();
+hideError(err);
+const p = pw.value;
+if (!vault && p !== pw2.value) return showError(err, t('error.password_mismatch'));
+if (p.length < 8) return showError(err, t('error.min_password'));
+btn.disabled = true;
+try {
+if (vault) { if (!await unlockVault(p)) return showError(err, t('error.invalid_password')); }
+else { await createVault(p); }
+initApp();
+} catch (e) { showError(err, e.message); }
+finally { btn.disabled = false; }
+};
+}
+
+function initApp() {
+document.getElementById('panel-unlock').classList.add('hidden');
+document.getElementById('main-content').classList.remove('hidden');
+document.querySelector('.sidebar').classList.remove('hidden');
+renderTabs();
+switchTab('vault');
+applyTheme();
+updatePresenceSessions();
+setInterval(() => { if (activeTab === 'presence') updatePresenceSessions(); if (activeTab === 'voice') updateVoiceStatus(); }, 30000);
+}
+
+function applyTheme() {
+const saved = localStorage.getItem('theme') || 'auto';
+document.documentElement.dataset.theme = saved;
+document.querySelectorAll('#theme-seg .seg-btn').forEach(b => b.classList.toggle('active', b.dataset.v === saved));
+}
+
+async function initAll() {
+await initI18n();
+initUnlock();
+}
+
+initAll();
+}
+================================================================================
+
+# FILE: index.html
+# PATH: C:\Users\ww163\Documents\projects\messing\discord-manager-backup2\discord-manager\www\index.html
+--------------------------------------------------------------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title data-i18n="app.title"></title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app" data-theme="auto">
+<header class="topbar">
+<div class="topbar-left">
+<button class="icon-btn" id="menu-toggle" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg></button>
+<h1 class="brand" data-i18n="app.title"></h1>
+</div>
+<div class="topbar-center">
+<nav class="tabs" role="tablist" id="main-tabs"></nav>
+</div>
+<div class="topbar-right">
+<select id="lang-select" class="lang-select" aria-label="Language"></select>
+<button class="icon-btn" id="theme-toggle" aria-label="Toggle theme"><svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+<button class="icon-btn" id="lock-btn" aria-label="Lock vault"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></button>
+</div>
+</header>
+
+<aside class="sidebar" id="sidebar" role="complementary">
+<div class="sidebar-header">
+<h2 data-i18n="nav.tokens"></h2>
+<button class="btn btn-primary btn-sm" id="add-bot-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg><span data-i18n="vault.add"></span></button>
+</div>
+<div class="bot-list" id="bot-list"></div>
+</aside>
+
+<div class="backdrop" id="backdrop"></div>
+
+<main class="main" id="main-content">
+<section class="panel" id="panel-unlock" role="region" aria-label="Unlock">
+<div class="panel-content">
+<h2 id="unlock-title" data-i18n="unlock.create_title"></h2>
+<p class="panel-desc" id="unlock-desc" data-i18n="unlock.create_desc"></p>
+<form id="unlock-form" class="form-stack">
+<div class="form-field">
+<label for="pw" data-i18n="unlock.master_password"></label>
+<input type="password" id="pw" autocomplete="new-password" required>
+</div>
+<div class="form-field" id="pw2-field">
+<label for="pw2" data-i18n="unlock.repeat_password"></label>
+<input type="password" id="pw2" autocomplete="new-password">
+</div>
+<button type="submit" class="btn btn-primary btn-block" id="submit-btn" data-i18n="unlock.create"></button>
+<div class="error hidden" id="unlock-error"></div>
+</form>
+</div>
+</section>
+
+<section class="panel hidden" id="panel-vault" role="region" aria-label="Vault">
+<div class="panel-header">
+<h2 data-i18n="vault.title"></h2>
+</div>
+<div class="bot-cards" id="bot-cards"></div>
+</section>
+
+<section class="panel hidden" id="panel-send" role="region" aria-label="Send">
+<div class="panel-header">
+<h2 data-i18n="send.title"></h2>
+</div>
+<div class="grid grid-2">
+<div class="card">
+<h3 data-i18n="send.bot"></h3>
+<select id="send-bot" class="select"><option value="" data-i18n-key="select.bot"></option></select>
+</div>
+<div class="card">
+<h3 data-i18n="send.destination"></h3>
+<div class="segmented" id="send-mode">
+<button class="seg-btn active" data-mode="auto" data-i18n="send.from_servers"></button>
+<button class="seg-btn" data-mode="manual" data-i18n="send.manual_id"></button>
+</div>
+</div>
+</div>
+<div id="send-auto" class="grid grid-2">
+<div class="card">
+<h3 data-i18n="send.guild"></h3>
+<select id="send-guild" class="select" disabled><option data-i18n-key="select.bot_first"></option></select>
+</div>
+<div class="card">
+<h3 data-i18n="send.channel"></h3>
+<select id="send-chan" class="select" disabled><option data-i18n-key="select.server"></option></select>
+</div>
+</div>
+<div id="send-manual" class="card hidden">
+<h3 data-i18n="send.channel_id"></h3>
+<input type="text" id="send-manual-chan" class="input mono" data-i18n-placeholder="send.channel_id_placeholder">
+</div>
+<div class="card">
+<h3 data-i18n="send.content"></h3>
+<textarea id="send-content" class="input textarea" data-i18n-placeholder="send.content_placeholder" rows="4"></textarea>
+<div class="card-footer">
+<label class="checkbox-inline"><input type="checkbox" id="send-voice-msg"><span data-i18n="send.voice_message"></span></label>
+<label class="checkbox-inline"><input type="checkbox" id="send-embed-toggle"><span data-i18n="send.embed"></span></label>
+</div>
+</div>
+<div id="send-voice-form" class="card hidden">
+<div class="segmented" id="voice-mode">
+<button class="seg-btn active" data-mode="upload" data-i18n="send.voice_upload"></button>
+<button class="seg-btn" data-mode="record" data-i18n="send.voice_record"></button>
+</div>
+<div id="voice-upload" class="form-field">
+<input type="file" id="voice-file" accept=".ogg,.opus,audio/ogg,audio/opus" class="input file-input">
+<audio id="voice-file-preview" controls class="hidden"></audio>
+</div>
+<div id="voice-record" class="form-field hidden">
+<div class="btn-row">
+<button class="btn btn-ghost" id="voice-record-start" data-i18n="send.voice_start"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/></svg></button>
+<button class="btn btn-danger hidden" id="voice-record-stop" data-i18n="send.voice_stop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
+</div>
+<div class="muted small" id="voice-record-status"></div>
+<audio id="voice-record-preview" controls class="hidden"></audio>
+</div>
+<div class="form-field">
+<label data-i18n="send.voice_waveform"></label>
+<select id="voice-waveform" class="select">
+<option value="auto" data-i18n-key="send.waveform_auto"></option>
+<option value="constant" data-i18n-key="send.waveform_constant"></option>
+<option value="none" data-i18n-key="send.waveform_none"></option>
+</select>
+<p class="muted small" data-i18n="send.voice_waveform_note"></p>
+</div>
+<div class="form-field">
+<label data-i18n="send.voice_filename"></label>
+<input type="text" id="voice-filename" class="input" data-i18n-placeholder="send.voice_filename_placeholder">
+</div>
+</div>
+<div id="send-embed-form" class="card hidden">
+<div class="form-field"><label data-i18n="send.embed_title"></label><input type="text" id="e-title" class="input" maxlength="256"></div>
+<div class="form-field"><label data-i18n="send.embed_title_url"></label><input type="url" id="e-url" class="input"></div>
+<div class="form-field"><label data-i18n="send.embed_desc"></label><textarea id="e-desc" class="input textarea" maxlength="4096" rows="3"></textarea></div>
+<div class="grid grid-2">
+<div class="form-field"><label data-i18n="send.embed_color"></label><input type="color" id="e-color" class="input color-input" value="#2563eb"></div>
+<div class="form-field"><label data-i18n="send.embed_timestamp"></label><select id="e-ts" class="select"><option value="" data-i18n-key="send.ts_none"></option><option value="now" data-i18n-key="send.ts_now"></option></select></div>
+</div>
+<div class="form-field"><label data-i18n="send.embed_author_name"></label><input type="text" id="e-aname" class="input" maxlength="256"></div>
+<div class="form-field"><label data-i18n="send.embed_author_icon"></label><input type="url" id="e-aicon" class="input"></div>
+<div class="form-field"><label data-i18n="send.embed_image"></label><input type="url" id="e-img" class="input"></div>
+<div class="form-field"><label data-i18n="send.embed_thumbnail"></label><input type="url" id="e-thumb" class="input"></div>
+<div class="form-field"><label data-i18n="send.embed_footer"></label><input type="text" id="e-footer" class="input" maxlength="2048"></div>
+<div class="form-field"><label data-i18n="send.embed_footer_icon"></label><input type="url" id="e-ficon" class="input"></div>
+<div class="form-field">
+<label data-i18n="send.embed_fields"></label>
+<div id="e-fields"></div>
+<button class="btn btn-ghost btn-sm" id="e-addfield" data-i18n="send.embed_add_field"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+</div>
+</div>
+<div class="card">
+<h3 data-i18n="send.preview"></h3>
+<div class="preview" id="send-preview"></div>
+</div>
+<div class="card-footer">
+<input type="file" id="send-attachment" accept="image/*,video/*" class="hidden">
+<button class="btn btn-ghost" type="button" id="send-attach-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.49"/></svg><span data-i18n="send.attachment"></span></button>
+<div class="file-preview" id="send-file-preview"></div>
+</div>
+<button class="btn btn-primary btn-block" id="send-btn" data-i18n="send.send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg></button>
+<div class="error hidden" id="send-error"></div>
+</section>
+
+<section class="panel hidden" id="panel-logs" role="region" aria-label="Archive">
+<div class="panel-header">
+<h2 data-i18n="logs.title"></h2>
+</div>
+<div class="card">
+<div class="grid grid-3">
+<div class="form-field"><label data-i18n="logs.bot"></label><select id="log-bot" class="select"><option value="" data-i18n-key="select.bot"></option></select></div>
+<div class="form-field"><label data-i18n="logs.guild"></label><select id="log-guild" class="select" disabled><option data-i18n-key="select.bot_first"></option></select></div>
+<div class="form-field"><label data-i18n="logs.channel"></label><select id="log-chan" class="select" disabled><option data-i18n-key="select.server"></option></select></div>
+</div>
+<div class="btn-row">
+<button class="btn btn-primary" id="log-rest" disabled data-i18n="logs.load_rest"></button>
+<button class="btn btn-ghost" id="log-archive" disabled data-i18n="logs.load_archive"></button>
+</div>
+<p class="muted small" data-i18n="logs.info"></p>
+<div class="error hidden" id="log-error"></div>
+</div>
+<div class="card log-feed" id="log-feed">
+<div class="muted center" data-i18n="logs.select_channel"></div>
+</div>
+</section>
+
+<section class="panel hidden" id="panel-presence" role="region" aria-label="Presence">
+<div class="panel-header">
+<h2 data-i18n="presence.title"></h2>
+</div>
+<div class="card info-card">
+<svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+<div><strong data-i18n="presence.info_title"></strong><p data-i18n="presence.info_desc"></p></div>
+</div>
+<div class="card">
+<div class="form-field"><label data-i18n="presence.bot"></label><select id="presence-bot" class="select"><option value="" data-i18n-key="select.bot"></option></select></div>
+<div class="form-field"><label data-i18n="presence.status"></label><select id="presence-status" class="select"><option value="online" data-i18n-key="presence.online"></option><option value="idle" data-i18n-key="presence.idle"></option><option value="dnd" data-i18n-key="presence.dnd"></option><option value="invisible" data-i18n-key="presence.invisible"></option></select></div>
+<div class="form-field"><label data-i18n="presence.activity"></label><input type="text" id="presence-activity" class="input" data-i18n-placeholder="presence.activity_placeholder"></div>
+<div class="btn-row">
+<button class="btn btn-primary" id="presence-apply" disabled data-i18n="presence.apply"></button>
+<button class="btn btn-ghost" id="presence-disc" disabled data-i18n="presence.disconnect"></button>
+</div>
+<div class="error hidden" id="presence-error"></div>
+</div>
+<div class="card">
+<h3 data-i18n="presence.sessions"></h3>
+<div id="presence-sessions" class="muted small" data-i18n="presence.no_sessions"></div>
+</div>
+</section>
+
+<section class="panel hidden" id="panel-voice" role="region" aria-label="Voice">
+<div class="panel-header">
+<h2 data-i18n="voice.title"></h2>
+</div>
+<div class="card info-card">
+<svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+<div><strong data-i18n="voice.info_title"></strong><p data-i18n="voice.info_desc"></p></div>
+</div>
+<div class="card">
+<div class="grid grid-3">
+<div class="form-field"><label data-i18n="voice.bot"></label><select id="voice-bot" class="select"><option value="" data-i18n-key="select.bot"></option></select></div>
+<div class="form-field"><label data-i18n="voice.guild"></label><select id="voice-guild" class="select" disabled><option data-i18n-key="select.bot_first"></option></select></div>
+<div class="form-field"><label data-i18n="voice.channel"></label><select id="voice-chan" class="select" disabled><option data-i18n-key="select.server"></option></select></div>
+</div>
+<div class="grid grid-3">
+<div class="form-field"><label data-i18n="voice.auto_leave"></label><input type="number" id="voice-autoleave" class="input" value="0" min="0" max="1440" step="1"></div>
+<div class="form-field checkbox-field"><label class="checkbox-inline"><input type="checkbox" id="voice-mute"><span data-i18n="voice.self_mute"></span></label></div>
+<div class="form-field checkbox-field"><label class="checkbox-inline"><input type="checkbox" id="voice-deaf"><span data-i18n="voice.self_deaf"></span></label></div>
+</div>
+<div class="btn-row">
+<button class="btn btn-primary" id="voice-join" disabled data-i18n="voice.join"></button>
+<button class="btn btn-ghost" id="voice-leave" disabled data-i18n="voice.leave"></button>
+<button class="btn btn-ghost" id="voice-refresh" data-i18n="voice.refresh"></button>
+</div>
+<div class="error hidden" id="voice-error"></div>
+</div>
+<div class="card">
+<h3 data-i18n="voice.status"></h3>
+<div id="voice-status" class="status-display"></div>
+</div>
+<div class="card">
+<h3 data-i18n="voice.playback_title"></h3>
+<p class="muted small" data-i18n="voice.playback_desc"></p>
+<div class="form-field"><label data-i18n="voice.playback_file"></label><input type="file" id="voice-play-file" accept="audio/*,.mp3,.wav,.ogg,.opus,.m4a,.flac" class="input file-input"></div>
+<div id="voice-play-preview" class="hidden"><audio id="voice-play-audio" controls></audio></div>
+<div class="btn-row">
+<button class="btn btn-primary" id="voice-play" disabled data-i18n="voice.play"></button>
+<button class="btn btn-ghost" id="voice-stop" disabled data-i18n="voice.stop_playback"></button>
+</div>
+<div class="muted small" id="voice-play-status"></div>
+</div>
+</section>
+
+<section class="panel hidden" id="panel-cleaner" role="region" aria-label="Cleaner">
+<div class="panel-header">
+<h2 data-i18n="cleaner.title"></h2>
+</div>
+<div class="card warn-card">
+<svg class="warn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+<div><strong data-i18n="cleaner.warning"></strong><p data-i18n-html="cleaner.warning_desc"></p></div>
+</div>
+<div class="card">
+<div class="grid grid-3">
+<div class="form-field"><label data-i18n="cleaner.bot"></label><select id="clean-bot" class="select"><option value="" data-i18n-key="select.bot"></option></select></div>
+<div class="form-field"><label data-i18n="cleaner.guild"></label><select id="clean-guild" class="select" disabled><option data-i18n-key="select.bot_first"></option></select></div>
+<div class="form-field"><label data-i18n="cleaner.channel"></label><select id="clean-chan" class="select" disabled><option data-i18n-key="select.server"></option></select></div>
+</div>
+<div class="form-field"><label data-i18n="cleaner.selected"></label><code id="clean-target" class="mono"></code></div>
+</div>
+<div class="card">
+<h3 data-i18n="cleaner.clone_title"></h3>
+<p class="muted small" data-i18n="cleaner.clone_desc"></p>
+<button class="btn btn-danger btn-block" id="clean-clone" data-i18n="cleaner.clone"></button>
+</div>
+<div class="card">
+<h3 data-i18n="cleaner.delete_all_title"></h3>
+<p class="muted small" data-i18n="cleaner.delete_all_desc"></p>
+<button class="btn btn-danger btn-block" id="clean-delete" data-i18n="cleaner.delete_all"></button>
+<div class="progress hidden" id="clean-progress"><div class="progress-bar"></div></div>
+<div class="progress-text hidden" id="clean-progress-text"></div>
+</div>
+</section>
+
+<section class="panel hidden" id="panel-settings" role="region" aria-label="Settings">
+<div class="panel-header">
+<h2 data-i18n="settings.title"></h2>
+</div>
+<div class="card">
+<h3 data-i18n="settings.autolock"></h3>
+<p class="muted small" data-i18n="settings.autolock_desc"></p>
+<div class="segmented" id="autolock-seg">
+<button class="seg-btn" data-v="0" data-i18n="settings.never"></button>
+<button class="seg-btn" data-v="1" data-i18n="settings.min_1"></button>
+<button class="seg-btn active" data-v="5" data-i18n="settings.min_5"></button>
+<button class="seg-btn" data-v="15" data-i18n="settings.min_15"></button>
+</div>
+</div>
+<div class="card">
+<h3 data-i18n="settings.language"></h3>
+<p class="muted small" data-i18n="settings.language_desc"></p>
+<select id="lang-setting" class="select"></select>
+</div>
+<div class="card">
+<h3 data-i18n="settings.theme"></h3>
+<p class="muted small" data-i18n="settings.theme_desc"></p>
+<div class="segmented" id="theme-seg">
+<button class="seg-btn" data-v="light" data-i18n="settings.light"></button>
+<button class="seg-btn" data-v="dark" data-i18n="settings.dark"></button>
+<button class="seg-btn active" data-v="auto" data-i18n="settings.auto"></button>
+</div>
+</div>
+<div class="card">
+<h3 data-i18n="settings.master_password"></h3>
+<p class="muted small" data-i18n="settings.master_password_desc"></p>
+<button class="btn btn-ghost btn-block" id="changepw-btn" data-i18n="settings.change_master_password"></button>
+</div>
+<div class="card danger-zone">
+<h3 data-i18n="settings.danger_zone"></h3>
+<p class="muted small" data-i18n="settings.danger_desc"></p>
+<button class="btn btn-danger btn-block" id="reset-vault" data-i18n="settings.reset_vault"></button>
+</div>
+<p class="footer-note" data-i18n="settings.footer"></p>
+</section>
+</main>
+
+<div class="modal hidden" id="modal-generic" role="dialog" aria-modal="true">
+<div class="modal-backdrop"></div>
+<div class="modal-box">
+<button class="modal-close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+<h3 id="modal-title"></h3>
+<p class="muted small" id="modal-desc"></p>
+<div id="modal-body"></div>
+<div class="modal-actions">
+<button class="btn btn-ghost" id="modal-cancel" data-i18n="common.cancel"></button>
+<button class="btn btn-primary" id="modal-confirm" data-i18n="common.confirm"></button>
+</div>
+</div>
+</div>
+
+<div class="modal hidden" id="modal-changepw" role="dialog" aria-modal="true">
+<div class="modal-backdrop"></div>
+<div class="modal-box">
+<button class="modal-close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+<h3 data-i18n="settings.change_master_password"></h3>
+<p class="muted small" data-i18n="settings.change_pw_desc"></p>
+<form id="changepw-form" class="form-stack">
+<div class="form-field"><label data-i18n="settings.current_pw"></label><input type="password" id="cpw-old" class="input" required></div>
+<div class="form-field"><label data-i18n="settings.new_pw"></label><input type="password" id="cpw-new" class="input" required minlength="8"></div>
+<div class="form-field"><label data-i18n="settings.repeat_pw"></label><input type="password" id="cpw-new2" class="input" required></div>
+<div class="error hidden" id="changepw-error"></div>
+<div class="modal-actions">
+<button type="button" class="btn btn-ghost" data-i18n="common.cancel"></button>
+<button type="submit" class="btn btn-primary" data-i18n="common.save"></button>
+</div>
+</form>
+</div>
+</div>
+
+<div class="modal hidden" id="modal-profile" role="dialog" aria-modal="true">
+<div class="modal-backdrop"></div>
+<div class="modal-box modal-lg">
+<button class="modal-close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+<div id="profile-view">
+<h3 data-i18n="modal.user_profile"></h3>
+<div class="profile-header" id="profile-header">
+<div class="avatar-lg" id="profile-avatar"></div>
+<div class="profile-info">
+<h4 id="profile-name"></h4>
+<div class="profile-meta"><code id="profile-id"></code><button class="btn btn-ghost btn-sm" id="profile-copy" data-i18n="modal.copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button></div>
+</div>
+</div>
+<p class="muted small" data-i18n-html="modal.nick_note"></p>
+<div class="profile-details" id="profile-details"></div>
+<div class="modal-actions">
+<button class="btn btn-ghost" id="profile-nick" data-i18n="modal.change_nick"></button>
+<button class="btn btn-ghost" id="profile-timeout" data-i18n="modal.timeout"></button>
+<button class="btn btn-danger" id="profile-kick" data-i18n="modal.kick"></button>
+<button class="btn btn-danger" id="profile-ban" data-i18n="modal.ban"></button>
+</div>
+</div>
+<div id="profile-nick-form" class="hidden">
+<h3 data-i18n="modal.nick_title"></h3>
+<p class="muted small" data-i18n-html="modal.nick_desc"></p>
+<div class="form-field"><input type="text" id="nick-input" class="input" data-i18n-placeholder="modal.nick_placeholder"></div>
+<div class="modal-actions"><button class="btn btn-ghost" data-i18n="common.cancel"></button><button class="btn btn-primary" id="nick-save" data-i18n="common.save"></button></div>
+</div>
+<div id="profile-timeout-form" class="hidden">
+<h3 data-i18n="modal.timeout_title"></h3>
+<p class="muted small" data-i18n-html="modal.timeout_desc"></p>
+<div class="form-field"><input type="number" id="timeout-input" class="input" data-i18n-placeholder="modal.timeout_placeholder" min="1" max="40320"></div>
+<div class="modal-actions"><button class="btn btn-ghost" data-i18n="common.cancel"></button><button class="btn btn-danger" id="timeout-save" data-i18n="common.apply"></button></div>
+</div>
+</div>
+</div>
+
+<div class="toast hidden" id="toast"></div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
+================================================================================
+
+# FILE: locales\en.json
+# PATH: C:\Users\ww163\Documents\projects\messing\discord-manager-backup2\discord-manager\www\locales\en.json
+--------------------------------------------------------------------------------
+{
+  "meta": {
+    "code": "en",
+    "name": "english",
+    "native": "english",
+    "flag": "🇬🇧"
+  },
+  "strings": {
+    "app.title": "bot manager",
+
+    "nav.tokens": "tokens",
+    "nav.send": "send",
+    "nav.archive": "archive",
+    "nav.presence": "presence",
+    "nav.voice": "voice",
+    "nav.cleaner": "cleaner",
+    "nav.settings": "settings",
+    "nav.lock": "lock",
+
+    "unlock.create_title": "create vault",
+    "unlock.create_desc": "the master password encrypts tokens with aes-256-gcm. if you lose it, they are unrecoverable.",
+    "unlock.master_password": "master password",
+    "unlock.repeat_password": "repeat password",
+    "unlock.create": "create",
+    "unlock.unlock_title": "unlock vault",
+    "unlock.unlock_desc": "enter the master password.",
+    "unlock.unlock": "unlock",
+
+    "vault.title": "tokens",
+    "vault.add": "add bot",
+    "vault.name": "name",
+    "vault.token": "token",
+    "vault.save": "save in vault",
+    "vault.close": "close",
+    "vault.test": "test",
+    "vault.invite": "invite",
+    "vault.delete": "delete",
+    "vault.name_placeholder": "my bot",
+    "vault.token_placeholder": "paste token",
+    "vault.none": "no bots.",
+    "vault.added": "added",
+    "vault.testing": "testing…",
+    "vault.connected_as": "connected as @",
+    "vault.invite_title": "invite link",
+    "vault.invite_desc": "open in browser to add the bot.",
+    "vault.remove_title": "remove bot",
+    "vault.remove_desc": "remove \"{name}\" from the vault?",
+    "vault.removed": "bot removed",
+    "vault.added_bot": "bot added",
+    "vault.need_name": "name required",
+    "vault.invalid_token": "invalid token",
+    "vault.locked": "vault locked",
+
+    "send.title": "send",
+    "send.bot": "bot",
+    "send.destination": "destination",
+    "send.from_servers": "from servers",
+    "send.manual_id": "manual id",
+    "send.guild": "server",
+    "send.channel": "channel",
+    "send.channel_id": "channel id",
+    "send.content": "content",
+    "send.attachment": "attachment",
+    "send.content_placeholder": "**bold** - list ||spoiler||",
+    "send.channel_id_placeholder": "e.g. 123456789012345678",
+    "send.voice_message": "voice message",
+    "send.voice_upload": "upload audio",
+    "send.voice_record": "record",
+    "send.voice_file": "voice file",
+    "send.voice_filename": "file name",
+    "send.voice_start": "start",
+    "send.voice_stop": "stop",
+    "send.voice_filename_placeholder": "voice-message.ogg",
+    "send.voice_waveform": "waveform",
+    "send.waveform_auto": "automatic (slow)",
+    "send.waveform_constant": "constant (fast)",
+    "send.waveform_none": "none (flat)",
+    "send.voice_waveform_note": "discord still requires waveform and duration. none sends a flat waveform.",
+    "send.voice_recording": "recording",
+    "send.voice_ready": "recording ready",
+    "send.voice_need_file": "select an audio file",
+    "send.voice_need_recording": "record audio first",
+    "send.voice_need_ogg": "voice message requires an .ogg/opus file",
+    "send.voice_record_unsupported": "browser does not support recording ogg/opus",
+    "send.embed": "embed",
+    "send.embed_title": "title",
+    "send.embed_title_url": "title url",
+    "send.embed_desc": "description",
+    "send.embed_color": "color",
+    "send.embed_timestamp": "timestamp",
+    "send.ts_none": "none",
+    "send.ts_now": "now",
+    "send.embed_author_name": "author name",
+    "send.embed_author_icon": "author icon",
+    "send.embed_image": "image",
+    "send.embed_thumbnail": "thumbnail",
+    "send.embed_footer": "footer",
+    "send.embed_footer_icon": "footer icon",
+    "send.embed_fields": "fields",
+    "send.embed_add_field": "add field",
+    "send.embed_field_name": "name",
+    "send.embed_field_value": "value",
+    "send.embed_field_inline": "inline",
+    "send.preview": "preview",
+    "send.preview_empty": "empty preview",
+    "send.send": "send",
+    "send.sending": "sending…",
+    "send.sent": "message sent",
+    "send.error_no_bot": "select a bot.",
+    "send.error_empty": "you need at least content, embed or file.",
+    "send.error_no_channel": "select a channel.",
+    "send.no_servers": "bot is not in any server.",
+
+    "logs.title": "message archive",
+    "logs.bot": "bot",
+    "logs.guild": "server",
+    "logs.channel": "channel",
+    "logs.load_rest": "load rest",
+    "logs.load_archive": "load archive",
+    "logs.info": "rest = existing messages · archive = events captured by gateway",
+    "logs.select_channel": "select a channel.",
+    "logs.no_messages": "no messages.",
+    "logs.deleted": "deleted",
+    "logs.edited": "(edited)",
+    "logs.content_unavailable": "[content unavailable]",
+    "logs.delete_title": "delete message",
+    "logs.delete_desc": "delete this message?",
+    "logs.deleted_message": "message deleted",
+
+    "presence.title": "bot presence",
+    "presence.info_title": "how it works",
+    "presence.info_desc": "presence is set through a websocket connection to the discord gateway. once connected, status stays active while the backend is running.",
+    "presence.bot": "bot",
+    "presence.status": "status",
+    "presence.online": "online",
+    "presence.idle": "idle",
+    "presence.dnd": "do not disturb",
+    "presence.invisible": "invisible",
+    "presence.activity": "activity (optional)",
+    "presence.activity_placeholder": "e.g. playing...",
+    "presence.apply": "apply status",
+    "presence.disconnect": "disconnect",
+    "presence.sessions": "active sessions",
+    "presence.no_sessions": "no sessions.",
+    "presence.updated": "presence updated",
+    "presence.reset": "presence reset",
+
+    "voice.title": "voice",
+    "voice.info_title": "how it works",
+    "voice.info_desc": "the bot joins a voice channel using voice state update. playback requires ffmpeg and connect/speak permissions.",
+    "voice.bot": "bot",
+    "voice.guild": "server",
+    "voice.channel": "voice channel",
+    "voice.auto_leave": "auto-leave (minutes, 0 = off)",
+    "voice.self_mute": "self mute",
+    "voice.self_deaf": "self deaf",
+    "voice.join": "join",
+    "voice.update": "update",
+    "voice.leave": "leave",
+    "voice.refresh": "refresh status",
+    "voice.status": "voice status",
+    "voice.joined": "bot joined voice channel",
+    "voice.left": "bot left voice channel",
+    "voice.updated": "voice state updated",
+    "voice.not_connected": "gateway not connected",
+    "voice.not_in_channel": "bot not in voice channel",
+    "voice.in_channel": "in voice channel",
+    "voice.playback_title": "audio playback",
+    "voice.playback_desc": "plays an audio file in the voice channel using ffmpeg.",
+    "voice.playback_file": "audio file",
+    "voice.play": "play",
+    "voice.stop_playback": "stop playback",
+    "voice.play_select_file": "select an audio file.",
+    "voice.play_preparing": "preparing…",
+    "voice.play_transcoding": "transcoding…",
+    "voice.play_playing": "playing",
+    "voice.play_stopped": "playback stopped",
+
+    "cleaner.title": "channel cleaner",
+    "cleaner.warning": "warning",
+    "cleaner.warning_desc": "these actions are <b>irreversible</b>. make sure you selected the right channel.",
+    "cleaner.clone_confirm": "creates an identical channel and deletes the original. proceed?",
+    "cleaner.delete_confirm": "this action is irreversible. proceed?",
+    "cleaner.cloned": "channel cloned",
+    "cleaner.deleted": "deleted",
+    "cleaner.bot": "bot",
+    "cleaner.guild": "server",
+    "cleaner.channel": "channel",
+    "cleaner.selected": "selected",
+    "cleaner.clone_title": "clone channel",
+    "cleaner.clone_desc": "creates a new identical channel and deletes the original.",
+    "cleaner.clone": "clone and recreate",
+    "cleaner.delete_all_title": "delete all messages",
+    "cleaner.delete_all_desc": "deletes channel messages. messages older than 14 days are deleted one by one.",
+    "cleaner.delete_all": "delete all",
+    "cleaner.select_channel": "select a channel",
+    "cleaner.deleting": "deleting…",
+    "cleaner.scanning": "scanning",
+    "cleaner.messages": "messages",
+    "cleaner.deleted_progress": "deleted",
+    "cleaner.messages_deleted": "messages deleted",
+    "cleaner.confirm_delete_all": "this action is irreversible. proceed?",
+    "cleaner.cloning": "cloning…",
+    "cleaner.confirm_clone": "creates an identical channel and deletes the original. proceed?",
+    "cleaner.channel_cloned": "channel cloned",
+
+    "settings.title": "settings",
+    "settings.autolock": "auto lock",
+    "settings.autolock_desc": "how long before the vault locks.",
+    "settings.never": "never",
+    "settings.min_1": "1 min",
+    "settings.min_5": "5 min",
+    "settings.min_15": "15 min",
+    "settings.language": "language",
+    "settings.language_desc": "loaded from /locales/*.json.",
+    "settings.theme": "theme",
+    "settings.theme_desc": "interface appearance.",
+    "settings.light": "light",
+    "settings.dark": "dark",
+    "settings.auto": "system",
+    "settings.master_password": "master password",
+    "settings.master_password_desc": "change the password that encrypts the vault. all tokens will be re-encrypted.",
+    "settings.change_master_password": "change master password",
+    "settings.change_pw_desc": "all tokens will be decrypted and re-encrypted with the new password.",
+    "settings.current_pw": "current password",
+    "settings.new_pw": "new password",
+    "settings.repeat_pw": "repeat new password",
+    "settings.danger_zone": "danger zone",
+    "settings.danger_desc": "delete the vault and all tokens.",
+    "settings.reset_vault": "reset vault",
+    "settings.reset_vault_confirm": "delete all tokens. irreversible.",
+    "settings.vault_deleted": "vault deleted",
+    "settings.footer": "encryption: aes-256-gcm · pbkdf2-sha256 · tokens never leave the device.",
+    "settings.reencrypting": "re-encrypting…",
+    "settings.master_password_changed": "master password changed",
+    "settings.current_pw_wrong": "current password is wrong",
+    "settings.reset_confirm": "delete all tokens. irreversible.",
+    "settings.vault_deleted": "vault deleted",
+    "settings.password_changed": "master password changed",
+
+    "modal.user_profile": "user profile",
+    "modal.user_id": "user id",
+    "modal.copy": "copy",
+    "modal.nick_note": "the bot can change the <b>server nickname</b>. the global display name is managed only by the owner.",
+    "modal.change_nick": "change nick",
+    "modal.timeout": "timeout",
+    "modal.kick": "kick",
+    "modal.ban": "ban",
+    "modal.nick_title": "change nickname",
+    "modal.nick_desc": "the bot must have <b>manage nicknames</b> and a role higher than the target.",
+    "modal.timeout_title": "apply timeout",
+    "modal.timeout_desc": "the bot must have <b>moderate members</b> permission and a role higher than the target.",
+    "modal.nick_placeholder": "new nickname...",
+    "modal.timeout_placeholder": "duration in minutes",
+    "modal.confirm": "confirm",
+
+    "profile.no_roles": "no roles",
+    "profile.created": "account created",
+    "profile.joined": "joined server",
+    "profile.roles": "roles",
+    "profile.nick": "nickname",
+    "profile.bio_note": "account bio is not accessible via bot api.",
+    "profile.nick_changed": "nickname changed",
+    "profile.timeout_applied": "timeout applied",
+    "profile.user_banned": "user banned",
+    "profile.user_kicked": "user kicked",
+
+    "common.loading": "loading…",
+    "common.cancel": "cancel",
+    "common.confirm": "confirm",
+    "common.save": "save",
+    "common.apply": "apply",
+    "common.wait": "please wait…",
+    "common.error": "error",
+    "common.copied": "copied",
+    "common.saving": "saving…",
+    "common.applying": "applying…",
+    "common.disconnecting": "disconnecting…",
+    "common.unknown": "unknown",
+    "common.connected": "connected",
+    "common.disconnected": "disconnected",
+
+    "select.bot": "select a bot",
+    "select.bot_first": "select a bot first",
+    "select.server": "select a server",
+    "select.choose_server": "choose a server",
+    "select.choose_channel": "choose a channel",
+    "select.loading": "loading…",
+    "select.error": "error",
+
+    "voice.select_bot": "select a bot",
+    "voice.transport_ready": "voice transport ready",
+
+    "error.min_password": "minimum 8 characters",
+    "error.password_mismatch": "passwords do not match",
+    "error.invalid_duration": "invalid duration",
+    "error.perm_generic": "permission denied",
+    "error.perm_nick": "permission denied: manage nicknames + role above target",
+    "error.perm_timeout": "permission denied: moderate members + role above target",
+    "error.perm_ban": "permission denied: ban members + role above target",
+    "error.perm_kick": "permission denied: kick members + role above target",
+    "error.perm_delete": "permission denied: manage messages required",
+    "error.perm_send": "permission denied: send messages / attach files",
+    "error.perm_clone": "permission denied: manage channels required",
+    "error.hierarchy": "bot role is lower than target",
+    "error.owner": "cannot moderate the server owner",
+    "error.bulk_delete": "bulk delete limited to messages younger than 14 days",
+    "error.invalid_password": "invalid password"
+  }
+}
+================================================================================
+
+# FILE: locales\it.json
+# PATH: C:\Users\ww163\Documents\projects\messing\discord-manager-backup2\discord-manager\www\locales\it.json
+--------------------------------------------------------------------------------
+{
+  "meta": {
+    "code": "it",
+    "name": "italian",
+    "native": "italiano",
+    "flag": "🇮🇹"
+  },
+  "strings": {
+    "app.title": "bot manager",
+
+    "nav.tokens": "token",
+    "nav.send": "invio",
+    "nav.archive": "archivio",
+    "nav.presence": "presenza",
+    "nav.voice": "voce",
+    "nav.cleaner": "pulizia",
+    "nav.settings": "impostazioni",
+    "nav.lock": "blocca",
+
+    "unlock.create_title": "crea il vault",
+    "unlock.create_desc": "la master password cifra i token con aes-256-gcm. se la perdi, sono irrecuperabili.",
+    "unlock.master_password": "master password",
+    "unlock.repeat_password": "ripeti password",
+    "unlock.create": "crea",
+    "unlock.unlock_title": "sblocca il vault",
+    "unlock.unlock_desc": "inserisci la master password.",
+    "unlock.unlock": "sblocca",
+
+    "vault.title": "token",
+    "vault.add": "aggiungi bot",
+    "vault.name": "nome",
+    "vault.token": "token",
+    "vault.save": "salva nel vault",
+    "vault.close": "chiudi",
+    "vault.test": "testa",
+    "vault.invite": "invita",
+    "vault.delete": "elimina",
+    "vault.name_placeholder": "il mio bot",
+    "vault.token_placeholder": "incolla il token",
+    "vault.none": "nessun bot.",
+    "vault.added": "aggiunto",
+    "vault.testing": "testando…",
+    "vault.connected_as": "connesso come @",
+    "vault.invite_title": "link di invito",
+    "vault.invite_desc": "apri nel browser per aggiungere il bot.",
+    "vault.remove_title": "rimuovi bot",
+    "vault.remove_desc": "rimuovere \"{name}\" dal vault?",
+    "vault.removed": "bot rimosso",
+    "vault.added_bot": "bot aggiunto",
+    "vault.need_name": "serve un nome",
+    "vault.invalid_token": "token non valido",
+    "vault.locked": "vault bloccato",
+
+    "send.title": "invio",
+    "send.bot": "bot",
+    "send.destination": "destinazione",
+    "send.from_servers": "dai server",
+    "send.manual_id": "id manuale",
+    "send.guild": "server",
+    "send.channel": "canale",
+    "send.channel_id": "id canale",
+    "send.content": "contenuto",
+    "send.attachment": "allegato",
+    "send.content_placeholder": "**grassetto** - lista ||spoiler||",
+    "send.channel_id_placeholder": "es. 123456789012345678",
+    "send.voice_message": "messaggio vocale",
+    "send.voice_upload": "carica audio",
+    "send.voice_record": "registra",
+    "send.voice_file": "file vocale",
+    "send.voice_filename": "nome file",
+    "send.voice_start": "avvia",
+    "send.voice_stop": "stop",
+    "send.voice_filename_placeholder": "voice-message.ogg",
+    "send.voice_waveform": "waveform",
+    "send.waveform_auto": "automatica (lenta)",
+    "send.waveform_constant": "costante (veloce)",
+    "send.waveform_none": "nessuna (piatta)",
+    "send.voice_waveform_note": "discord richiede comunque waveform e durata. nessuna invia una waveform piatta.",
+    "send.voice_recording": "registrazione",
+    "send.voice_ready": "registrazione pronta",
+    "send.voice_need_file": "seleziona un file audio",
+    "send.voice_need_recording": "registra prima un audio",
+    "send.voice_need_ogg": "il voice message richiede un file .ogg/opus",
+    "send.voice_record_unsupported": "il browser non supporta la registrazione ogg/opus",
+    "send.embed": "embed",
+    "send.embed_title": "titolo",
+    "send.embed_title_url": "url titolo",
+    "send.embed_desc": "descrizione",
+    "send.embed_color": "colore",
+    "send.embed_timestamp": "timestamp",
+    "send.ts_none": "nessuno",
+    "send.ts_now": "adesso",
+    "send.embed_author_name": "autore · nome",
+    "send.embed_author_icon": "autore · icona",
+    "send.embed_image": "immagine",
+    "send.embed_thumbnail": "thumbnail",
+    "send.embed_footer": "footer",
+    "send.embed_footer_icon": "footer · icona",
+    "send.embed_fields": "campi",
+    "send.embed_add_field": "aggiungi campo",
+    "send.embed_field_name": "nome",
+    "send.embed_field_value": "valore",
+    "send.embed_field_inline": "inline",
+    "send.preview": "anteprima",
+    "send.preview_empty": "anteprima vuota",
+    "send.send": "invia",
+    "send.sending": "invio…",
+    "send.sent": "messaggio inviato",
+    "send.error_no_bot": "seleziona un bot.",
+    "send.error_empty": "serve almeno un contenuto, embed o file.",
+    "send.error_no_channel": "seleziona un canale.",
+    "send.no_servers": "il bot non è in nessun server.",
+
+    "logs.title": "archivio messaggi",
+    "logs.bot": "bot",
+    "logs.guild": "server",
+    "logs.channel": "canale",
+    "logs.load_rest": "carica rest",
+    "logs.load_archive": "carica archivio",
+    "logs.info": "rest = messaggi esistenti · archivio = eventi catturati dal gateway",
+    "logs.select_channel": "seleziona un canale.",
+    "logs.no_messages": "nessun messaggio.",
+    "logs.deleted": "eliminato",
+    "logs.edited": "(modificato)",
+    "logs.content_unavailable": "[contenuto non disponibile]",
+    "logs.delete_title": "elimina messaggio",
+    "logs.delete_desc": "eliminare questo messaggio?",
+    "logs.deleted_message": "messaggio eliminato",
+
+    "presence.title": "presenza bot",
+    "presence.info_title": "come funziona",
+    "presence.info_desc": "la presenza viene impostata tramite una connessione websocket al gateway di discord. una volta connesso, lo stato resta attivo finché il backend è in esecuzione.",
+    "presence.bot": "bot",
+    "presence.status": "stato",
+    "presence.online": "online",
+    "presence.idle": "inattivo",
+    "presence.dnd": "non disturbare",
+    "presence.invisible": "invisibile",
+    "presence.activity": "attività (opzionale)",
+    "presence.activity_placeholder": "es. giocando a...",
+    "presence.apply": "applica stato",
+    "presence.disconnect": "disconnetti",
+    "presence.sessions": "sessioni attive",
+    "presence.no_sessions": "nessuna sessione.",
+    "presence.updated": "presenza aggiornata",
+    "presence.reset": "presenza resettata",
+
+    "voice.title": "voce",
+    "voice.info_title": "come funziona",
+    "voice.info_desc": "il bot entra nel canale vocale usando voice state update. il playback richiede ffmpeg e i permessi connetti/parla.",
+    "voice.bot": "bot",
+    "voice.guild": "server",
+    "voice.channel": "canale vocale",
+    "voice.auto_leave": "auto-leave (minuti, 0 = off)",
+    "voice.self_mute": "self mute",
+    "voice.self_deaf": "self deaf",
+    "voice.join": "entra",
+    "voice.update": "aggiorna",
+    "voice.leave": "esci",
+    "voice.refresh": "aggiorna stato",
+    "voice.status": "stato voce",
+    "voice.joined": "bot entrato nel canale vocale",
+    "voice.left": "bot uscito dal canale vocale",
+    "voice.updated": "stato vocale aggiornato",
+    "voice.not_connected": "gateway non connesso",
+    "voice.not_in_channel": "bot non in canale vocale",
+    "voice.in_channel": "in canale vocale",
+    "voice.playback_title": "playback audio",
+    "voice.playback_desc": "riproduce un file audio nel canale vocale usando ffmpeg.",
+    "voice.playback_file": "file audio",
+    "voice.play": "riproduci",
+    "voice.stop_playback": "stop playback",
+    "voice.play_select_file": "seleziona un file audio.",
+    "voice.play_preparing": "preparo…",
+    "voice.play_playing": "in riproduzione",
+    "voice.play_stopped": "riproduzione fermata",
+
+    "cleaner.title": "pulizia canale",
+    "cleaner.warning": "attenzione",
+    "cleaner.warning_desc": "queste azioni sono <b>irreversibili</b>. assicurati di aver selezionato il canale giusto.",
+    "cleaner.clone_confirm": "crea un canale identico e elimina l'originale. procedere?",
+    "cleaner.delete_confirm": "questa azione è irreversibile. procedere?",
+    "cleaner.cloned": "canale clonato",
+    "cleaner.deleted": "eliminati",
+    "cleaner.bot": "bot",
+    "cleaner.guild": "server",
+    "cleaner.channel": "canale",
+    "cleaner.selected": "selezionato",
+    "cleaner.clone_title": "clona canale",
+    "cleaner.clone_desc": "crea un nuovo canale identico e elimina l'originale.",
+    "cleaner.clone": "clona e ricrea",
+    "cleaner.delete_all_title": "elimina tutti i messaggi",
+    "cleaner.delete_all_desc": "elimina i messaggi del canale. i messaggi più vecchi di 14 giorni vengono eliminati uno per uno.",
+    "cleaner.delete_all": "elimina tutti",
+    "cleaner.select_channel": "seleziona un canale",
+    "cleaner.deleting": "elimino…",
+    "cleaner.scanning": "scansione",
+    "cleaner.messages": "messaggi",
+    "cleaner.deleted_progress": "eliminati",
+    "cleaner.messages_deleted": "messaggi eliminati",
+    "cleaner.confirm_delete_all": "questa azione è irreversibile. procedere?",
+    "cleaner.cloning": "clono…",
+    "cleaner.confirm_clone": "crea un canale identico e elimina l'originale. procedere?",
+    "cleaner.channel_cloned": "canale clonato",
+
+    "settings.title": "impostazioni",
+    "settings.autolock": "blocco automatico",
+    "settings.autolock_desc": "dopo quanto tempo il vault si richiude.",
+    "settings.never": "mai",
+    "settings.min_1": "1 min",
+    "settings.min_5": "5 min",
+    "settings.min_15": "15 min",
+    "settings.language": "lingua",
+    "settings.language_desc": "caricata da /locales/*.json.",
+    "settings.theme": "tema",
+    "settings.theme_desc": "aspetto dell'interfaccia.",
+    "settings.light": "chiaro",
+    "settings.dark": "scuro",
+    "settings.auto": "sistema",
+    "settings.master_password": "master password",
+    "settings.master_password_desc": "cambia la password che cifra il vault. tutti i token verranno ricifrati.",
+    "settings.change_master_password": "cambia master password",
+    "settings.change_pw_desc": "tutti i token verranno decifrati e ricifrati con la nuova password.",
+    "settings.current_pw": "password attuale",
+    "settings.new_pw": "nuova password",
+    "settings.repeat_pw": "ripeti nuova password",
+    "settings.danger_zone": "zona pericolosa",
+    "settings.danger_desc": "elimina il vault e tutti i token.",
+    "settings.reset_vault": "reset vault",
+    "settings.reset_vault_confirm": "cancella tutti i token. irreversibile.",
+    "settings.vault_deleted": "vault eliminato",
+    "settings.footer": "cifratura: aes-256-gcm · pbkdf2-sha256 · i token non lasciano il dispositivo.",
+    "settings.reencrypting": "ricifro…",
+    "settings.master_password_changed": "master password cambiata",
+    "settings.current_pw_wrong": "password attuale errata",
+    "settings.reset_confirm": "cancella tutti i token. irreversibile.",
+    "settings.vault_deleted": "vault eliminato",
+    "settings.password_changed": "master password cambiata",
+
+    "modal.user_profile": "profilo utente",
+    "modal.user_id": "user id",
+    "modal.copy": "copia",
+    "modal.nick_note": "il bot può cambiare il <b>nickname del server</b>. il display name globale è gestito solo dal proprietario.",
+    "modal.change_nick": "cambia nick",
+    "modal.timeout": "timeout",
+    "modal.kick": "espelli",
+    "modal.ban": "banna",
+    "modal.nick_title": "cambia nickname",
+    "modal.nick_desc": "il bot deve avere <b>gestisci nickname</b> e ruolo superiore al target.",
+    "modal.timeout_title": "applica timeout",
+    "modal.timeout_desc": "il bot deve avere il permesso <b>modera membri</b> e ruolo superiore al target.",
+    "modal.nick_placeholder": "nuovo nickname...",
+    "modal.timeout_placeholder": "durata in minuti",
+    "modal.confirm": "conferma",
+
+    "profile.no_roles": "nessun ruolo",
+    "profile.created": "account creato",
+    "profile.joined": "entrato nel server",
+    "profile.roles": "ruoli",
+    "profile.nick": "nickname",
+    "profile.bio_note": "la bio dell'account non è accessibile via api bot.",
+    "profile.nick_changed": "nickname cambiato",
+    "profile.timeout_applied": "timeout applicato",
+    "profile.user_banned": "utente bannato",
+    "profile.user_kicked": "utente espulso",
+
+    "common.loading": "caricamento…",
+    "common.cancel": "annulla",
+    "common.confirm": "conferma",
+    "common.save": "salva",
+    "common.apply": "applica",
+    "common.wait": "attendere…",
+    "common.error": "errore",
+    "common.copied": "copiato",
+    "common.saving": "salvo…",
+    "common.applying": "applico…",
+    "common.disconnecting": "disconnetto…",
+    "common.unknown": "sconosciuto",
+    "common.connected": "connesso",
+    "common.disconnected": "disconnesso",
+
+    "select.bot": "seleziona un bot",
+    "select.bot_first": "seleziona prima un bot",
+    "select.server": "seleziona un server",
+    "select.choose_server": "scegli un server",
+    "select.choose_channel": "scegli un canale",
+    "select.loading": "carico…",
+    "select.error": "errore",
+
+    "voice.select_bot": "seleziona un bot",
+    "voice.transport_ready": "trasporto vocale pronto",
+
+    "error.min_password": "minimo 8 caratteri",
+    "error.password_mismatch": "le password non coincidono",
+    "error.invalid_duration": "durata non valida",
+    "error.perm_generic": "permesso negato",
+    "error.perm_nick": "permesso negato: gestisci nickname + ruolo sopra target",
+    "error.perm_timeout": "permesso negato: modera membri + ruolo sopra target",
+    "error.perm_ban": "permesso negato: banna membri + ruolo sopra target",
+    "error.perm_kick": "permesso negato: espelli membri + ruolo sopra target",
+    "error.perm_delete": "permesso negato: gestisci messaggi richiesto",
+    "error.perm_send": "permesso negato: invia messaggi / allega file",
+    "error.perm_clone": "permesso negato: gestisci canali richiesto",
+    "error.hierarchy": "ruolo del bot troppo basso rispetto al target",
+    "error.owner": "impossibile moderare il proprietario del server",
+    "error.bulk_delete": "bulk delete limitato ai messaggi più recenti di 14 giorni",
+    "error.invalid_password": "password non valida"
+  }
+}
+================================================================================
+
+# FILE: locales\zh.json
+# PATH: C:\Users\ww163\Documents\projects\messing\discord-manager-backup2\discord-manager\www\locales\zh.json
+--------------------------------------------------------------------------------
+{
+  "meta": {
+    "code": "zh",
+    "name": "chinese",
+    "native": "中文",
+    "flag": "🇨🇳"
+  },
+  "strings": {
+    "app.title": "bot manager",
+
+    "nav.tokens": "令牌",
+    "nav.send": "发送",
+    "nav.archive": "存档",
+    "nav.presence": "在线状态",
+    "nav.voice": "语音",
+    "nav.cleaner": "清理",
+    "nav.settings": "设置",
+    "nav.lock": "锁定",
+
+    "unlock.create_title": "创建保险库",
+    "unlock.create_desc": "主密码使用 aes-256-gcm 加密令牌。如果丢失，将无法恢复。",
+    "unlock.master_password": "主密码",
+    "unlock.repeat_password": "重复密码",
+    "unlock.create": "创建",
+    "unlock.unlock_title": "解锁保险库",
+    "unlock.unlock_desc": "输入主密码。",
+    "unlock.unlock": "解锁",
+
+    "vault.title": "令牌",
+    "vault.add": "添加机器人",
+    "vault.name": "名称",
+    "vault.token": "令牌",
+    "vault.save": "保存到保险库",
+    "vault.close": "关闭",
+    "vault.test": "测试",
+    "vault.invite": "邀请",
+    "vault.delete": "删除",
+    "vault.name_placeholder": "我的机器人",
+    "vault.token_placeholder": "粘贴令牌",
+    "vault.none": "没有机器人。",
+    "vault.added": "添加于",
+    "vault.testing": "测试中…",
+    "vault.connected_as": "已连接为 @",
+    "vault.invite_title": "邀请链接",
+    "vault.invite_desc": "在浏览器中打开以添加机器人。",
+    "vault.remove_title": "移除机器人",
+    "vault.remove_desc": "从保险库移除“{name}”？",
+    "vault.removed": "机器人已移除",
+    "vault.added_bot": "机器人已添加",
+    "vault.need_name": "需要名称",
+    "vault.invalid_token": "令牌无效",
+    "vault.locked": "保险库已锁定",
+
+    "send.title": "发送",
+    "send.bot": "机器人",
+    "send.destination": "目标",
+    "send.from_servers": "来自服务器",
+    "send.manual_id": "手动 id",
+    "send.guild": "服务器",
+    "send.channel": "频道",
+    "send.channel_id": "频道 id",
+    "send.content": "内容",
+    "send.attachment": "附件",
+    "send.content_placeholder": "**粗体** - 列表 ||剧透||",
+    "send.channel_id_placeholder": "例如 123456789012345678",
+    "send.voice_message": "语音消息",
+    "send.voice_upload": "上传音频",
+    "send.voice_record": "录音",
+    "send.voice_file": "语音文件",
+    "send.voice_filename": "文件名",
+    "send.voice_start": "开始",
+    "send.voice_stop": "停止",
+    "send.voice_filename_placeholder": "voice-message.ogg",
+    "send.voice_waveform": "波形",
+    "send.waveform_auto": "自动（慢）",
+    "send.waveform_constant": "固定（快）",
+    "send.waveform_none": "无（平坦）",
+    "send.voice_waveform_note": "discord 仍然需要波形和时长。无会发送平坦波形。",
+    "send.voice_recording": "录音中",
+    "send.voice_ready": "录音已完成",
+    "send.voice_need_file": "选择一个音频文件",
+    "send.voice_need_recording": "先录制音频",
+    "send.voice_need_ogg": "语音消息需要 .ogg/opus 文件",
+    "send.voice_record_unsupported": "浏览器不支持录制 ogg/opus",
+    "send.embed": "embed",
+    "send.embed_title": "标题",
+    "send.embed_title_url": "标题链接",
+    "send.embed_desc": "描述",
+    "send.embed_color": "颜色",
+    "send.embed_timestamp": "时间戳",
+    "send.ts_none": "无",
+    "send.ts_now": "现在",
+    "send.embed_author_name": "作者名称",
+    "send.embed_author_icon": "作者图标",
+    "send.embed_image": "图片",
+    "send.embed_thumbnail": "缩略图",
+    "send.embed_footer": "页脚",
+    "send.embed_footer_icon": "页脚图标",
+    "send.embed_fields": "字段",
+    "send.embed_add_field": "添加字段",
+    "send.embed_field_name": "名称",
+    "send.embed_field_value": "值",
+    "send.embed_field_inline": "内联",
+    "send.preview": "预览",
+    "send.preview_empty": "预览为空",
+    "send.send": "发送",
+    "send.sending": "发送中…",
+    "send.sent": "消息已发送",
+    "send.error_no_bot": "选择一个机器人。",
+    "send.error_empty": "至少需要内容、embed 或文件。",
+    "send.error_no_channel": "选择一个频道。",
+    "send.no_servers": "机器人不在任何服务器中。",
+
+    "logs.title": "消息存档",
+    "logs.bot": "机器人",
+    "logs.guild": "服务器",
+    "logs.channel": "频道",
+    "logs.load_rest": "加载 rest",
+    "logs.load_archive": "加载存档",
+    "logs.info": "rest = 现有消息 · 存档 = gateway 捕获的事件",
+    "logs.select_channel": "选择一个频道。",
+    "logs.no_messages": "没有消息。",
+    "logs.deleted": "已删除",
+    "logs.edited": "（已编辑）",
+    "logs.content_unavailable": "［内容不可用］",
+    "logs.delete_title": "删除消息",
+    "logs.delete_desc": "删除这条消息？",
+    "logs.deleted_message": "消息已删除",
+
+    "presence.title": "机器人在线状态",
+    "presence.info_title": "工作原理",
+    "presence.info_desc": "在线状态通过 websocket 连接到 discord gateway 设置。连接后，只要后端运行，状态就会保持。",
+    "presence.bot": "机器人",
+    "presence.status": "状态",
+    "presence.online": "在线",
+    "presence.idle": "离开",
+    "presence.dnd": "请勿打扰",
+    "presence.invisible": "隐身",
+    "presence.activity": "活动（可选）",
+    "presence.activity_placeholder": "例如 正在玩...",
+    "presence.apply": "应用状态",
+    "presence.disconnect": "断开",
+    "presence.sessions": "活跃会话",
+    "presence.no_sessions": "没有会话。",
+    "presence.updated": "在线状态已更新",
+    "presence.reset": "在线状态已重置",
+
+    "voice.title": "语音",
+    "voice.info_title": "工作原理",
+    "voice.info_desc": "机器人使用 voice state update 进入语音频道。播放需要 ffmpeg 和连接/说话权限。",
+    "voice.bot": "机器人",
+    "voice.guild": "服务器",
+    "voice.channel": "语音频道",
+    "voice.auto_leave": "自动离开（分钟，0 = 关闭）",
+    "voice.self_mute": "自我静音",
+    "voice.self_deaf": "自我耳聋",
+    "voice.join": "进入",
+    "voice.update": "更新",
+    "voice.leave": "离开",
+    "voice.refresh": "刷新状态",
+    "voice.status": "语音状态",
+    "voice.joined": "机器人已进入语音频道",
+    "voice.left": "机器人已离开语音频道",
+    "voice.updated": "语音状态已更新",
+    "voice.not_connected": "gateway 未连接",
+    "voice.not_in_channel": "机器人不在语音频道",
+    "voice.in_channel": "在语音频道中",
+    "voice.playback_title": "音频播放",
+    "voice.playback_desc": "使用 ffmpeg 在语音频道中播放音频文件。",
+    "voice.playback_file": "音频文件",
+    "voice.play": "播放",
+    "voice.stop_playback": "停止播放",
+    "voice.play_select_file": "选择一个音频文件。",
+    "voice.play_preparing": "准备中…",
+    "voice.play_playing": "正在播放",
+    "voice.play_stopped": "播放已停止",
+
+    "cleaner.title": "频道清理",
+    "cleaner.warning": "警告",
+    "cleaner.warning_desc": "这些操作是<b>不可逆</b>的。确保你选择了正确的频道。",
+    "cleaner.clone_confirm": "创建一个相同频道并删除原频道。继续？",
+    "cleaner.delete_confirm": "此操作不可逆。继续？",
+    "cleaner.cloned": "频道已克隆",
+    "cleaner.deleted": "已删除",
+    "cleaner.bot": "机器人",
+    "cleaner.guild": "服务器",
+    "cleaner.channel": "频道",
+    "cleaner.selected": "已选择",
+    "cleaner.clone_title": "克隆频道",
+    "cleaner.clone_desc": "创建一个相同的新频道并删除原频道。",
+    "cleaner.clone": "克隆并重建",
+    "cleaner.delete_all_title": "删除所有消息",
+    "cleaner.delete_all_desc": "删除频道消息。超过 14 天的消息将逐个删除。",
+    "cleaner.delete_all": "全部删除",
+    "cleaner.select_channel": "选择一个频道",
+    "cleaner.deleting": "删除中…",
+    "cleaner.scanning": "扫描中",
+    "cleaner.messages": "条消息",
+    "cleaner.deleted_progress": "已删除",
+    "cleaner.messages_deleted": "条消息已删除",
+    "cleaner.confirm_delete_all": "此操作不可逆。继续？",
+    "cleaner.cloning": "克隆中…",
+    "cleaner.confirm_clone": "创建一个相同频道并删除原频道。继续？",
+    "cleaner.channel_cloned": "频道已克隆",
+
+    "settings.title": "设置",
+    "settings.autolock": "自动锁定",
+    "settings.autolock_desc": "保险库多久后自动锁定。",
+    "settings.never": "从不",
+    "settings.min_1": "1 分钟",
+    "settings.min_5": "5 分钟",
+    "settings.min_15": "15 分钟",
+    "settings.language": "语言",
+    "settings.language_desc": "从 /locales/*.json 加载。",
+    "settings.theme": "主题",
+    "settings.theme_desc": "界面外观。",
+    "settings.light": "浅色",
+    "settings.dark": "深色",
+    "settings.auto": "系统",
+    "settings.master_password": "主密码",
+    "settings.master_password_desc": "更改用于加密保险库的密码。所有令牌都会重新加密。",
+    "settings.change_master_password": "更改主密码",
+    "settings.change_pw_desc": "所有令牌将使用新密码解密并重新加密。",
+    "settings.current_pw": "当前密码",
+    "settings.new_pw": "新密码",
+    "settings.repeat_pw": "重复新密码",
+    "settings.danger_zone": "危险区域",
+    "settings.danger_desc": "删除保险库和所有令牌。",
+    "settings.reset_vault": "重置保险库",
+    "settings.reset_vault_confirm": "删除所有令牌。不可逆。",
+    "settings.vault_deleted": "保险库已删除",
+    "settings.footer": "加密：aes-256-gcm · pbkdf2-sha256 · 令牌不会离开设备。",
+    "settings.reencrypting": "重新加密中…",
+    "settings.master_password_changed": "主密码已更改",
+    "settings.current_pw_wrong": "当前密码错误",
+    "settings.reset_confirm": "删除所有令牌。不可逆。",
+    "settings.vault_deleted": "保险库已删除",
+    "settings.password_changed": "主密码已更改",
+
+    "modal.user_profile": "用户资料",
+    "modal.user_id": "用户 id",
+    "modal.copy": "复制",
+    "modal.nick_note": "机器人可以更改<b>服务器昵称</b>。全局显示名称仅由所有者管理。",
+    "modal.change_nick": "更改昵称",
+    "modal.timeout": "超时",
+    "modal.kick": "踢出",
+    "modal.ban": "封禁",
+    "modal.nick_title": "更改昵称",
+    "modal.nick_desc": "机器人必须拥有<b>管理昵称</b>权限，并且角色高于目标。",
+    "modal.timeout_title": "应用超时",
+    "modal.timeout_desc": "机器人必须拥有<b>管理成员</b>权限，并且角色高于目标。",
+    "modal.nick_placeholder": "新昵称...",
+    "modal.timeout_placeholder": "时长（分钟）",
+    "modal.confirm": "确认",
+
+    "profile.no_roles": "没有角色",
+    "profile.created": "账号创建时间",
+    "profile.joined": "加入服务器时间",
+    "profile.roles": "角色",
+    "profile.nick": "昵称",
+    "profile.bio_note": "账号简介无法通过 bot api 访问。",
+    "profile.nick_changed": "昵称已更改",
+    "profile.timeout_applied": "超时已应用",
+    "profile.user_banned": "用户已封禁",
+    "profile.user_kicked": "用户已踢出",
+
+    "common.loading": "加载中…",
+    "common.cancel": "取消",
+    "common.confirm": "确认",
+    "common.save": "保存",
+    "common.apply": "应用",
+    "common.wait": "请稍候…",
+    "common.error": "错误",
+    "common.copied": "已复制",
+    "common.saving": "保存中…",
+    "common.applying": "应用中…",
+    "common.disconnecting": "断开中…",
+    "common.unknown": "未知",
+    "common.connected": "已连接",
+    "common.disconnected": "已断开",
+
+    "select.bot": "选择机器人",
+    "select.bot_first": "请先选择机器人",
+    "select.server": "选择服务器",
+    "select.choose_server": "选择服务器",
+    "select.choose_channel": "选择频道",
+    "select.loading": "加载中…",
+    "select.error": "错误",
+
+    "voice.select_bot": "选择机器人",
+    "voice.transport_ready": "语音传输已就绪",
+
+    "error.min_password": "至少 8 个字符",
+    "error.password_mismatch": "两次密码不一致",
+    "error.invalid_duration": "时长无效",
+    "error.perm_generic": "权限不足",
+    "error.perm_nick": "权限不足：管理昵称 + 角色高于目标",
+    "error.perm_timeout": "权限不足：管理成员 + 角色高于目标",
+    "error.perm_ban": "权限不足：封禁成员 + 角色高于目标",
+    "error.perm_kick": "权限不足：踢出成员 + 角色高于目标",
+    "error.perm_delete": "权限不足：需要管理消息",
+    "error.perm_send": "权限不足：发送消息 / 添加文件",
+    "error.perm_clone": "权限不足：需要管理频道",
+    "error.hierarchy": "机器人角色低于目标",
+    "error.owner": "无法管理服务器所有者",
+    "error.bulk_delete": "批量删除仅限 14 天内的消息",
+    "error.invalid_password": "密码无效"
+  }
+}
+================================================================================
+
+# FILE: styles.css
+# PATH: C:\Users\ww163\Documents\projects\messing\discord-manager-backup2\discord-manager\www\styles.css
+--------------------------------------------------------------------------------
+:root {
+--bg: #ffffff;
+--bg-alt: #fafafa;
+--bg-card: #ffffff;
+--bg-input: #ffffff;
+--text: #111827;
+--text-muted: #6b7280;
+--text-subtle: #9ca3af;
+--border: #e5e7eb;
+--border-strong: #d1d5db;
+--primary: #2563eb;
+--primary-hover: #1d4ed8;
+--primary-light: #eff6ff;
+--danger: #dc2626;
+--danger-hover: #b91c1c;
+--danger-light: #fef2f2;
+--success: #16a34a;
+--success-light: #f0fdf4;
+--warning: #f59e0b;
+--shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+--shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+--shadow-lg: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -2px rgba(0,0,0,.05);
+--radius: 8px;
+--radius-lg: 12px;
+--transition: 150ms ease;
+--font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+--mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+--sidebar-w: 260px;
+--topbar-h: 56px;
+}
+
+[data-theme="dark"] {
+--bg: #0f172a;
+--bg-alt: #111827;
+--bg-card: #1e293b;
+--bg-input: #1e293b;
+--text: #f1f5f9;
+--text-muted: #94a3b8;
+--text-subtle: #64748b;
+--border: #334155;
+--border-strong: #475569;
+--primary: #3b82f6;
+--primary-hover: #60a5fa;
+--primary-light: #1e3a5f;
+--danger: #ef4444;
+--danger-hover: #f87171;
+--danger-light: #450a0a;
+--success: #22c55e;
+--success-light: #052e16;
+--warning: #fbbf24;
+--shadow-sm: 0 1px 2px rgba(0,0,0,.3);
+--shadow: 0 1px 3px rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.3);
+--shadow-lg: 0 10px 15px -3px rgba(0,0,0,.4), 0 4px 6px -2px rgba(0,0,0,.3);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); line-height: 1.5; min-height: 100vh; }
+.mono { font-family: var(--mono); font-size: .85em; }
+
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ===== Layout ===== */
+.app { display: grid; grid-template-columns: var(--sidebar-w) 1fr; grid-template-rows: var(--topbar-h) 1fr; min-height: 100vh; overflow: hidden; }
+.app.locked .sidebar { display: none; }
+.app.locked .main { grid-column: 1 / -1; }
+
+.topbar { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; height: var(--topbar-h); padding: 0 16px; background: var(--bg-card); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; gap: 16px; }
+.topbar-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.topbar-center { flex: 1; display: flex; justify-content: center; max-width: 600px; margin: 0 auto; }
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+
+.brand { font-size: 1.125rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ===== Sidebar ===== */
+.sidebar { background: var(--bg-card); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; position: sticky; top: var(--topbar-h); height: calc(100vh - var(--topbar-h)); padding: 16px; gap: 16px; }
+.sidebar-header { display: flex; align-items: center; justify-content: space-between; }
+.sidebar-header h2 { font-size: .75rem; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--text-muted); }
+.bot-list { flex: 1; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; padding-right: 4px; }
+.bot-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; transition: var(--transition); }
+.bot-item:hover { border-color: var(--border-strong); background: var(--bg-alt); }
+.bot-item.active { border-color: var(--primary); background: var(--primary-light); }
+.bot-item .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-subtle); flex-shrink: 0; }
+.bot-item .dot.online { background: var(--success); }
+.bot-item .dot.idle { background: var(--warning); }
+.bot-item .dot.dnd { background: var(--danger); }
+.bot-item .dot.offline { background: var(--text-subtle); }
+.bot-info { flex: 1; min-width: 0; }
+.bot-name { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bot-meta { font-size: .7rem; color: var(--text-muted); }
+
+/* ===== Main Content ===== */
+.main { background: var(--bg); overflow-y: auto; padding: 24px; }
+.panel { animation: fadeIn 150ms ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.panel-header h2 { font-size: 1.25rem; font-weight: 600; }
+.panel-desc { color: var(--text-muted); margin-top: 4px; margin-bottom: 24px; max-width: 480px; }
+
+/* ===== Cards & Forms ===== */
+.card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 16px; }
+.card + .card { margin-top: 16px; }
+.card h3 { font-size: .875rem; font-weight: 600; margin-bottom: 12px; color: var(--text); }
+.card-footer { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+
+.form-field { display: flex; flex-direction: column; gap: 6px; }
+.form-field label { font-size: .75rem; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: .02em; }
+.form-field.checkbox-field { flex-direction: row; align-items: center; }
+
+.input, .select, .textarea { background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; font-size: .875rem; color: var(--text); transition: var(--transition); width: 100%; }
+.input:focus, .select:focus, .textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+.input::placeholder, .textarea::placeholder { color: var(--text-subtle); }
+.textarea { resize: vertical; min-height: 80px; font-family: inherit; }
+.file-input { padding: 8px 12px; }
+.color-input { height: 42px; padding: 4px; cursor: pointer; }
+
+.checkbox-inline { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: .875rem; }
+.checkbox-inline input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); cursor: pointer; }
+
+.select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 40px; }
+[data-theme="dark"] .select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); }
+
+.grid { display: grid; gap: 16px; }
+.grid-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 768px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+.form-stack { display: flex; flex-direction: column; gap: 16px; max-width: 360px; }
+
+/* ===== Buttons ===== */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; font-size: .875rem; font-weight: 500; border-radius: var(--radius); border: 1px solid transparent; cursor: pointer; transition: var(--transition); text-decoration: none; white-space: nowrap; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+.btn-primary { background: var(--primary); color: white; border-color: var(--primary); }
+.btn-primary:hover:not(:disabled) { background: var(--primary-hover); border-color: var(--primary-hover); }
+.btn-ghost { background: transparent; color: var(--text); border-color: var(--border); }
+.btn-ghost:hover:not(:disabled) { background: var(--bg-alt); border-color: var(--border-strong); }
+.btn-danger { background: var(--danger); color: white; border-color: var(--danger); }
+.btn-danger:hover:not(:disabled) { background: var(--danger-hover); border-color: var(--danger-hover); }
+.btn-sm { padding: 6px 10px; font-size: .8125rem; }
+.btn-block { width: 100%; }
+.icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: var(--radius); background: transparent; border: 1px solid var(--border); color: var(--text-muted); cursor: pointer; transition: var(--transition); }
+.icon-btn:hover { background: var(--bg-alt); border-color: var(--border-strong); color: var(--text); }
+.icon-btn svg { width: 18px; height: 18px; }
+.icon-btn .icon-sun { display: none; }
+.icon-btn .icon-moon { display: block; }
+[data-theme="light"] .icon-btn .icon-sun { display: block; }
+[data-theme="light"] .icon-btn .icon-moon { display: none; }
+[data-theme="dark"] .icon-btn .icon-sun { display: block; }
+[data-theme="dark"] .icon-btn .icon-moon { display: none; }
+
+.segmented { display: inline-flex; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius); padding: 3px; gap: 3px; }
+.seg-btn { padding: 6px 12px; font-size: .8125rem; font-weight: 500; color: var(--text-muted); background: transparent; border: none; border-radius: calc(var(--radius) - 2px); cursor: pointer; transition: var(--transition); }
+.seg-btn:hover { color: var(--text); }
+.seg-btn.active { background: var(--bg-card); color: var(--primary); box-shadow: var(--shadow-sm); }
+
+.lang-select { background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 32px 6px 10px; font-size: .8125rem; color: var(--text); appearance: none; cursor: pointer; min-width: 140px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; }
+
+/* ===== Tabs ===== */
+.tabs { display: flex; gap: 4px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius); padding: 3px; }
+.tab-btn { padding: 6px 12px; font-size: .8125rem; font-weight: 500; color: var(--text-muted); background: transparent; border: none; border-radius: calc(var(--radius) - 2px); cursor: pointer; transition: var(--transition); white-space: nowrap; }
+.tab-btn:hover { color: var(--text); background: var(--bg-card); }
+.tab-btn.active { color: var(--primary); background: var(--bg-card); box-shadow: var(--shadow-sm); }
+.tab-btn svg { width: 16px; height: 16px; margin-right: 6px; }
+
+/* ===== Bot Cards ===== */
+.bot-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.bot-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; display: flex; flex-direction: column; gap: 12px; transition: var(--transition); }
+.bot-card:hover { border-color: var(--border-strong); box-shadow: var(--shadow); }
+.bot-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.bot-card-info { flex: 1; min-width: 0; }
+.bot-card-name { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.bot-card-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--text-subtle); }
+.bot-card-dot.online { background: var(--success); }
+.bot-card-dot.idle { background: var(--warning); }
+.bot-card-dot.dnd { background: var(--danger); }
+.bot-card-meta { font-size: .75rem; color: var(--text-muted); margin-top: 2px; }
+.bot-card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.bot-card-actions .btn { flex: 1; min-width: 80px; }
+
+/* ===== Preview ===== */
+.preview { background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; min-height: 100px; max-height: 300px; overflow-y: auto; font-size: .875rem; line-height: 1.6; }
+.preview.empty { color: var(--text-subtle); font-style: italic; }
+.preview .embed { border-left: 4px solid var(--primary); background: var(--bg-card); border-radius: 0 var(--radius) var(--radius) 0; padding: 12px; margin-top: 12px; }
+.preview .spoiler { background: var(--border); border-radius: 4px; padding: 0 8px; cursor: pointer; user-select: none; }
+.preview .spoiler.revealed { background: transparent; }
+.preview code { background: var(--bg-alt); padding: 2px 6px; border-radius: 4px; font-size: .8125em; }
+.preview pre { background: var(--bg-alt); padding: 12px; border-radius: var(--radius); overflow-x: auto; margin: 8px 0; }
+.preview pre code { background: transparent; padding: 0; }
+
+/* ===== Log Feed ===== */
+.log-feed { max-height: 500px; overflow-y: auto; }
+.log-msg { padding: 12px; border-bottom: 1px solid var(--border); transition: var(--transition); }
+.log-msg:last-child { border-bottom: none; }
+.log-msg:hover { background: var(--bg-alt); }
+.log-msg.deleted { opacity: .5; }
+.log-msg-header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+.log-msg-author { font-weight: 500; }
+.log-msg-time { font-size: .7rem; color: var(--text-subtle); }
+.log-msg-badge { font-size: .625rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
+.log-msg-badge.deleted { background: var(--danger-light); color: var(--danger); }
+.log-msg-badge.edited { background: var(--primary-light); color: var(--primary); }
+.log-msg-content { font-size: .875rem; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+.log-msg-attachments { margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap; }
+.log-msg-embed { margin-top: 8px; }
+
+/* ===== Status Display ===== */
+.status-display { background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; font-size: .8125rem; color: var(--text-muted); min-height: 60px; }
+.status-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.status-row:last-child { margin-bottom: 0; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; }
+.status-dot.online { background: var(--success); }
+.status-dot.idle { background: var(--warning); }
+.status-dot.dnd { background: var(--danger); }
+.status-dot.offline { background: var(--text-subtle); }
+
+/* ===== Progress ===== */
+.progress { background: var(--bg-input); border-radius: var(--radius); overflow: hidden; height: 6px; }
+.progress-bar { height: 100%; background: var(--primary); border-radius: var(--radius); transition: width .3s ease; width: 0%; }
+
+/* ===== Warn / Danger Cards ===== */
+.warn-card, .danger-zone { border-color: var(--warning); background: #fffbeb; }
+[data-theme="dark"] .warn-card, [data-theme="dark"] .danger-zone { background: #451a03; border-color: #f59e0b; }
+.warn-icon, .danger-zone h3 { color: var(--warning); }
+.danger-zone { border-color: var(--danger); background: var(--danger-light); }
+[data-theme="dark"] .danger-zone { background: #450a0a; }
+.danger-zone h3 { color: var(--danger); }
+
+.info-card { display: flex; gap: 12px; align-items: flex-start; }
+.info-icon { flex-shrink: 0; width: 20px; height: 20px; color: var(--primary); margin-top: 2px; }
+.info-card div { flex: 1; }
+.info-card strong { display: block; margin-bottom: 4px; }
+.info-card p { font-size: .8125rem; color: var(--text-muted); }
+
+.footer-note { text-align: center; font-size: .75rem; color: var(--text-subtle); margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+/* ===== File Preview ===== */
+.file-preview { display: flex; align-items: center; gap: 12px; padding: 8px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius); margin-top: 8px; }
+.file-preview img { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; }
+.file-preview-info { flex: 1; min-width: 0; }
+.file-preview-name { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-preview-meta { font-size: .7rem; color: var(--text-muted); }
+.file-preview-remove { color: var(--text-muted); background: none; border: none; cursor: pointer; padding: 4px; }
+.file-preview-remove:hover { color: var(--danger); }
+
+/* ===== Modals ===== */
+.modal { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.modal.hidden { display: none; }
+.modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.5); backdrop-filter: blur(2px); animation: fadeIn 150ms ease; }
+.modal-box { position: relative; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; max-width: 420px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg); animation: slideUp 150ms ease; }
+.modal-lg { max-width: 520px; }
+@keyframes slideUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+.modal-close { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius); background: transparent; border: 1px solid var(--border); color: var(--text-muted); cursor: pointer; transition: var(--transition); }
+.modal-close:hover { background: var(--bg-alt); color: var(--text); }
+.modal-box h3 { font-size: 1.125rem; font-weight: 600; margin-bottom: 8px; }
+.modal-box > p { color: var(--text-muted); margin-bottom: 20px; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+.profile-header { display: flex; gap: 16px; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+.avatar-lg { width: 64px; height: 64px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1.5rem; overflow: hidden; }
+.avatar-lg img { width: 100%; height: 100%; object-fit: cover; }
+.profile-info { flex: 1; min-width: 0; }
+.profile-info h4 { font-size: 1.125rem; font-weight: 600; margin-bottom: 4px; }
+.profile-meta { display: flex; align-items: center; gap: 8px; font-size: .8125rem; color: var(--text-muted); }
+.profile-meta code { background: var(--bg-input); padding: 2px 8px; border-radius: 4px; font-size: .75rem; }
+.profile-details { display: grid; gap: 10px; font-size: .8125rem; }
+.profile-row { display: flex; justify-content: space-between; gap: 16px; }
+.profile-row-label { color: var(--text-muted); }
+.profile-row-value { color: var(--text); text-align: right; font-family: var(--mono); word-break: break-all; }
+.profile-role { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: .6875rem; font-weight: 500; background: var(--bg-input); margin: 2px 4px 2px 0; }
+
+/* ===== Toast ===== */
+.toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-lg); z-index: 1100; font-size: .875rem; animation: slideIn 150ms ease; max-width: 360px; }
+@keyframes slideIn { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: none; } }
+
+/* ===== Error ===== */
+.error { color: var(--danger); font-size: .8125rem; padding: 10px 12px; background: var(--danger-light); border: 1px solid var(--danger); border-radius: var(--radius); }
+.error.hidden { display: none; }
+
+/* ===== Hidden utility ===== */
+.hidden { display: none !important; }
+.muted { color: var(--text-muted); }
+.small { font-size: .75rem; }
+.center { text-align: center; }
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-subtle); }
+
+/* ===== Backdrop for mobile sidebar ===== */
+.backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.3); z-index: 49; opacity: 0; visibility: hidden; transition: var(--transition); }
+.backdrop.show { opacity: 1; visibility: visible; }
+@media (max-width: 768px) {
+.sidebar { position: fixed; left: 0; top: var(--topbar-h); bottom: 0; transform: translateX(-100%); transition: transform .2s ease; z-index: 50; box-shadow: var(--shadow-lg); }
+.sidebar.open { transform: translateX(0); }
+}
+
+/* ===== Unlock Panel ===== */
+#panel-unlock { display: flex; align-items: center; justify-content: center; min-height: 100%; }
+#panel-unlock .panel-content { width: 100%; max-width: 380px; padding: 0 16px; }
+#panel-unlock h2 { text-align: center; font-size: 1.5rem; margin-bottom: 8px; }
+#panel-unlock .panel-desc { text-align: center; margin-bottom: 32px; }
+
+/* ===== Audio elements ===== */
+audio { width: 100%; margin-top: 8px; }
+
+/* ===== Profile forms hidden states ===== */
+#profile-view.hidden, #profile-nick-form.hidden, #profile-timeout-form.hidden { display: none; }
+
+/* ===== Voice record status ===== */
+#voice-record-status.recording { color: var(--danger); font-weight: 500; }
+
+/* ===== Embed Field Editor ===== */
+.efield { padding: 12px; background: var(--bg-alt); border-radius: var(--radius); margin-bottom: 8px; display: flex; flex-direction: column; gap: 8px; }
+.efield .btn-row { justify-content: flex-end; }
+
+/* ===== Voice Mode Segmented ===== */
+#voice-mode .seg-btn, #send-mode .seg-btn { flex: 1; }
+
+/* ===== Accessibility ===== */
+@media (prefers-reduced-motion: reduce) {
+*, *::before, *::after { transition: none !important; animation: none !important; }
+}
+================================================================================
+

@@ -1,0 +1,173 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Discord Manager",
+  "version": "1.0.0",
+  "identifier": "com.discord-manager.app",
+  "build": {
+    "beforeDevCommand": "",
+    "beforeBuildCommand": "",
+    "devPath": "http://127.0.0.1:8787",
+    "distDir": "../www"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Discord Bot Manager",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 900,
+        "minHeight": 600,
+        "resizable": true,
+        "fullscreen": false,
+        "decorations": true,
+        "transparent": false,
+        "center": true,
+        "visible": false,
+        "maximizable": true,
+        "minimizable": true,
+        "closable": true,
+        "focus": true,
+        "theme": null,
+        "hiddenTitle": false,
+        "titleBarStyle": "overlay",
+        "fileDropEnabled": true,
+        "url": "http://127.0.0.1:8787"
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' data: blob: http://127.0.0.1:8787; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://127.0.0.1:8787; style-src 'self' 'unsafe-inline' http://127.0.0.1:8787; img-src 'self' data: blob: https: http://127.0.0.1:8787; connect-src 'self' https://discord.com wss://gateway.discord.gg ws://127.0.0.1:* http://127.0.0.1:*; media-src 'self' data: blob: http://127.0.0.1:8787; font-src 'self' data: http://127.0.0.1:8787;"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": [
+      "../bridge.js",
+      "../package.json",
+      "../package-lock.json",
+      "../www/**",
+      "../node_modules/**"
+    ],
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": "",
+      "tsp": false,
+      "webviewInstallMode": {
+        "type": "embedBootstrapper"
+      },
+      "allowDowngrades": false,
+      "wix": {
+        "language": "en-US",
+        "template": null,
+        "fragmentPaths": null,
+        "componentGroupRefs": null,
+        "featureGroupRefs": null,
+        "mergeRefs": null
+      },
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "installerHeaderIcon": "icons/icon.ico",
+        "allowElevated": true,
+        "allowToChangeInstallDirectory": true,
+        "createDesktopShortcut": true,
+        "createStartMenuShortcut": true,
+        "shortcutName": "Discord Manager",
+        "licenseFile": null,
+        "headerBitmap": null,
+        "welcomeBitmap": null,
+        "finishBitmap": null
+      }
+    },
+    "linux": {
+      "deb": {
+        "depends": [
+          "libwebkit2gtk-4.1-0",
+          "libayatana-appindicator3-1",
+          "librsvg2-common"
+        ],
+        "useBootstrapper": false
+      },
+      "appimage": {
+        "bundleMediaFramework": true
+      },
+      "rpm": {
+        "depends": [
+          "webkit2gtk4.1",
+          "libayatana-appindicator3-1",
+          "librsvg2"
+        ]
+      },
+      "flatpak": {
+        "finishArgs": [
+          "--socket=wayland",
+          "--socket=pulseaudio",
+          "--share=network",
+          "--device=all",
+          "--filesystem=home"
+        ]
+      }
+    },
+    "macOS": {
+      "entitlements": null,
+      "exceptionDomain": "",
+      "frameworks": [],
+      "providerShortName": null,
+      "signingIdentity": null,
+      "category": "public.app-category.developer-tools",
+      "minimumSystemVersion": "10.15"
+    },
+    "android": {
+      "minSdkVersion": 24,
+      "targetSdkVersion": 34,
+      "compileSdkVersion": 34,
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_MICROPHONE",
+        "FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "WAKE_LOCK",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_MEDIA_AUDIO",
+        "READ_MEDIA_VIDEO"
+      ],
+      "useLegacyExternalStorage": true,
+      "enableProguard": false,
+      "signingConfig": null
+    }
+  },
+  "plugins": {
+    "shell": {
+      "allowlist": [
+        { "name": "node", "cmd": "node", "args": true },
+        { "name": "ffmpeg", "cmd": "ffmpeg", "args": true },
+        { "name": "ffprobe", "cmd": "ffprobe", "args": true }
+      ]
+    },
+    "fs": {
+      "allowlist": {
+        "scope": ["$APPDATA/**", "$HOME/**", "$TEMP/**", "$CACHE/**"]
+      }
+    },
+    "http": {
+      "allowlist": [
+        "https://discord.com/api/**",
+        "https://gateway.discord.gg/**",
+        "https://cdn.discordapp.com/**",
+        "https://media.discordapp.net/**",
+        "http://127.0.0.1:8787/**"
+      ]
+    }
+  }
+}

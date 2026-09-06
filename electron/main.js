@@ -4,12 +4,18 @@ const path = require('path');
 const fs = require('fs');
 const isDev = !app.isPackaged;
 
+// Disable sandbox completely - must be before app.ready()
+app.commandLine.appendSwitch('no-sandbox');
+app.commandLine.appendSwitch('disable-gpu-sandbox');
+app.commandLine.appendSwitch('disable-software-rasterizer');
+app.commandLine.appendSwitch('disable-dev-shm-usage');
+
 // Disable the default Electron menu (File/Edit/View/Window/Help)
 Menu.setApplicationMenu(null);
 
 let mainWindow = null;
 let bridgeProcess = null;
-let bridgePort = 8787;
+let bridgePort = 8789;
 let isQuitting = false;
 
 // Determine resource paths for packaged vs development
@@ -188,7 +194,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true,
+      sandbox: false,
       webSecurity: !isDev
     },
     show: false
