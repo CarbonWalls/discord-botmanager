@@ -1733,6 +1733,151 @@ document.getElementById('manual-chan').addEventListener('input', () => loadWebho
 document.getElementById('mode-auto').addEventListener('click', () => loadWebhooks(getChannelId()));
 document.getElementById('mode-manual').addEventListener('click', () => loadWebhooks(getChannelId()));
 
+/* ===== webhook profile editor (GET/PATCH via the bridge proxy) ===== */
+let wpWebhook = null;   // { id, token } of the webhook being edited
+let wpCurrent = null;   // fetched profile: { id, name, avatar, channel_id, ... }
+let wpNewAvatar;        // undefined = unchanged, null = reset, string = data uri
+const wpModal = document.getElementById('webhook-profile-modal');
+const wpFile = document.getElementById('wp-avatar-file');
+
+function wpShowError(msg) {
+  const el = document.getElementById('wp-error');
+  if (!el) return;
+  if (msg) { el.textContent = msg; el.classList.remove('hidden'); }
+  else el.classList.add('hidden');
+}
+
+function wpAvatarUrl(av) {
+  return av && wpWebhook ? 'https://cdn.discordapp.com/avatars/' + wpWebhook.id + '/' + av + '.png?size=128' : '';
+}
+
+// local file → resized data uri (max 1024px); png keeps transparency, jpg for photos
+async function resizeImageFile(file, max = 1024) {
+  const dataUrl = await new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(fr.result);
+    fr.onerror = () => reject(new Error(t('send.webhook_profile_read_error')));
+    fr.readAsDataURL(file);
+  });
+  const img = await new Promise((resolve, reject) => {
+    const i = new Image();
+    i.onload = () => resolve(i);
+    i.onerror = () => reject(new Error(t('send.webhook_profile_read_error')));
+    i.src = dataUrl;
+  });
+  let w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+  const scale = Math.min(1, max / Math.max(w || 1, h || 1));
+  w = Math.max(1, Math.round((w || 1) * scale));
+  h = Math.max(1, Math.round((h || 1) * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, w, h);
+  const keepAlpha = /image\/(png|webp|gif)/.test(file.type || '');
+  const out = keepAlpha ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', 0.92);
+  if (out.length > 256 * 1024) { // discord avatar limit: 256 kb
+    const smaller = canvas.toDataURL('image/jpeg', 0.8);
+    if (smaller.length > 256 * 1024) throw new Error(t('send.webhook_profile_too_big'));
+    return smaller;
+  }
+  return out;
+}
+
+function wpRenderPreview() {
+  const img = document.getElementById('wp-avatar');
+  const empty = document.getElementById('wp-avatar-empty');
+  const note = document.getElementById('wp-avatar-note');
+  if (!img || !empty) return;
+  let av = '';
+  if (wpNewAvatar === null) av = '';
+  else if (typeof wpNewAvatar === 'string') av = wpNewAvatar;
+  else av = wpAvatarUrl(wpCurrent && wpCurrent.avatar);
+  if (av) { img.src = av; img.classList.remove('hidden'); empty.classList.add('hidden'); }
+  else { img.removeAttribute('src'); img.classList.add('hidden'); empty.classList.remove('hidden'); }
+  const nameInput = document.getElementById('wp-name-input');
+  const shown = (nameInput && nameInput.value.trim()) || (wpCurrent && wpCurrent.name) || '—';
+  const nameEl = document.getElementById('wp-name');
+  if (nameEl) nameEl.textContent = shown;
+  if (note) note.textContent = wpNewAvatar === null ? t('send.webhook_profile_will_reset')
+    : typeof wpNewAvatar === 'string' ? t('send.webhook_profile_will_change') : '';
+}
+
+document.getElementById('webhook-profile-btn').onclick = async () => {
+  const id = webhookSel ? webhookSel.value : '';
+  const opt = webhookSel && webhookSel.selectedOptions ? webhookSel.selectedOptions[0] : null;
+  const tok = opt && opt.dataset.token;
+  if (!id || !tok) { tt(t('send.error_no_webhook')); return; }
+  wpWebhook = { id, token: tok };
+  wpCurrent = null;
+  wpNewAvatar = undefined;
+  wpShowError('');
+  document.getElementById('wp-name-input').value = '';
+  document.getElementById('wp-id').textContent = id;
+  document.getElementById('wp-channel').textContent = '';
+  wpRenderPreview();
+  wpModal.classList.remove('hidden');
+  try {
+    const r = await fetch('/gateway/webhook/' + id + '/' + tok, { headers: { 'X-Client-Nonce': BRIDGE_NONCE } });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || j.message || ('HTTP ' + r.status));
+    wpCurrent = j;
+    document.getElementById('wp-name-input').value = j.name || '';
+    document.getElementById('wp-id').textContent = j.id || id;
+    document.getElementById('wp-channel').textContent = j.channel_id ? 'channel ' + j.channel_id : '';
+    wpRenderPreview();
+  } catch (e) {
+    wpModal.classList.add('hidden');
+    tt(friendlyError(e.message, 'webhook'));
+  }
+};
+
+document.getElementById('wp-save').onclick = async () => {
+  if (!wpWebhook) return;
+  const body = {};
+  const name = document.getElementById('wp-name-input').value.trim();
+  if (name && wpCurrent && name !== wpCurrent.name) body.name = name;
+  if (wpNewAvatar !== undefined) body.avatar = wpNewAvatar;
+  if (!Object.keys(body).length) { wpModal.classList.add('hidden'); return; }
+  const btn = document.getElementById('wp-save');
+  btn.disabled = true;
+  wpShowError('');
+  try {
+    const r = await fetch('/gateway/webhook/' + wpWebhook.id + '/' + wpWebhook.token, {
+      method: 'PATCH',
+      headers: { 'X-Client-Nonce': BRIDGE_NONCE, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.message || j.error || ('HTTP ' + r.status));
+    tt(t('send.webhook_profile_saved'));
+    wpModal.classList.add('hidden');
+    const chan = getChannelId();
+    if (chan) loadWebhooks(chan);
+  } catch (e) {
+    wpShowError(friendlyError(e.message, 'webhook'));
+  } finally { btn.disabled = false; }
+};
+
+['wp-close', 'wp-cancel'].forEach(id => {
+  const b = document.getElementById(id);
+  if (b) b.onclick = () => wpModal.classList.add('hidden');
+});
+document.getElementById('wp-avatar-pick').onclick = () => wpFile.click();
+document.getElementById('wp-avatar-reset').onclick = () => { wpNewAvatar = null; wpRenderPreview(); };
+if (wpFile) wpFile.onchange = async () => {
+  const f = wpFile.files && wpFile.files[0];
+  wpFile.value = '';
+  if (!f) return;
+  try {
+    wpNewAvatar = await resizeImageFile(f, 1024);
+    wpRenderPreview();
+  } catch (e) {
+    wpShowError(e.message);
+  }
+};
+const wpNameInput = document.getElementById('wp-name-input');
+if (wpNameInput) wpNameInput.addEventListener('input', wpRenderPreview);
+
 
 /* ===== logs ===== */
 let logBot = null;

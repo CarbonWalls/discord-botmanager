@@ -1392,12 +1392,14 @@ http.createServer(async (req, res) => {
     return json(res, 200, { ok: true });
   }
 
-  // webhook execute proxy (bypasses CORS: webhook endpoints reject browser origins)
-  if ((m = p.match(/^\/gateway\/webhook\/(\d+)\/([a-zA-Z0-9_-]+)$/)) && req.method === 'POST') {
-    const body = await readBody(req);
+  // webhook proxy (bypasses CORS: webhook endpoints reject browser origins).
+  // POST executes the webhook, GET fetches its profile, PATCH edits it
+  // (name/avatar) — all token-authenticated via the url, no bot auth needed.
+  if ((m = p.match(/^\/gateway\/webhook\/(\d+)\/([a-zA-Z0-9_-]+)$/)) && ['GET', 'PATCH', 'POST'].includes(req.method)) {
+    const body = req.method === 'GET' ? null : await readBody(req);
     const headers = { 'Content-Type': req.headers['content-type'] || 'application/json' };
     try {
-      const up = await fetch(`${API}/webhooks/${m[1]}/${m[2]}${url.search}`, { method: 'POST', headers, body });
+      const up = await fetch(`${API}/webhooks/${m[1]}/${m[2]}${url.search}`, { method: req.method, headers, body });
       const buf = Buffer.from(await up.arrayBuffer());
       res.writeHead(up.status, { 'Content-Type': up.headers.get('content-type') || 'application/json' });
       res.end(buf);

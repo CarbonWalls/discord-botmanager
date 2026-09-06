@@ -1259,3 +1259,37 @@ a.embed-title:hover { text-decoration: underline; }
 .ctx-menu button:hover { background: var(--bg-hover); }
 .ctx-menu button.danger { color: var(--danger); }
 .ctx-menu button.danger:hover { background: rgba(229, 72, 77, .1); }
+
+/* ===== WEBHOOK PROFILE EDITOR ===== */
+.wp-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-input);
+  margin-bottom: 14px;
+}
+.wp-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--bg-hover);
+}
+.wp-avatar-empty {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 18px;
+}
+#wp-avatar-note { min-height: 14px; }

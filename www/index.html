@@ -248,6 +248,7 @@
             </div>
             <div class="btn-row">
               <button class="btn btn-ghost btn-small" id="webhook-create-btn" data-i18n="send.webhook_create"></button>
+              <button class="btn btn-ghost btn-small" id="webhook-profile-btn" data-i18n="send.webhook_profile"></button>
               <button class="btn btn-danger btn-small" id="webhook-delete-btn" data-i18n="send.webhook_delete"></button>
             </div>
             <div class="field" style="margin-top:12px">
@@ -711,6 +712,41 @@
         <button class="btn btn-ghost" id="timeout-cancel" data-i18n="common.cancel"></button>
         <button class="btn btn-danger" id="timeout-save" data-i18n="common.apply"></button>
       </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal hidden" id="webhook-profile-modal">
+  <div class="modal-content">
+    <button class="close-modal" id="wp-close"><i data-icon="x"></i></button>
+    <h3 data-i18n="send.webhook_profile"></h3>
+    <p class="muted small" data-i18n="send.webhook_profile_desc"></p>
+    <div class="wp-preview">
+      <img id="wp-avatar" class="wp-avatar" alt="">
+      <div class="wp-avatar-empty hidden" id="wp-avatar-empty">?</div>
+      <div style="flex:1;min-width:0">
+        <div class="bold small" id="wp-name">—</div>
+        <div class="muted small mono" id="wp-id" style="font-size:11px"></div>
+        <div class="muted small" id="wp-channel" style="font-size:11px"></div>
+      </div>
+    </div>
+    <div class="field">
+      <label class="label" data-i18n="send.webhook_profile_name"></label>
+      <input type="text" id="wp-name-input" maxlength="80">
+    </div>
+    <div class="field">
+      <label class="label" data-i18n="send.webhook_profile_avatar"></label>
+      <div class="btn-row">
+        <button class="btn btn-ghost btn-small" id="wp-avatar-pick" data-i18n="send.webhook_profile_pick"></button>
+        <button class="btn btn-ghost btn-small" id="wp-avatar-reset" data-i18n="send.webhook_profile_reset"></button>
+      </div>
+      <input type="file" id="wp-avatar-file" accept="image/png,image/jpeg,image/webp,image/gif" class="hidden">
+      <div class="muted small" id="wp-avatar-note" style="margin-top:6px"></div>
+    </div>
+    <div class="error hidden" id="wp-error"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="wp-cancel" data-i18n="common.cancel"></button>
+      <button class="btn btn-primary" id="wp-save" data-i18n="common.save"></button>
     </div>
   </div>
 </div>
