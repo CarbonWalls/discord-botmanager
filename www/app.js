@@ -1834,6 +1834,112 @@ function buildComponentsPayload() {
 }
 
 
+/* ===== interactions panel (send tab) ===== */
+const interactionAcked = new Set();
+const interactionsList = document.getElementById('interactions-list');
+
+function interactionsEmpty() {
+  if (interactionsList) interactionsList.innerHTML = `<span class="muted small">${esc(t('send.interactions_empty'))}</span>`;
+}
+
+async function refreshInteractions() {
+  if (!interactionsList) return;
+  if (!selBot || !selToken) return interactionsEmpty();
+  let items = [];
+  try {
+    const res = await gatewayGet('/interactions/' + selBot.id);
+    items = res.interactions || [];
+  } catch {
+    // no gateway session for this bot is an expected, quiet state
+    return interactionsEmpty();
+  }
+  if (!items.length) return interactionsEmpty();
+  interactionsList.innerHTML = items.map(it => {
+    const user = it.user ? (it.user.global_name || it.user.username || it.user.id) : t('common.unknown');
+    const when = new Date(it.received_at).toLocaleTimeString();
+    const done = interactionAcked.has(it.id);
+    const vals = it.data && it.data.values && it.data.values.length
+      ? `<div class="muted small">${esc(t('send.interactions_values'))}: ${esc(it.data.values.join(', '))}</div>` : '';
+    const msg = it.message && it.message.content
+      ? `<div class="muted small">${esc(t('send.interactions_msg'))}: ${esc(it.message.content.slice(0, 60))}</div>` : '';
+    const cid = it.data && it.data.custom_id ? esc(it.data.custom_id) : '(select)';
+    return `<div class="session-item${done ? ' it-done' : ''}">
+      <div style="flex:1;min-width:0">
+        <div class="bold small">${esc(user)} → <span class="mono">${cid}</span></div>
+        ${vals}${msg}
+        <div class="muted small mono" style="font-size:11px">${esc(when)} · ${esc(it.id)}</div>
+      </div>
+      <div class="btn-row" style="flex-wrap:wrap;justify-content:flex-end">
+        <button class="btn btn-ghost btn-small" data-iid="${esc(it.id)}" data-act="reply">${esc(t('send.interactions_reply'))}</button>
+        <button class="btn btn-ghost btn-small" data-iid="${esc(it.id)}" data-act="edit">${esc(t('send.interactions_edit'))}</button>
+        <button class="btn btn-ghost btn-small" data-iid="${esc(it.id)}" data-act="ack">${esc(t('send.interactions_ack'))}</button>
+        <button class="btn btn-ghost btn-small" data-iid="${esc(it.id)}" data-act="followup">${esc(t('send.interactions_followup'))}</button>
+      </div>
+    </div>`;
+  }).join('');
+  interactionsList.querySelectorAll('[data-act]').forEach(btn => {
+    btn.onclick = async () => {
+      const it = items.find(x => x.id === btn.dataset.iid);
+      if (!it) return;
+      await respondToInteraction(it, btn.dataset.act);
+    };
+  });
+}
+
+async function respondToInteraction(it, action) {
+  if (!selBot) return;
+  try {
+    if (action === 'ack') {
+      await gateway('/interactions/' + selBot.id + '/callback', { id: it.id, token: it.token, type: 6 });
+    } else if (action === 'reply') {
+      const content = await promptInput(t('send.interactions_reply_title'), t('send.interactions_reply_desc'), '');
+      if (!content) return;
+      await gateway('/interactions/' + selBot.id + '/callback', { id: it.id, token: it.token, type: 4, data: { content } });
+    } else if (action === 'edit') {
+      const content = await promptInput(t('send.interactions_edit_title'), t('send.interactions_edit_desc'), it.message ? (it.message.content || '') : '');
+      if (!content) return;
+      await gateway('/interactions/' + selBot.id + '/callback', { id: it.id, token: it.token, type: 7, data: { content } });
+    } else if (action === 'followup') {
+      const content = await promptInput(t('send.interactions_followup_title'), t('send.interactions_followup_desc'), '');
+      if (!content) return;
+      const r = await fetch('/gateway/webhook/' + it.application_id + '/' + it.token + '?wait=true', {
+        method: 'POST',
+        headers: { 'X-Client-Nonce': BRIDGE_NONCE, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content })
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.message || j.error || ('HTTP ' + r.status));
+    }
+    interactionAcked.add(it.id);
+    tt(t('send.interactions_done'));
+    refreshInteractions();
+  } catch (e) {
+    tt(friendlyError(e.message, 'interaction'));
+  }
+}
+
+const interactionsRefreshBtn = document.getElementById('interactions-refresh');
+if (interactionsRefreshBtn) interactionsRefreshBtn.onclick = refreshInteractions;
+const interactionsClearBtn = document.getElementById('interactions-clear');
+if (interactionsClearBtn) interactionsClearBtn.onclick = async () => {
+  if (!selBot) return;
+  try {
+    await fetch('/gateway/interactions/' + selBot.id, { method: 'DELETE', headers: { 'X-Client-Nonce': BRIDGE_NONCE } });
+  } catch {}
+  interactionAcked.clear();
+  refreshInteractions();
+};
+// poll while the send tab is visible and a bot is selected
+setInterval(() => {
+  const panel = document.getElementById('snd');
+  if (panel && !panel.classList.contains('hidden') && selBot) refreshInteractions();
+}, 3000);
+const prevBotOnchange = botSel.onchange;
+botSel.onchange = async () => {
+  await prevBotOnchange();
+  refreshInteractions();
+};
+
 /* ===== webhooks (send tab) ===== */
 let currentWebhooks = [];
 const webhookCard = document.getElementById('webhook-card');

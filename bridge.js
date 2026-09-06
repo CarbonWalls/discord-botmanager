@@ -1185,6 +1185,28 @@ function connectGateway(botId, token) {
               }
             }
           }
+          else if (data.t === 'INTERACTION_CREATE') {
+            // component interactions (type 3): buffered per bot so the panel
+            // can poll them; raw row is kept for ack/edit responses
+            if (data.d && data.d.type === 3) {
+              const d = data.d;
+              session.interactions = session.interactions || [];
+              session.interactions.push({
+                id: d.id,
+                type: d.type,
+                application_id: d.application_id,
+                token: d.token,
+                version: d.version || 1,
+                guild_id: d.guild_id || null,
+                channel_id: d.channel_id || null,
+                user: d.member && d.member.user ? { id: d.member.user.id, username: d.member.user.username, global_name: d.member.user.global_name, avatar: d.member.user.avatar } : null,
+                message: d.message ? { id: d.message.id, content: d.message.content || '', components: d.message.components || [] } : null,
+                data: { component_type: d.data?.component_type, custom_id: d.data?.custom_id, values: d.data?.values },
+                received_at: Date.now()
+              });
+              if (session.interactions.length > 100) session.interactions.splice(0, session.interactions.length - 100);
+            }
+          }
           else if (data.t === 'VOICE_STATE_UPDATE') {
             // track every member's voice state (used by the voice moderation list)
             if (data.d.guild_id) {
@@ -1405,6 +1427,39 @@ http.createServer(async (req, res) => {
       res.end(buf);
     } catch (e) { json(res, 502, { error: e.message }); }
     return;
+  }
+
+  // buffered component interactions (type 3) captured by the gateway session
+  if ((m = p.match(/^\/gateway\/interactions\/([^/]+)$/)) && req.method === 'GET') {
+    const s = sessions.get(m[1]);
+    if (!s) return json(res, 404, { error: 'no gateway session for this bot' });
+    const now = Date.now();
+    s.interactions = (s.interactions || []).filter(i => now - i.received_at < 15 * 60 * 1000);
+    return json(res, 200, { interactions: [...s.interactions].reverse() });
+  }
+  if ((m = p.match(/^\/gateway\/interactions\/([^/]+)$/)) && req.method === 'DELETE') {
+    const s = sessions.get(m[1]);
+    if (s) s.interactions = [];
+    return json(res, 200, { ok: true });
+  }
+  // interaction response callbacks (POST /interactions/:id/:token/callback)
+  if ((m = p.match(/^\/gateway\/interactions\/([^/]+)\/callback$/)) && req.method === 'POST') {
+    const body = await readJson(req);
+    if (!body.id || !body.token || !body.type) return json(res, 400, { error: 'id, token and type required' });
+    const payload = { type: body.type };
+    if (body.data !== undefined && body.data !== null) payload.data = body.data;
+    try {
+      const up = await fetch(`${API}/interactions/${body.id}/${body.token}/callback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'User-Agent': 'DiscordBot (local-manager, 1.0)' },
+        body: JSON.stringify(payload)
+      });
+      if (!up.ok) {
+        const txt = await up.text();
+        return json(res, up.status, { error: txt || ('discord ' + up.status) });
+      }
+      return json(res, 200, { ok: true });
+    } catch (e) { return json(res, 502, { error: e.message }); }
   }
 
   // tracked voice states of every member in the guild. the gateway cache

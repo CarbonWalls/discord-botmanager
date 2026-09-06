@@ -1347,3 +1347,7 @@ a.embed-title:hover { text-decoration: underline; }
 .comp-preview-btn.p3 { background: #248046; color: #fff; border-color: #248046; }
 .comp-preview-btn.p4 { background: #da373c; color: #fff; border-color: #da373c; }
 .comp-preview-btn.p5 { background: transparent; color: #00a8fc; border-color: transparent; }
+
+/* ===== INTERACTIONS PANEL ===== */
+#interactions-list .session-item { gap: 10px; }
+#interactions-list .it-done { opacity: .55; }
