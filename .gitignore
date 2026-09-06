@@ -57,3 +57,4 @@ setup.py
 create-icons.js
 .npmrc
 .npm-cache/
+test.opus
