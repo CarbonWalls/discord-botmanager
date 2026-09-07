@@ -578,6 +578,9 @@
     "scripts.bot_not_found": "未找到机器人",
     "scripts.unknown_op": "未知操作",
     "scripts.worker_error": "worker 错误：",
-    "errors.stale_page": "bridge 会话已刷新：请重新加载页面以继续。"
+    "errors.stale_page": "bridge 会话已刷新：请重新加载页面以继续。",
+    "bridge.checking": "桥接…",
+    "bridge.online": "桥接在线",
+    "bridge.offline": "桥接离线"
   }
 }

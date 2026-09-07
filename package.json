@@ -20,6 +20,8 @@
   "main": "electron/main.js",
   "scripts": {
     "start": "node bridge.js",
+    "test": "bash tests/smoke.sh",
+    "test:mock": "node tests/mock-gateway.js",
     "dev": "cross-env ELECTRON_DISABLE_SANDBOX=1 electron . --no-sandbox --disable-gpu-sandbox",
     "build": "electron-builder --win nsis",
     "build:portable": "electron-builder --win portable",

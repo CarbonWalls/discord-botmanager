@@ -41,13 +41,28 @@ the app is two pieces that talk over local http: a static browser frontend (`www
 - auto-lock: never / 1 / 5 / 15 minutes of inactivity
 - web crypto requires a secure context: the app must run on **localhost or https**
 
+### resilience
+
+- the bridge auto-reconnects dropped gateway sessions with capped exponential backoff (2 s → 60 s). `op 7` (server-side reconnect request), abnormal close codes and dead heartbeat links all heal themselves; only a clean user-initiated disconnect stays down.
+- request bodies are capped at **64 MB** (override with `BODY_LIMIT_MB`) and decoded voice uploads at **25 MB** — oversized payloads get a `413`, not an oom.
+- `GET /bridge/health` is an unauthenticated liveness probe (`{ ok, version, uptime_s, sessions, memory_mb }`); the UI header chip polls it and the page reloads itself if the bridge restarted with a fresh nonce.
+
 ---
 
 ## requirements
 
 - **node.js 18+** (global `fetch` is used)
 - `npm install` pulls everything: **ws** (gateway/voice websockets), **ffmpeg-static** (audio transcoding), plus the voice stack (`@discordjs/voice`, `@snazzah/davey`, `opusscript`, `tweetnacl`, `fluent-ffmpeg`)
-- (optional) system **ffmpeg** on `PATH` — used by the `/gateway/tools/transcode-voice` endpoint
+- **ffmpeg** is needed for every audio transcode (voice playback, voice messages). `ffmpeg-static` ships prebuilt binaries for common platforms; where none exists (e.g. android/arm64), set `FFMPEG_PATH` or have `ffmpeg` on `PATH` — the bridge resolves it in that order and logs the choice at boot.
+
+### testing
+
+```bash
+npm start                 # terminal 1: run the bridge
+npm test                  # terminal 2: end-to-end smoke suite (uses the first token in .env, or pass TEST_TOKEN=...)
+```
+
+the suite checks the nonce wall, the closed legacy archive route, path traversal protection, a real gateway connect (presence, archive, voice join/leave, transport ready), the scheduler lifecycle and the ffmpeg transcode path — 15+ assertions. `tests/mock-gateway.js` is a standalone fake discord gateway (`GATEWAY_URL=ws://127.0.0.1:8790 node bridge.js`) used to verify reconnect, op 7, zombie-heartbeat and backoff behaviour without touching the real api; tokens `NORMAL`/`ZOMBIE`/`OP7`/`GHOST`/`FAIL` select the scenario.
 
 ---
 
@@ -126,9 +141,26 @@ expected output:
 
 ```
 bridge running on http://127.0.0.1:8789
+[boot] BRIDGE VERSION: 2025-09-07-HARDENED-v2
+[boot] ffmpeg: ffmpeg (PATH lookup)
+[boot] dave (voice E2EE): available
 ```
 
 > if you see `ws module not installed`, run `npm i ws`. gateway features are disabled without it.
+
+### environment variables
+
+| variable | default | what it does |
+| --- | --- | --- |
+| `PORT` | `8789` | http port (always bound to `127.0.0.1`) |
+| `BODY_LIMIT_MB` | `64` | max request body size in MB (413 beyond) |
+| `FFMPEG_PATH` | – | explicit ffmpeg binary path; wins over ffmpeg-static and PATH |
+| `API_BASE` | `https://discord.com/api/v10` | discord rest base (testing/proxies) |
+| `GATEWAY_URL` | `wss://gateway.discord.gg/?v=10&encoding=json` | discord gateway endpoint (testing/proxies) |
+| `WWW_DIR` | `./www` | static frontend directory |
+| `DATA_DIR` | `./data/messages` | archives, backups, scheduler jobs |
+| `VOICE_DIR` | `./data/voice` | transcode temp files |
+| `LOCALES_DIR` | `./www/locales` | i18n json files |
 
 ### Electron desktop app
 
@@ -260,7 +292,8 @@ all routes on `http://127.0.0.1:8789`. every `/gateway/*` and `/discord/*` route
 
 | method | route | body | description |
 | --- | --- | --- | --- |
-| `GET` | `/archive/:channelId` | – | stored gateway-captured messages for a channel |
+| `GET` | `/bridge/health` | – | unauthenticated liveness probe: `{ ok, version, uptime_s, sessions, memory_mb }` |
+| `GET` | `/gateway/archive/:channelId` | – | stored gateway-captured messages for a channel (nonce-walled like every other `/gateway/*` route) |
 | `POST` | `/gateway/backup/channel/:channelId` | `{ token }` | fetch full channel history via rest → `data/messages/backups/*.json` |
 | `GET` | `/gateway/webhook/:webhookId/:token` | – | webhook profile through the bridge (name/avatar/channel) |
 | `PATCH` | `/gateway/webhook/:webhookId/:token` | `{ name?, avatar? }` | edit the webhook profile; `avatar` is a data uri (base64) or `null` to remove it |

@@ -578,6 +578,9 @@
     "scripts.bot_not_found": "bot non trovato",
     "scripts.unknown_op": "operazione sconosciuta",
     "scripts.worker_error": "errore worker:",
-    "errors.stale_page": "sessione del bridge aggiornata: ricarica la pagina per continuare."
+    "errors.stale_page": "sessione del bridge aggiornata: ricarica la pagina per continuare.",
+    "bridge.checking": "bridge…",
+    "bridge.online": "bridge online",
+    "bridge.offline": "bridge offline"
   }
 }

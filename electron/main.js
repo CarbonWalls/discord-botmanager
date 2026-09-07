@@ -158,7 +158,9 @@ function createBridgeProcess() {
     
     const checkReady = async () => {
       try {
-        const response = await fetch(`http://127.0.0.1:${bridgePort}/gateway/status`);
+        // /bridge/health is the unauthenticated liveness probe: /gateway/status
+        // requires the per-boot nonce which electron's main process never gets
+        const response = await fetch(`http://127.0.0.1:${bridgePort}/bridge/health`);
         if (response.ok) {
           clearTimeout(timeout);
           console.log('[Electron] Bridge is ready');
