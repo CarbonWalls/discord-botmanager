@@ -1,5 +1,5 @@
 # Dependencies / packages
-node_modules/
+node_modules
 
 # Build outputs
 dist/
@@ -15,7 +15,6 @@ build/
 *.deb
 *.rpm
 *.msi
-*.nsis
 
 # Environment / secrets
 .env
@@ -46,17 +45,14 @@ data/
 # Caches / downloaded binaries
 .npm-cache/
 .electron-cache/
-ffmpeg/
-ffmpeg-bin/
-ffmpeg-cache/
-
-# Backup folders
-www-backup-*/
-dist-manual/
 
 # Testing / coverage
 coverage/
 .nyc_output/
+
+# Tauri shell build output (src-tauri wrapper)
+src-tauri/target/
+src-tauri/gen/
 
 # One-off debug & patch scripts (root)
 /check_*.js
@@ -64,25 +60,10 @@ coverage/
 /fix_*.py
 /find_*.js
 /extract_*.py
-/count_functions.js
-/remove_extra_brace.js
-/test_brace.js
-/test-dave.js
-/create-icons.js
-/setup.py
-
-# Debug artifacts
-/debug.html
-/debug_package/
-/DEBUG_PROMPT.md
-/www_dump.txt
-/file_struct.txt
 
 # Test audio & scratch files
 *.opus
 *.bin
-/play_body.json
-/www/app_test.js
 
 # Local test harness (smoke tests, working-tree backups)
 .tmp/

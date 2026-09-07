@@ -121,6 +121,34 @@ html, body {
 .hamburger svg { width: 24px; height: 24px; }
 .brand-name { font-weight: 600; font-size: 16px; }
 
+/* bridge health chip (mobile header) */
+.bridge-chip {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bridge-chip::before {
+  content: '';
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex: none;
+}
+.bridge-chip[data-state="online"]::before { background: #3ba55d; box-shadow: 0 0 6px rgba(59,165,93,.7); }
+.bridge-chip[data-state="offline"] { color: #ed4245; }
+.bridge-chip[data-state="offline"]::before { background: #ed4245; }
+
+/* sidebar variant: sits above the lock button in the nav footer */
+.sidebar-bridge-chip {
+  padding: 8px 14px;
+  font-size: 12px;
+}
+
 .backdrop {
   display: none;
   position: fixed; inset: 0;

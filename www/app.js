@@ -441,7 +441,8 @@ function esc(s) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 function readFileAsDataURL(fileOrBlob) {
   return new Promise((resolve, reject) => {
@@ -1164,10 +1165,31 @@ async function api(path, opts = {}, overrideToken = null) {
       if (j.message) msg = j.message;
       if (j.error) msg = j.error;
     } catch {}
-    if (r.status === 403 && String(msg).includes('nonce')) throw new Error(t('errors.stale_page'));
+    if (r.status === 403 && String(msg).includes('nonce')) {
+      handleStalePage();
+      throw new Error(t('errors.stale_page'));
+    }
     throw new Error(msg);
   }
   return r.status === 204 ? null : r.json();
+}
+// a bridge restart rotates the per-boot nonce: from that moment every
+// authenticated call 403s. detect the stale page once, warn, then reload so
+// the fresh nonce injected into index.html takes over automatically
+let stalePageReloading = false;
+function handleStalePage() {
+  if (stalePageReloading) return;
+  stalePageReloading = true;
+  fetch('/', { cache: 'no-store' })
+    .then(r => {
+      if (r.ok) {
+        try { tt(t('errors.stale_page')); } catch {}
+        setTimeout(() => location.reload(), 1200);
+      } else {
+        stalePageReloading = false;
+      }
+    })
+    .catch(() => { stalePageReloading = false; });
 }
 async function apiUpload(path, fd, token) {
   const r = await fetch(API + path, {
@@ -1206,7 +1228,10 @@ async function gatewayGet(path) {
   if (!r.ok) {
     let msg = 'HTTP ' + r.status;
     try { const j = await r.json(); if (j.error) msg = j.error; } catch {}
-    if (r.status === 403 && String(msg).includes('nonce')) throw new Error(t('errors.stale_page'));
+    if (r.status === 403 && String(msg).includes('nonce')) {
+      handleStalePage();
+      throw new Error(t('errors.stale_page'));
+    }
     throw new Error(msg);
   }
   return r.json();
@@ -1939,6 +1964,32 @@ botSel.onchange = async () => {
   await prevBotOnchange();
   refreshInteractions();
 };
+
+/* ===== bridge health chip (header + sidebar) ===== */
+function setBridgeChip(state) {
+  for (const id of ['bridge-chip', 'bridge-chip-side']) {
+    const chip = document.getElementById(id);
+    if (!chip) continue;
+    chip.dataset.state = state;
+    chip.textContent = t('bridge.' + state);
+  }
+}
+// unauthenticated liveness endpoint, works even when the page nonce went
+// stale: when the chip flips back to online it also arms the stale-page
+// reload, so the UI heals itself after a bridge restart without manual refresh
+let bridgeWasDown = false;
+setInterval(async () => {
+  try {
+    const r = await fetch('/bridge/health', { cache: 'no-store' });
+    const up = r.ok;
+    setBridgeChip(up ? 'online' : 'offline');
+    if (up && bridgeWasDown) handleStalePage();
+    bridgeWasDown = !up;
+  } catch {
+    setBridgeChip('offline');
+    bridgeWasDown = true;
+  }
+}, 5000);
 
 /* ===== webhooks (send tab) ===== */
 let currentWebhooks = [];

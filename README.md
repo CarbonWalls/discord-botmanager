@@ -21,7 +21,7 @@ a self-hosted, local-first control panel for managing discord bots — token vau
 | ⏰ **scheduler** | recurring jobs (send message, change presence) running in the bridge with live status dots. |
 | 👥 **members** | full member list per server with search, role filters and profile links (needs the `guild members` intent). |
 | 🧩 **scripts** | sandboxed user scripts (web worker): explicit per-call permission prompts showing which bot acts, revocable scopes, 10 calls/min, per-script storage in the vault. |
-| ⚙️ **settings** | auto-lock timer, language (en/it/zh), theme (light/dark/system), master password change, script permission revocation, vault reset. |
+| ⚙️ **settings** | auto-lock timer, language (en/it/zh), theme (light/dark/auto/discord), master password change, script permission revocation, vault reset. |
 
 ---
 
@@ -46,8 +46,8 @@ the app is two pieces that talk over local http: a static browser frontend (`www
 ## requirements
 
 - **node.js 18+** (global `fetch` is used)
-- `npm install` pulls everything: **ws** (gateway/voice websockets), **ffmpeg-static** (audio transcoding), plus the voice stack (`@discordjs/voice`, `@snazzah/davey`, `opusscript`, `tweetnacl`, `fluent-ffmpeg`)
-- (optional) system **ffmpeg** on `PATH` — used by the `/gateway/tools/transcode-voice` endpoint
+- `npm install` pulls everything the code uses: **ws** (gateway/voice websockets), **ffmpeg-static** (bundled ffmpeg for audio transcoding) and **@snazzah/davey** (DAVE end-to-end encryption). the voice transport is implemented directly in `bridge.js` (voice ws → udp → rtp), not via `@discordjs/voice`; a few packages declared in `package.json` (`@discordjs/voice`, `opusscript`, `tweetnacl`, `fluent-ffmpeg`, `buffer`) are not actually required by the code
+- (optional) system **ffmpeg** on `PATH` — fallback when `ffmpeg-static` has no binary for your platform (voice playback and the `/gateway/tools/transcode-voice` endpoint both need an ffmpeg binary)
 
 ---
 
@@ -63,7 +63,7 @@ the app is two pieces that talk over local http: a static browser frontend (`www
 
 ### 2. intents the bot needs
 
-the bridge always connects with `guilds` (1 << 0), `message content` (1 << 9), `guild messages` (1 << 15) and `guild voice states` (1 << 7) — and adds `guild members` (1 << 1) when the portal toggle is on.
+the bridge always connects with `guilds` (1 << 0), `guild voice states` (1 << 7), `guild messages` (1 << 9) and `message content` (1 << 15) — plus `guild members` (1 << 1) by default: if the intent isn't approved in the portal, discord closes the first identify with 4014 and the bridge retries without it.
 
 | intent | privileged? | what it unlocks |
 | --- | --- | --- |
@@ -91,7 +91,7 @@ the cleanest way is the oauth2 url generator, not the in-app **invite** button (
 
 4. copy the generated url, open it in your browser, pick the server, authorize.
 
-> the in-app **invite** button in the vault uses permission integer `70368744295424` — that decodes to send messages, manage messages, read history, mention everyone, external emojis, send voice messages. fine for sending/archiving, but it has **no voice, no moderation, no channel management** — use the generator above (or the combined integer `1100517600470`) if you want every tab to work.
+> the in-app **invite** button in the vault uses permission integer `70368744295424` — that decodes to view channels, send messages, embed links, attach files, read message history, send voice messages. fine for sending/archiving, but it has **no voice connect/speak, no moderation, no channel management** — use the generator above (or the combined integer `1100517600470`) if you want every tab to work.
 
 ### 4. role position matters
 
@@ -114,10 +114,10 @@ the bot also cannot act on the server owner, and cannot ban/kick users with the 
 ### Web mode (original)
 
 ```bash
-git clone https://codeberg.org/72ubdjsjksknsbxb/bot-manager.git
+git clone https://github.com/CarbonWalls/discord-botmanager.git
 cd bot-manager
 npm install
-node bridge.js            # PORT=8789 by default, override with PORT=<port>
+node bridge.js            # binds 8789 by default, override with PORT=<port>
 ```
 
 then open **http://127.0.0.1:8789**.
@@ -130,10 +130,12 @@ bridge running on http://127.0.0.1:8789
 
 > if you see `ws module not installed`, run `npm i ws`. gateway features are disabled without it.
 
+environment variables honored by `bridge.js`: `PORT` (default `8789`), `DATA_DIR` (default `data/messages`), `VOICE_DIR` (default `data/voice`), `LOCALES_DIR` (default `www/locales`), `FFMPEG_PATH` (ffmpeg binary override), `BODY_LIMIT_MB` (request body cap in mb, default `64`) and `GATEWAY_URL` (discord gateway endpoint override).
+
 ### Electron desktop app
 
 ```bash
-git clone https://codeberg.org/72ubdjsjksknsbxb/bot-manager.git
+git clone https://github.com/CarbonWalls/discord-botmanager.git
 cd bot-manager
 npm install
 npm run build        # creates NSIS installer in dist/
@@ -153,7 +155,7 @@ The Electron app bundles everything and runs the bridge internally on `http://12
 - `www/runtime.js` + `www/runtime-worker.js` — user-script sandbox (permission proxy + isolated worker realm)
 - `www/styles.css` — theme + components
 - `www/locales/` — `en.json`, `it.json`, `zh.json`
-- `data/messages/` — per-channel archives (`<channel_id>.json`) and channel backups (`backups/`), created at runtime
+- `data/` (configurable via `DATA_DIR`, defaults to `data/messages/`) — per-channel archives (`<channel_id>.json`, capped at 500 per channel) and channel backups (`backups/`), created at runtime
 - `data/messages/scheduled-jobs.json` — persisted scheduler jobs
 - `data/voice/` — temp files for transcoding (created at runtime)
 
@@ -208,7 +210,7 @@ selecting a bot and applying a status opens a persistent gateway session (`/gate
 
 - **auto lock**: 1 / 5 / 15 min or never.
 - **language**: loaded from `www/locales/*.json` at runtime — no rebuild needed.
-- **theme**: light / dark / system (`prefers-color-scheme` + `data-theme` override).
+- **theme**: light / dark / auto / discord (writes `data-theme` on `<html>`; `auto` falls back to the default dark palette).
 - **script permissions**: every scope a script was granted with "allow always", per script, with single and global revoke.
 - **vault export / import**: encrypted backup of the whole vault (bots, scripts, script storage). import merges or replaces; script *permissions* are never exported, so they re-prompt on the importing device.
 - **change master password**: decrypts every token with the old key and re-encrypts with a fresh salt/key.
@@ -231,6 +233,7 @@ all routes on `http://127.0.0.1:8789`. every `/gateway/*` and `/discord/*` route
 | `POST` | `/gateway/:botId/connect` | `{ token }` | open (or reuse) a gateway session |
 | `POST` | `/gateway/:botId/presence` | `{ status, activity? }` | update presence (op 3) |
 | `POST` | `/gateway/:botId/disconnect` | – | close the session |
+| `GET` | `/bridge/health` | – | public liveness probe (no nonce): version, uptime, session count — used by the UI health chip |
 | `GET` | `/gateway/status` | – | list sessions (user, presence, voice playing) |
 | `POST` | `/gateway/:botId/members/:guildId` | `{ token }` | member list via rest pagination; returns `{ members, hasIntent }`. needs no gateway session — the 403 gate is the portal intent |
 | `GET` | `/gateway/:botId/voice/states?guild_id=` | – | tracked voice states (gateway cache seeded from `GUILD_CREATE`, live deltas, per-user rest re-verification when a guild_id is passed) |
@@ -260,7 +263,7 @@ all routes on `http://127.0.0.1:8789`. every `/gateway/*` and `/discord/*` route
 
 | method | route | body | description |
 | --- | --- | --- | --- |
-| `GET` | `/archive/:channelId` | – | stored gateway-captured messages for a channel |
+| `GET` | `/gateway/archive/:channelId` | – | stored gateway-captured messages for a channel (sits behind the nonce wall like every `/gateway/` route) |
 | `POST` | `/gateway/backup/channel/:channelId` | `{ token }` | fetch full channel history via rest → `data/messages/backups/*.json` |
 | `GET` | `/gateway/webhook/:webhookId/:token` | – | webhook profile through the bridge (name/avatar/channel) |
 | `PATCH` | `/gateway/webhook/:webhookId/:token` | `{ name?, avatar? }` | edit the webhook profile; `avatar` is a data uri (base64) or `null` to remove it |
@@ -301,7 +304,7 @@ restart the bridge and the language appears automatically in **settings → lang
 
 ## theming
 
-colors are css custom properties in `www/styles.css` (`:root` for light, `[data-theme="dark"]` + `prefers-color-scheme` block for dark). the theme picker writes to `localStorage` and toggles `data-theme` on `<html>`; `auto` removes the attribute and defers to the os.
+colors are css custom properties in `www/styles.css` (`:root` for the default dark palette, `[data-theme="light"]` and `[data-theme="discord"]` blocks for the alternatives). the theme picker writes to `localStorage` and toggles `data-theme` on `<html>`; `auto` removes the attribute and falls back to the `:root` dark theme.
 
 ---
 

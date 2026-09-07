@@ -1,4 +1,4 @@
-// VERSION: 2025-09-06-VOICE-DAVE-WORKING-v1
+// VERSION: 2025-09-07-HARDENED-v2
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -10,9 +10,19 @@ let ffmpegPath;
 if (process.env.FFMPEG_PATH && fs.existsSync(process.env.FFMPEG_PATH)) {
   ffmpegPath = process.env.FFMPEG_PATH;
 } else {
-  try { ffmpegPath = require('ffmpeg-static'); } catch (e) { ffmpegPath = null; }
-  // ffmpeg-static can export null (no prebuilt binary for this platform) without throwing
-  if (!ffmpegPath) ffmpegPath = 'ffmpeg';
+  try {
+    // npm@10+ resolves main via exports; fall back to the direct file when
+    // an exports map hides it (breaks module resolution on some setups)
+    ffmpegPath = require('ffmpeg-static');
+    if (!ffmpegPath || !fs.existsSync(ffmpegPath)) {
+      const direct = path.join('node_modules', 'ffmpeg-static', process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg');
+      const abs = path.join(__dirname, direct);
+      ffmpegPath = fs.existsSync(abs) ? abs : null;
+    }
+  } catch (e) { ffmpegPath = null; }
+  // ffmpeg-static can export null (no prebuilt binary for this platform) without
+  // throwing; older releases also return paths that no longer exist after reinstalls
+  if (!ffmpegPath || !fs.existsSync(ffmpegPath)) ffmpegPath = 'ffmpeg';
 }
 
 let WebSocket;
@@ -29,13 +39,21 @@ const WWW = process.env.WWW_DIR || path.join(__dirname, 'www');
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data', 'messages');
 const VOICE_DIR = process.env.VOICE_DIR || path.join(__dirname, 'data', 'voice');
 const LOCALES_DIR = process.env.LOCALES_DIR || path.join(WWW, 'locales');
-const API = 'https://discord.com/api/v10';
-const GATEWAY_URL = 'wss://gateway.discord.gg/?v=10&encoding=json';
+const API = process.env.API_BASE || 'https://discord.com/api/v10';
+const GATEWAY_URL = process.env.GATEWAY_URL || 'wss://gateway.discord.gg/?v=10&encoding=json';
+const BRIDGE_VERSION = '2025-09-07-HARDENED-v2';
 const INTENTS = (1 << 0) | (1 << 9) | (1 << 15) | (1 << 7);
 const INTENT_GUILD_MEMBERS = 1 << 1; // privileged: needs SERVER MEMBERS INTENT in the dev portal
 // bots that got 4014 (disallowed intents) reconnect without the members intent,
 // degrading member data instead of losing the connection entirely
 const reducedIntentsBots = new Set();
+// in-flight reconnects per bot: gateway events (op 7/9, abnormal close) and a
+// terminating heartbeat timer must never stack multiple connect loops
+const reconnectingBots = new Set();
+const reconnectAttempts = new Map();
+const reconnectTimers = new Map(); // botId -> pending backoff timer
+const intentionalClose = new Set();
+const intentionalCloseTimers = new Map(); // botId -> forget timer
 function intentsFor(botId) {
   return reducedIntentsBots.has(botId) ? INTENTS : (INTENTS | INTENT_GUILD_MEMBERS);
 }
@@ -126,9 +144,28 @@ const json = (res, status, obj) => send(res, status, 'application/json', JSON.st
 // into the served index.html so the page has it but workers/user scripts cannot
 const SESSION_NONCE = crypto.randomBytes(16).toString('hex');
 
+// request body cap: audio uploads are the only legitimate large payloads;
+// anything past the limit is rejected before it can exhaust memory
+const BODY_LIMIT = Math.max(1, parseInt(process.env.BODY_LIMIT_MB, 10) || 64) * 1024 * 1024;
+function bodyLimitError() { const e = new Error('request body too large (limit ' + Math.round(BODY_LIMIT / 1024 / 1024) + ' MB)'); e.status = 413; return e; }
 async function readBody(req) {
   const chunks = [];
-  for await (const ch of req) chunks.push(ch);
+  let size = 0;
+  let overflow = null;
+  for await (const ch of req) {
+    size += ch.length;
+    if (!overflow && size > BODY_LIMIT) {
+      chunks.length = 0;
+      overflow = bodyLimitError();
+    }
+    // keep draining to EOF instead of throwing mid-stream: an early throw
+    // destroys the request stream and the socket is reset before the 413
+    // response can be delivered (verified: 200MB upload -> client got no
+    // response at all). draining discards chunks so memory stays bounded.
+    if (overflow) continue;
+    chunks.push(ch);
+  }
+  if (overflow) throw overflow;
   return Buffer.concat(chunks);
 }
 async function readJson(req) {
@@ -1071,6 +1108,23 @@ async function leaveVoice(botId, timeoutMs = 10000) {
   return waiter;
 }
 
+// decoded audio cap: voice clips are a few MB at most; a 25 MB ceiling stops
+// base64 uploads from ballooning into disk + ffmpeg transcode work
+const AUDIO_LIMIT = 25 * 1024 * 1024;
+
+function decodeAudioB64(b64) {
+  let s = String(b64 || '');
+  if (s.includes(',')) s = s.split(',').pop();
+  const buf = Buffer.from(s, 'base64');
+  if (!buf.length) { const e = new Error('empty audio'); e.status = 400; throw e; }
+  if (buf.length > AUDIO_LIMIT) {
+    const e = new Error('audio too large (limit 25 MB decoded)');
+    e.status = 413;
+    throw e;
+  }
+  return buf;
+}
+
 async function playVoice(botId, opts = {}) {
   const s = sessions.get(botId);
   if (!s || s.ws.readyState !== WebSocket.OPEN) throw new Error('gateway not connected');
@@ -1095,9 +1149,7 @@ async function playVoice(botId, opts = {}) {
   if (vc.playing) throw new Error('playback already active');
 
   let b64 = String(opts.audio_base64 || '');
-  if (b64.includes(',')) b64 = b64.split(',').pop();
-  const audioBuf = Buffer.from(b64, 'base64');
-  if (!audioBuf.length) throw new Error('empty audio');
+  const audioBuf = decodeAudioB64(b64);
 
   const ext = path.extname(String(opts.filename || '')) || '.audio';
   const tmp = path.join(VOICE_DIR, `${Date.now()}-${crypto.randomBytes(4).toString('hex')}${ext}`);
@@ -1114,6 +1166,31 @@ async function playVoice(botId, opts = {}) {
 }
 
 /* ===== gateway ===== */
+
+// central reconnect policy: one in-flight attempt per bot, capped exponential
+// backoff reset on every successful connect, no-op when the user disconnected
+// the bot on purpose or an attempt is already pending
+function scheduleReconnect(botId, token, reason) {
+  if (reconnectingBots.has(botId)) return;
+  if (intentionalClose.has(botId)) return;
+  reconnectingBots.add(botId);
+  const attempt = reconnectAttempts.get(botId) || 0;
+  reconnectAttempts.set(botId, attempt + 1);
+  const delay = Math.min(60000, 2000 * Math.pow(2, Math.min(attempt, 5)));
+  console.log(`[gateway] reconnect bot ${botId} in ${delay}ms (attempt ${attempt + 1}): ${reason}`);
+  const t = setTimeout(() => {
+    reconnectingBots.delete(botId);
+    reconnectTimers.delete(botId);
+    // a /disconnect during the backoff window must cancel this attempt
+    if (intentionalClose.has(botId)) { reconnectAttempts.delete(botId); return; }
+    connectGateway(botId, token)
+      .then(() => { reconnectAttempts.delete(botId); console.log(`[gateway] auto-reconnect ok for bot ${botId}`); })
+      .catch(() => { scheduleReconnect(botId, token, 'attempt failed'); });
+  }, delay);
+  if (t.unref) t.unref();
+  reconnectTimers.set(botId, t);
+}
+
 function connectGateway(botId, token) {
   return new Promise((resolve, reject) => {
     const existing = sessions.get(botId);
@@ -1123,6 +1200,12 @@ function connectGateway(botId, token) {
 
     console.log(`[gateway] connecting bot ${botId}...`);
     const ws = new WebSocket(GATEWAY_URL);
+    // settles once per connect attempt: READY resolves it, but a close/error
+    // BEFORE ready must reject it too — otherwise the /connect HTTP response
+    // hangs forever (the 30s timeout alone is cleared by the close handler)
+    let settled = false;
+    const settleReject = (err) => { if (!settled) { settled = true; clearTimeout(timeout); reject(err); } };
+    const settleResolve = (v) => { if (!settled) { settled = true; clearTimeout(timeout); reconnectAttempts.delete(botId); resolve(v); } };
     const session = {
       botId, ws, token, user: null, heartbeatTimer: null, seq: null,
       presence: 'online', voice: {}, voiceWaiters: [], voiceConnection: null,
@@ -1134,7 +1217,7 @@ function connectGateway(botId, token) {
       console.error(`[gateway] timeout connecting bot ${botId}`);
       try { ws.close(); } catch {}
       cleanupVoice(session); sessions.delete(botId);
-      reject(new Error('gateway connect timeout (30s)'));
+      settleReject(new Error('gateway connect timeout (30s)'));
     }, 30000);
 
     ws.on('message', (raw) => {
@@ -1152,25 +1235,40 @@ function connectGateway(botId, token) {
               presence: { status: 'online', afk: false, activities: [], since: null }
             }
           }));
+          session.lastHeartbeatAck = Date.now();
+          session.lastBeatSent = 0;
+          // a second HELLO (mock/rogue server) must not leak the first interval
+          if (session.heartbeatTimer) clearInterval(session.heartbeatTimer);
           session.heartbeatTimer = setInterval(() => {
-            if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ op: 1, d: session.seq }));
+            if (ws.readyState !== WebSocket.OPEN) return;
+            // zombie detection: when a heartbeat has been out for over two
+            // full periods with no ack, the TCP link is silently dead —
+            // terminate (not close) so the close handler reconnects us
+            if (session.lastBeatSent && Date.now() - session.lastHeartbeatAck > interval * 2) {
+              console.warn(`[gateway] heartbeat ack missing for bot ${botId}, terminating dead link`);
+              try { ws.terminate(); } catch {}
+              return;
+            }
+            try { ws.send(JSON.stringify({ op: 1, d: session.seq })); session.lastBeatSent = Date.now(); } catch {}
           }, interval * 0.9);
         }
         else if (data.op === 1) { ws.send(JSON.stringify({ op: 1, d: session.seq })); }
+        else if (data.op === 11) { session.lastHeartbeatAck = Date.now(); }
         else if (data.op === 7 || data.op === 9) {
+          // op 7 = server-initiated reconnect, op 9 = invalid session (d=false
+          // demands a fresh IDENTIFY). previously only op 9 with d===false
+          // reconnected, leaving bots silently offline after a rebalance
           clearTimeout(timeout);
           try { ws.close(); } catch {}
-          cleanupVoice(session); sessions.delete(botId);
-          if (data.op === 9 && data.d === false) {
-            setTimeout(() => connectGateway(botId, token).then(resolve).catch(reject), 5000);
-          }
+          cleanupVoice(session);
+          if (sessions.get(botId) === session) sessions.delete(botId);
+          scheduleReconnect(botId, token, `op ${data.op} from gateway`);
         }
         else if (data.op === 0) {
           if (data.t === 'READY') {
             console.log(`[gateway] ready bot ${botId}: @${data.d.user.username}`);
             session.user = data.d.user;
-            clearTimeout(timeout);
-            resolve(session);
+            settleResolve(session);
           }
           else if (data.t === 'MESSAGE_CREATE' && data.d.channel_id) saveMessage(data.d);
           else if (data.t === 'MESSAGE_UPDATE' && data.d.channel_id) saveMessage(data.d);
@@ -1259,25 +1357,67 @@ function connectGateway(botId, token) {
     });
 
     ws.on('close', (code) => {
+      clearTimeout(timeout);
+      if (session.heartbeatTimer) clearInterval(session.heartbeatTimer);
+      cleanupVoice(session);
+      // only remove our own session: a manual reconnect may have installed a
+      // newer one while this socket was dying
+      const isCurrent = sessions.get(botId) === session;
+      if (isCurrent) sessions.delete(botId);
+      if (intentionalClose.has(botId)) {
+        intentionalClose.delete(botId);
+        console.log(`[gateway] closed bot ${botId} (code ${code}, intentional)`);
+        settleReject(new Error('closed before ready (intentional)'));
+        return;
+      }
+      // a stale socket dying must never touch reconnect policy for a newer
+      // session, and a pre-ready close must still settle the pending /connect
+      if (!isCurrent) {
+        settleReject(new Error('superseded by a newer connection'));
+        return;
+      }
+      settleReject(new Error(`gateway closed before ready (code ${code})`));
       if (code === 4014 && !reducedIntentsBots.has(botId)) {
         // disallowed intents: retry once without the privileged members intent
         console.warn(`[gateway] bot ${botId}: GUILD_MEMBERS intent not enabled in the portal, reconnecting without it`);
         reducedIntentsBots.add(botId);
-        sessions.delete(botId);
-        setTimeout(() => { connectGateway(botId, token).catch(() => {}); }, 2000);
+        scheduleReconnect(botId, token, '4014 disallowed intents, dropping GUILD_MEMBERS');
         return;
       }
-      console.log(`[gateway] closed bot ${botId}`);
-      if (session.heartbeatTimer) clearInterval(session.heartbeatTimer);
-      cleanupVoice(session); sessions.delete(botId);
+      if (code === 4014) {
+        // still disallowed even without GUILD_MEMBERS (another privileged
+        // intent like MESSAGE_CONTENT is missing): retrying would loop forever
+        console.error(`[gateway] bot ${botId}: intents still not enabled (4014) after dropping GUILD_MEMBERS, giving up`);
+        reconnectAttempts.delete(botId);
+        return;
+      }
+      console.log(`[gateway] closed bot ${botId} (code ${code})`);
+      // non-recoverable codes must NOT auto-reconnect: 4004 authentication
+      // failed, 4010/4011/4013 invalid shard/version/intents. retrying would
+      // only hammer the gateway (and risk per-token invalidation) forever.
+      const nonRecoverable = [4004, 4010, 4011, 4013].includes(code);
+      if (nonRecoverable) {
+        console.error(`[gateway] bot ${botId}: non-recoverable close code ${code}, giving up (fix the cause and /connect again)`);
+        reconnectAttempts.delete(botId);
+        return;
+      }
+      // code 1000 = clean goodbye (we initiated it), everything else heals
+      // itself: network drops, 4000-series errors and zombie kills reconnect
+      // automatically with capped exponential backoff
+      if (code !== 1000 && !reconnectingBots.has(botId)) {
+        scheduleReconnect(botId, token, 'abnormal close');
+      }
     });
 
     ws.on('error', (err) => {
       console.error(`[gateway] error bot ${botId}:`, err.message);
       clearTimeout(timeout);
       try { ws.close(); } catch {}
-      cleanupVoice(session); sessions.delete(botId);
-      reject(new Error('gateway error: ' + err.message));
+      cleanupVoice(session);
+      // only evict our own session: a stale socket's error must not remove a
+      // newer session installed by a manual reconnect (same rule as the close handler)
+      if (sessions.get(botId) === session) sessions.delete(botId);
+      settleReject(new Error('gateway error: ' + err.message));
     });
   });
 }
@@ -1294,7 +1434,30 @@ function setPresence(botId, status, activity) {
 
 function disconnectGateway(botId) {
   const s = sessions.get(botId);
-  if (!s) return false;
+  if (!s && !reconnectTimers.has(botId) && !reconnectingBots.has(botId)) return false;
+  // the flag tells the close handler this was a user-initiated goodbye, so
+  // the auto-reconnect logic stays out of the way
+  intentionalClose.add(botId);
+  // cancel a pending auto-reconnect outright (including the mid-backoff case
+  // where no live session exists anymore): the in-timer flag check alone
+  // can't cover it (the old socket's close event may have already consumed
+  // and cleared the flag before the timer fires)
+  if (reconnectTimers.has(botId)) {
+    clearTimeout(reconnectTimers.get(botId));
+    reconnectTimers.delete(botId);
+  }
+  reconnectingBots.delete(botId);
+  reconnectAttempts.delete(botId);
+  // restart the grace window on every call: overlapping /disconnects must not
+  // let the first (already-expired) forget timer cut a later one short
+  if (intentionalCloseTimers.has(botId)) clearTimeout(intentionalCloseTimers.get(botId));
+  const forget = setTimeout(() => {
+    intentionalClose.delete(botId);
+    intentionalCloseTimers.delete(botId);
+  }, 10000);
+  if (forget.unref) forget.unref();
+  intentionalCloseTimers.set(botId, forget);
+  if (!s) return true; // pending reconnect cancelled; no live session to close
   clearVoiceAutoLeave(s); cleanupVoice(s);
   try { s.ws.close(); } catch {}
   sessions.delete(botId);
@@ -1302,13 +1465,25 @@ function disconnectGateway(botId) {
 }
 
 /* ===== server ===== */
-http.createServer(async (req, res) => {
+async function handleRequest(req, res) {
   cors(res);
   if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
 
   const url = new URL(req.url, 'http://localhost');
   const p = url.pathname;
   let m;
+
+  // public liveness probe: no secrets, no ids — just enough for the UI
+  // health chip to distinguish "bridge down" from "stale page nonce"
+  if (p === '/bridge/health' && req.method === 'GET') {
+    return json(res, 200, {
+      ok: true,
+      version: BRIDGE_VERSION,
+      uptime_s: Math.floor(process.uptime()),
+      sessions: sessions.size,
+      memory_mb: Math.round(process.memoryUsage().rss / 1048576)
+    });
+  }
 
   // every api route requires the per-boot nonce (injected into index.html);
   // static files stay open. this walls off bridge endpoints from user scripts
@@ -1321,10 +1496,7 @@ http.createServer(async (req, res) => {
 
   if (p === '/gateway/tools/transcode-voice' && req.method === 'POST') {
     const body = await readJson(req);
-    let b64 = String(body.audio_base64 || '');
-    if (b64.includes(',')) b64 = b64.split(',').pop();
-    const buf = Buffer.from(b64, 'base64');
-    if (!buf.length) return json(res, 400, { error: 'empty audio' });
+    const buf = decodeAudioB64(body.audio_base64);
     const ext = path.extname(String(body.filename || '')) || '.audio';
     const tmp = path.join(VOICE_DIR, `${Date.now()}-${crypto.randomBytes(4).toString('hex')}${ext}`);
     fs.writeFileSync(tmp, buf);
@@ -1341,6 +1513,19 @@ http.createServer(async (req, res) => {
   if ((m = p.match(/^\/gateway\/([^/]+)\/connect$/)) && req.method === 'POST') {
     const body = await readJson(req);
     if (!body.token) return json(res, 400, { error: 'missing token' });
+    // a manual reconnect retracts a pending intentional-close grace window:
+    // otherwise the stale flag would swallow the auto-heal if this new
+    // session later drops abnormally (the old socket's close event is safe —
+    // the close handler ignores sessions that are no longer current)
+    if (intentionalCloseTimers.has(m[1])) { clearTimeout(intentionalCloseTimers.get(m[1])); intentionalCloseTimers.delete(m[1]); }
+    intentionalClose.delete(m[1]);
+    // and cancel any pending auto-reconnect so it can't race this manual one
+    if (reconnectTimers.has(m[1])) {
+      clearTimeout(reconnectTimers.get(m[1]));
+      reconnectTimers.delete(m[1]);
+      reconnectingBots.delete(m[1]);
+      reconnectAttempts.delete(m[1]);
+    }
     const existed = (() => { const s = sessions.get(m[1]); return !!s && s.ws.readyState === WebSocket.OPEN; })();
     connectGateway(m[1], body.token).then(() => json(res, 200, { ok: true, created: !existed })).catch(e => json(res, 500, { error: e.message }));
     return;
@@ -1367,7 +1552,10 @@ http.createServer(async (req, res) => {
     return json(res, 200, { sessions: list });
   }
 
-  const archMatch = p.match(/^\/(?:gateway\/)?archive\/(\d+)$/);
+  // archive reads live behind the nonce wall only: the plain /archive/:id
+  // alias was removed because it sat outside the nonce check and CORS '*' made
+  // archived messages readable by any website the user browses (drive-by exfil)
+  const archMatch = p.match(/^\/gateway\/archive\/(\d+)$/);
   if (archMatch && req.method === 'GET') return json(res, 200, { messages: loadArchive(archMatch[1]) });
 
   if (p === '/i18n/languages' && req.method === 'GET') {
@@ -1404,7 +1592,7 @@ http.createServer(async (req, res) => {
   }
 
   if ((m = p.match(/^\/gateway\/([^/]+)\/voice\/play$/)) && req.method === 'POST') {
-    playVoice(m[1], await readJson(req)).then(info => json(res, 200, info)).catch(e => json(res, 500, { error: e.message }));
+    playVoice(m[1], await readJson(req)).then(info => json(res, 200, info)).catch(e => json(res, e.status || 500, { error: e.message }));
     return;
   }
 
@@ -1577,6 +1765,12 @@ http.createServer(async (req, res) => {
     if (body.type === 'change_presence' && !body.payload?.botId) {
       return json(res, 400, { error: 'change_presence jobs need payload.botId' });
     }
+    if (body.type === 'change_presence' && body.payload?.status && !['online', 'idle', 'dnd', 'invisible'].includes(body.payload.status)) {
+      return json(res, 400, { error: 'change_presence jobs need payload.status in online|idle|dnd|invisible' });
+    }
+    if (body.type === 'send_message' && body.payload?.content != null && typeof body.payload.content !== 'string') {
+      return json(res, 400, { error: 'send_message payload.content must be a string' });
+    }
     const intervalMs = Math.max(parseInt(body.intervalMs, 10) || MIN_INTERVAL_MS, MIN_INTERVAL_MS);
     const job = {
       id,
@@ -1649,8 +1843,43 @@ http.createServer(async (req, res) => {
   if (p.startsWith('/discord/')) return proxyDiscord(req, res, p.slice('/discord'.length) + url.search);
 
   serveStatic(res, p);
+}
+
+// single funnel for async handler errors: body-limit overflows, bad JSON
+// uploads and similar now answer with a proper status instead of crashing
+// as unhandled rejections (which would keep the socket hanging)
+http.createServer((req, res) => {
+  handleRequest(req, res).catch(e => {
+    console.error('[http] handler error:', e.message);
+    try { json(res, e.status || 500, { error: e.message }); } catch {}
+  });
 }).listen(PORT, '127.0.0.1', () => {
   console.log(`bridge running on http://127.0.0.1:${PORT}`);
-console.error("[voice] BRIDGE VERSION: 2025-09-06-VOICE-DAVE-WORKING-v1");
+  console.error(`[boot] BRIDGE VERSION: ${BRIDGE_VERSION}`);
   if (!WebSocket) console.warn('ws module not installed: gateway disabled. run: npm i ws');
+  console.log(`[boot] ffmpeg: ${ffmpegPath}` + (path.basename(ffmpegPath) === ffmpegPath ? ' (PATH lookup)' : (fs.existsSync(ffmpegPath) ? '' : ' (missing — voice transcode will fail)')));
+  console.log(`[boot] dave (voice E2EE): ${davey ? 'available' : 'unavailable'}`);
 });
+
+/* ===== process resilience ===== */
+// a long-lived local manager should not die from one stray async error:
+// log loud, keep serving. genuinely fatal states (port busy, OOM) still crash.
+process.on('unhandledRejection', (reason) => {
+  console.error('[process] unhandled rejection:', reason && reason.stack ? reason.stack : reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[process] uncaught exception:', err && err.stack ? err.stack : err);
+});
+let shuttingDown = false;
+function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`[process] ${signal} received: closing sessions and shutting down`);
+  try { saveJobs(); } catch {}
+  for (const [botId] of sessions) {
+    try { disconnectGateway(botId); } catch {}
+  }
+  process.exit(0);
+}
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
