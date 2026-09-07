@@ -65,8 +65,9 @@ src-tauri/gen/
 *.opus
 *.bin
 
-# Local test harness (smoke tests, working-tree backups)
+# Local test harness output (smoke tests, working-tree backups)
 .tmp/
+big-audio.json
 
 # Misc
 .npmrc

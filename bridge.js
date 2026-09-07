@@ -1671,6 +1671,9 @@ async function handleRequest(req, res) {
         if (cached && (cached.guild_id || cached.join_time)) continue;
         missing.push(uid);
       }
+      // without a token the per-user re-verification would send "Bot null":
+      // serve the cached states and skip the rest round-trip entirely
+      if (!token) missing.length = 0;
       await Promise.all(missing.map(async (uid) => {
         try {
           const r = await fetch(`${API}/guilds/${guildId}/voice-states/${uid}`, {
