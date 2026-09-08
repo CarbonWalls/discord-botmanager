@@ -141,7 +141,8 @@ const ICONS = {
   clock: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>',
   users: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>',
   code: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>',
-  trashSmall: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>'
+  trashSmall: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>',
+  dots: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 10c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm-6 0c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>'
 };
 function injectIcons(root = document) {
   root.querySelectorAll('[data-icon]').forEach(el => {
@@ -2692,8 +2693,7 @@ function renderProfileDetails(container, uid, user, member, roles, gid, uname) {
         <img src="${avatarUrl}" class="profile-avatar" onerror="this.src='https://cdn.discordapp.com/embed/avatars/0.png'">
         <div class="profile-header-info">
           <div class="profile-name">${esc(displayName)}</div>
-          <div class="profile-tag">@${esc(username)}</div>
-          ${nick ? `<div class="profile-nick">${esc(t('profile.nick'))}: ${esc(nick)}</div>` : ''}
+          <div class="profile-tag">@${esc(username)}${nick ? ` · ${esc(t('profile.nick'))}: ${esc(nick)}` : ''}</div>
         </div>
       </div>
       <div class="profile-grid">
@@ -2705,10 +2705,10 @@ function renderProfileDetails(container, uid, user, member, roles, gid, uname) {
           <div class="label">${esc(t('profile.joined'))}</div>
           <div class="small">${joinedAt ? esc(fmtDateTime(joinedAt)) : esc(t('common.unknown'))}</div>
         </div>
-        <div class="profile-item">
-          <div class="label">${esc(t('profile.roles'))}</div>
-          <div class="role-list">${rolesHtml}</div>
-        </div>
+      </div>
+      <div class="profile-item" style="margin-top:12px">
+        <div class="label">${esc(t('profile.roles'))}</div>
+        <div class="role-list">${rolesHtml}</div>
       </div>
       <div class="profile-id-section">
         <div class="label">${esc(t('modal.user_id'))}</div>
@@ -2717,7 +2717,6 @@ function renderProfileDetails(container, uid, user, member, roles, gid, uname) {
           <button class="btn btn-ghost btn-small" id="copy-uid-inline" data-uid="${esc(uid)}">${esc(t('modal.copy'))}</button>
         </div>
       </div>
-      <div class="profile-bio-note">${esc(t('profile.bio_note'))}</div>
     </div>
   `;
 

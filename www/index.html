@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title></title>
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -723,24 +723,24 @@
     <div id="modal-view-profile">
       <h3 data-i18n="modal.user_profile"></h3>
       <div id="profile-details" class="profile-details"></div>
-      <div class="profile-roles-manage" style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border);">
+      <div class="profile-roles-manage hidden" id="profile-roles-manage">
         <div class="label" data-i18n="modal.manage_roles"></div>
-        <div id="profile-roles-list" class="role-list" style="max-height:150px; overflow-y:auto; gap:6px;"></div>
+        <div id="profile-roles-list" class="role-list"></div>
         <div class="error hidden" id="role-error" style="margin-top:8px"></div>
       </div>
       <!-- data holder for nick/timeout/kick/ban handlers; the visible id row is
            rendered by renderProfileDetails() inside #profile-details. -->
       <span id="modal-uid" class="hidden"></span>
-      <p class="muted small" data-i18n-html="modal.nick_note"></p>
-      <div class="modal-actions">
+      <div class="modal-actions profile-actions">
         <button class="btn btn-ghost" id="btn-nick" data-i18n="modal.change_nick"></button>
         <button class="btn btn-ghost" id="btn-timeout" data-i18n="modal.timeout"></button>
-        <button class="btn btn-ghost" id="btn-profile-manage" aria-haspopup="menu">⋯</button>
+        <button class="btn btn-ghost profile-more" id="btn-profile-manage" aria-haspopup="menu" aria-label="more actions"><i data-icon="dots"></i></button>
       </div>
     </div>
     <div id="modal-view-nick" class="hidden">
       <h3 data-i18n="modal.nick_title"></h3>
       <p class="muted small" data-i18n-html="modal.nick_desc"></p>
+      <p class="muted small" data-i18n-html="modal.nick_note" style="margin-top:-8px"></p>
       <div class="field"><input type="text" id="nick-input" data-i18n-placeholder="modal.nick_placeholder"></div>
       <div class="modal-actions">
         <button class="btn btn-ghost" id="nick-cancel" data-i18n="common.cancel"></button>
