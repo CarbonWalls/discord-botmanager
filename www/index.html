@@ -453,6 +453,15 @@
             <div class="card-title" data-i18n="channels.list_title"></div>
             <div id="channels-list" class="muted small" data-i18n="channels.no_channels"></div>
           </div>
+          <div class="card">
+            <div class="card-title" data-i18n="roles.title"></div>
+            <div id="roles-manage-list" class="muted small" data-i18n="roles.no_roles"></div>
+            <div class="btn-row" style="margin-top:10px">
+              <button class="btn btn-ghost" id="roles-refresh" data-i18n="channels.refresh"></button>
+              <button class="btn btn-primary" id="role-create" data-i18n="roles.create"></button>
+            </div>
+            <div class="error hidden" id="roles-manage-error"></div>
+          </div>
         </section>
 
         <!-- SCHEDULER -->
@@ -802,6 +811,51 @@
     <div class="modal-actions">
       <button class="btn btn-ghost" id="mc-cancel" data-i18n="common.cancel"></button>
       <button class="btn btn-primary" id="mc-apply" data-i18n="common.apply"></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal hidden" id="perm-modal">
+  <div class="modal-content">
+    <button class="close-modal" id="pm-close"><i data-icon="x"></i></button>
+    <h3 id="pm-title" data-i18n="perms.title"></h3>
+    <div class="muted small mono" id="pm-channel" style="margin-bottom:10px"></div>
+    <div id="perm-overwrites-list" style="max-height:180px;overflow-y:auto"></div>
+    <div class="muted small hidden" id="perm-empty" data-i18n="perms.empty"></div>
+    <div class="error hidden" id="perm-error" style="margin-top:8px"></div>
+    <button class="btn btn-ghost" id="perm-add" style="margin-top:10px" data-i18n="perms.add"></button>
+    <div id="perm-form" class="hidden" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+      <div class="field">
+        <label class="label" data-i18n="perms.target_role"></label>
+        <select id="perm-role-select"></select>
+      </div>
+      <div class="field">
+        <label class="label" data-i18n="perms.target_member"></label>
+        <input type="text" id="perm-member-id" data-i18n-placeholder="perms.member_id">
+      </div>
+      <div class="perm-grid-header">
+        <span data-i18n="perms.allow"></span><span data-i18n="perms.deny"></span><span></span>
+      </div>
+      <div id="perm-bits-grid" class="perm-grid"></div>
+      <div class="muted small hidden" id="perm-conflict" data-i18n="perms.conflict"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="perm-form-cancel" data-i18n="common.cancel"></button>
+        <button class="btn btn-primary" id="perm-form-save" data-i18n="common.save"></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal hidden" id="role-perms-modal">
+  <div class="modal-content">
+    <button class="close-modal" id="rpm-close"><i data-icon="x"></i></button>
+    <h3 id="rpm-title" data-i18n="roles.permissions"></h3>
+    <div class="muted small" id="rpm-role-name" style="margin-bottom:10px"></div>
+    <div id="role-perms-grid" class="perm-grid" style="max-height:50vh;overflow-y:auto"></div>
+    <div class="error hidden" id="rpm-warn" style="margin-top:8px"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="rpm-cancel" data-i18n="common.cancel"></button>
+      <button class="btn btn-primary" id="rpm-save" data-i18n="common.save"></button>
     </div>
   </div>
 </div>

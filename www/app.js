@@ -3774,6 +3774,7 @@ async function loadChannelsList() {
     const actionFor = (key) => ({
       rename: () => channelRename(sorted.find(x => x.id === key)),
       move: () => channelMove(sorted.find(x => x.id === key)),
+      permissions: () => openChannelPerms(sorted.find(x => x.id === key)),
       clone: () => channelClone(key),
       backup: () => channelBackup(key),
       delete: () => channelDelete(key)
@@ -3785,12 +3786,14 @@ async function loadChannelsList() {
         openCtxMenu(btn, [
           { label: t('channels.rename'), action: actionFor(id).rename },
           { label: t('channels.move'), action: actionFor(id).move },
+          { label: t('perms.title'), action: actionFor(id).permissions },
           { label: t('channels.clone'), action: actionFor(id).clone },
           { label: t('channels.backup'), action: actionFor(id).backup },
           { label: t('channels.delete'), danger: true, action: actionFor(id).delete }
         ]);
       };
     });
+    if (channelsGuild) loadRolesManage();
   } catch (e) {
     list.innerHTML = '<span class="muted small">' + esc(t('common.error')) + ': ' + esc(e.message) + '</span>';
   } finally {
@@ -3908,6 +3911,389 @@ function channelDelete(id) {
 }
 
 document.getElementById('channels-refresh').onclick = () => loadChannelsList();
+
+/* ===== role manager (channels tab) ===== */
+// well-known discord permission bits used by both permission editors
+const PERM_BITS = [
+  [1n, 'create_invite'], [2n, 'kick_members'], [4n, 'ban_members'], [8n, 'administrator'],
+  [16n, 'manage_channels'], [32n, 'manage_guild'], [64n, 'add_reactions'], [128n, 'view_audit_log'],
+  [256n, 'priority_speaker'], [1024n, 'view_channel'], [2048n, 'send_messages'], [4096n, 'send_tts'],
+  [8192n, 'manage_messages'], [16384n, 'embed_links'], [32768n, 'attach_files'],
+  [65536n, 'read_history'], [131072n, 'mention_everyone'], [262144n, 'external_emojis'],
+  [1048576n, 'connect'], [2097152n, 'speak'], [4194304n, 'mute_members'], [8388608n, 'deafen_members'],
+  [16777216n, 'move_members'], [33554432n, 'use_vad'], [67108864n, 'change_nickname'],
+  [134217728n, 'manage_nicknames'], [268435456n, 'manage_roles'], [536870912n, 'manage_webhooks'],
+  [1073741824n, 'manage_expressions'], [2147483648n, 'use_commands'],
+  [8589934592n, 'manage_events'], [1099511627776n, 'moderate_members']
+];
+function hasBit(bits, bit) { return (BigInt(bits) & bit) === bit; }
+
+let rolesManageCurrent = [];
+
+async function loadRolesManage() {
+  const list = document.getElementById('roles-manage-list');
+  const err = document.getElementById('roles-manage-error');
+  if (!list) return;
+  if (err) err.classList.add('hidden');
+  if (!channelsGuild || !channelsToken) {
+    list.innerHTML = '<span class="muted small">' + esc(t('roles.no_roles')) + '</span>';
+    return;
+  }
+  list.innerHTML = '<span class="muted small">' + esc(t('common.loading')) + '</span>';
+  const old = selToken;
+  selToken = channelsToken;
+  try {
+    rolesCacheClear(channelsGuild);
+    rolesManageCurrent = await api('/guilds/' + channelsGuild + '/roles');
+    const roles = rolesManageCurrent
+      .filter(r => r.name !== '@everyone')
+      .sort((a, b) => (b.position || 0) - (a.position || 0));
+    if (!roles.length) {
+      list.innerHTML = '<span class="muted small">' + esc(t('roles.no_roles')) + '</span>';
+      return;
+    }
+    list.innerHTML = roles.map(r => {
+      const color = r.color ? '#' + r.color.toString(16).padStart(6, '0') : 'var(--text-muted)';
+      return `
+        <div class="session-item">
+          <span class="role-dot" style="background:${color}"></span>
+          <div style="flex:1;min-width:0">
+            <div class="bold small" style="color:${r.color ? color : 'var(--text)'}">${esc(r.name)}</div>
+            <div class="muted small">${r.hoist ? esc(t('roles.hoist')) + ' · ' : ''}${hasBit(r.permissions, 8n) ? '⚠ admin' : ''}</div>
+          </div>
+          <button class="btn btn-ghost btn-small r-menu-btn ctx-menu-trigger" data-id="${esc(r.id)}" aria-haspopup="menu">⋯</button>
+        </div>`;
+    }).join('');
+
+    list.querySelectorAll('.r-menu-btn').forEach(btn => {
+      btn.onclick = () => {
+        const role = rolesManageCurrent.find(x => x.id === btn.dataset.id);
+        if (!role) return;
+        openCtxMenu(btn, [
+          { label: t('roles.rename'), action: () => roleRename(role) },
+          { label: t('roles.color'), action: () => roleColor(role) },
+          { label: t('roles.hoist'), action: () => roleToggle(role, 'hoist') },
+          { label: t('roles.mentionable'), action: () => roleToggle(role, 'mentionable') },
+          { label: t('roles.permissions'), action: () => openRolePerms(role) },
+          { label: t('roles.delete'), danger: true, action: () => roleDelete(role) }
+        ]);
+      };
+    });
+  } catch (e) {
+    list.innerHTML = '<span class="muted small">' + esc(t('common.error')) + ': ' + esc(e.message) + '</span>';
+  } finally {
+    selToken = old;
+  }
+}
+// invalidate the 60s roles cache so the manager always shows fresh data
+function rolesCacheClear(gid) { delete rolesCache[gid]; }
+
+async function rolePatch(role, payload, okKey) {
+  const old = selToken;
+  selToken = channelsToken;
+  try {
+    await api('/guilds/' + channelsGuild + '/roles/' + role.id, { method: 'PATCH', body: JSON.stringify(payload) });
+    tt(t(okKey));
+    await loadRolesManage();
+  } catch (e) {
+    tt(friendlyError(e.message, 'roles'));
+  } finally { selToken = old; }
+}
+
+async function roleRename(role) {
+  const name = await promptInput(t('roles.rename'), t('channels.rename_desc').replace('{name}', role.name), t('channels.rename_placeholder'), role.name);
+  if (!name || name === role.name) return;
+  await rolePatch(role, { name }, 'roles.renamed');
+}
+
+async function roleColor(role) {
+  const raw = await promptInput(t('roles.color'), role.name, t('roles.color_placeholder'), role.color ? '#' + role.color.toString(16).padStart(6, '0') : '');
+  if (raw == null) return;
+  const v = raw.trim();
+  if (v === '') return rolePatch(role, { color: 0 }, 'roles.updated');
+  if (!/^#?[0-9a-fA-F]{6}$/.test(v)) { tt(t('error.invalid_color')); return; }
+  await rolePatch(role, { color: parseInt(v.replace('#', ''), 16) }, 'roles.updated');
+}
+
+async function roleToggle(role, key) {
+  await rolePatch(role, { [key]: !role[key] }, 'roles.updated');
+}
+
+function roleDelete(role) {
+  showConfirmModal(t('roles.delete'), t('roles.delete_confirm'), async () => {
+    const old = selToken;
+    selToken = channelsToken;
+    try {
+      await api('/guilds/' + channelsGuild + '/roles/' + role.id, { method: 'DELETE' });
+      tt(t('roles.deleted'));
+      await loadRolesManage();
+    } catch (e) {
+      tt(friendlyError(e.message, 'roles'));
+    } finally { selToken = old; }
+  });
+}
+
+document.getElementById('roles-refresh').onclick = () => loadRolesManage();
+
+document.getElementById('role-create').onclick = async () => {
+  const name = await promptInput(t('roles.create'), '', t('channels.rename_placeholder'), '');
+  if (!name) return;
+  const old = selToken;
+  selToken = channelsToken;
+  try {
+    await api('/guilds/' + channelsGuild + '/roles', { method: 'POST', body: JSON.stringify({ name }) });
+    tt(t('roles.created'));
+    await loadRolesManage();
+  } catch (e) {
+    tt(friendlyError(e.message, 'roles'));
+  } finally { selToken = old; }
+};
+
+/* ===== role permission editor ===== */
+let rpmRole = null;
+function renderPermBitsGrid(gridEl, checkedAllow, checkedDeny) {
+  gridEl.innerHTML = PERM_BITS.map(([bit, key]) => `
+    <label class="perm-cell">
+      <input type="checkbox" class="perm-allow-bit" data-bit="${bit}" ${checkedAllow && hasBit(checkedAllow, bit) ? 'checked' : ''}>
+      <input type="checkbox" class="perm-deny-bit" data-bit="${bit}" ${checkedDeny && hasBit(checkedDeny, bit) ? 'checked' : ''}>
+      <span>${esc(t('perms.bit_' + key))}</span>
+    </label>`).join('');
+  gridEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    cb.onchange = () => {
+      if (!cb.checked) return;
+      const row = cb.closest('.perm-cell');
+      const other = cb.classList.contains('perm-allow-bit')
+        ? row.querySelector('.perm-deny-bit')
+        : row.querySelector('.perm-allow-bit');
+      if (other && other.checked) other.checked = false;
+      updatePermConflict();
+    };
+  });
+  updatePermConflict();
+}
+function updatePermConflict() {
+  const el = document.getElementById('perm-conflict');
+  if (!el) return;
+  const rows = document.querySelectorAll('#perm-bits-grid .perm-cell');
+  let conflict = false;
+  rows.forEach(row => {
+    const a = row.querySelector('.perm-allow-bit').checked;
+    const d = row.querySelector('.perm-deny-bit').checked;
+    if (a && d) conflict = true;
+  });
+  el.classList.toggle('hidden', !conflict);
+}
+
+function openRolePerms(role) {
+  rpmRole = role;
+  document.getElementById('rpm-role-name').textContent = role.name;
+  renderPermBitsGrid(document.getElementById('role-perms-grid'), role.permissions, null);
+  const warn = document.getElementById('rpm-warn');
+  warn.classList.add('hidden');
+  warn.textContent = '';
+  warn.style.color = '';
+  document.getElementById('role-perms-modal').classList.remove('hidden');
+}
+document.getElementById('rpm-close').onclick = () => document.getElementById('role-perms-modal').classList.add('hidden');
+document.getElementById('rpm-cancel').onclick = () => document.getElementById('role-perms-modal').classList.add('hidden');
+document.getElementById('role-perms-modal').onclick = (e) => {
+  if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
+};
+document.getElementById('rpm-save').onclick = async () => {
+  if (!rpmRole) return;
+  let bits = 0n;
+  document.querySelectorAll('#role-perms-grid .perm-allow-bit').forEach(cb => { if (cb.checked) bits |= BigInt(cb.dataset.bit); });
+  const btn = document.getElementById('rpm-save');
+  btn.disabled = true;
+  const old = selToken;
+  selToken = channelsToken;
+  try {
+    await api('/guilds/' + channelsGuild + '/roles/' + rpmRole.id, { method: 'PATCH', body: JSON.stringify({ permissions: bits.toString() }) });
+    tt(t('roles.updated'));
+    document.getElementById('role-perms-modal').classList.add('hidden');
+    await loadRolesManage();
+  } catch (e) {
+    tt(friendlyError(e.message, 'roles'));
+  } finally {
+    selToken = old;
+    btn.disabled = false;
+  }
+};
+// admin warning surfaces live while editing role permissions
+document.addEventListener('change', (e) => {
+  if (e.target && e.target.closest && e.target.closest('#role-perms-grid')) {
+    const admin = document.querySelector('#role-perms-grid .perm-allow-bit[data-bit="8"]');
+    const warn = document.getElementById('rpm-warn');
+    if (admin && admin.checked) {
+      warn.textContent = t('roles.admin_warn');
+      warn.style.color = 'var(--danger)';
+      warn.classList.remove('hidden');
+    } else {
+      warn.classList.add('hidden');
+    }
+  }
+});
+
+/* ===== channel permission overwrites editor ===== */
+let permChannel = null;
+let permOverwrites = [];
+
+async function openChannelPerms(ch) {
+  if (!ch) return;
+  permChannel = ch;
+  document.getElementById('pm-channel').textContent = '#' + ch.name;
+  document.getElementById('perm-form').classList.add('hidden');
+  const errEl = document.getElementById('perm-error');
+  errEl.classList.add('hidden');
+  document.getElementById('perm-modal').classList.remove('hidden');
+  const listEl = document.getElementById('perm-overwrites-list');
+  const emptyEl = document.getElementById('perm-empty');
+  listEl.innerHTML = '<span class="muted small">' + esc(t('common.loading')) + '</span>';
+  emptyEl.classList.add('hidden');
+  const old = selToken;
+  selToken = channelsToken;
+  try {
+    const fresh = await api('/channels/' + ch.id);
+    permOverwrites = Array.isArray(fresh.permission_overwrites) ? [...fresh.permission_overwrites] : [];
+    renderPermOverwrites();
+    await populatePermRoleSelect();
+  } catch (e) {
+    listEl.innerHTML = '';
+    errEl.textContent = e.message;
+    errEl.classList.remove('hidden');
+  } finally { selToken = old; }
+}
+
+async function overwriteTargetName(ow) {
+  if (ow.type === '0' || ow.type === 0) {
+    try {
+      const roles = await fetchGuildRoles(channelsGuild, channelsToken);
+      const r = roles.find(x => x.id === ow.id);
+      if (r) return r.name;
+    } catch {}
+    return ow.id;
+  }
+  try {
+    const m = await api('/guilds/' + channelsGuild + '/members/' + ow.id);
+    if (m && m.user) return m.user.global_name || m.user.username;
+  } catch {}
+  if (ow.id === channelsGuild) return t('perms.everyone');
+  return ow.id;
+}
+
+async function renderPermOverwrites() {
+  const listEl = document.getElementById('perm-overwrites-list');
+  const emptyEl = document.getElementById('perm-empty');
+  if (!permOverwrites.length) {
+    listEl.innerHTML = '';
+    emptyEl.classList.remove('hidden');
+    return;
+  }
+  emptyEl.classList.add('hidden');
+  listEl.innerHTML = '<span class="muted small">' + esc(t('common.loading')) + '</span>';
+  const rows = [];
+  for (const ow of permOverwrites) {
+    const name = await overwriteTargetName(ow);
+    rows.push(`
+      <div class="session-item" data-owid="${esc(ow.id)}" data-owtype="${esc(String(ow.type))}">
+        <span class="role-badge">${ow.type === '0' || ow.type === 0 ? esc(t('perms.target_role')) : esc(t('perms.target_member'))}</span>
+        <div style="flex:1;min-width:0" class="bold small">${esc(name)}</div>
+        <div class="muted small mono" style="font-size:11px">✓${(BigInt(ow.allow || 0)).toString(16)} ✗${(BigInt(ow.deny || 0)).toString(16)}</div>
+        <button class="btn btn-ghost btn-small ow-edit">${esc(t('perms.edit'))}</button>
+        <button class="btn btn-ghost btn-small ow-remove">${esc(t('perms.remove'))}</button>
+      </div>`);
+  }
+  listEl.innerHTML = rows.join('');
+  listEl.querySelectorAll('.ow-edit').forEach(btn => {
+    btn.onclick = () => {
+      const row = btn.closest('.session-item');
+      const ow = permOverwrites.find(o => String(o.id) === row.dataset.owid && String(o.type) === row.dataset.owtype);
+      if (ow) showPermForm(ow);
+    };
+  });
+  listEl.querySelectorAll('.ow-remove').forEach(btn => {
+    btn.onclick = () => {
+      const row = btn.closest('.session-item');
+      permOverwrites = permOverwrites.filter(o => !(String(o.id) === row.dataset.owid && String(o.type) === row.dataset.owtype));
+      savePermOverwrites();
+    };
+  });
+}
+
+async function populatePermRoleSelect() {
+  const sel = document.getElementById('perm-role-select');
+  let roles = [];
+  try { roles = await fetchGuildRoles(channelsGuild, channelsToken); } catch {}
+  sel.innerHTML = `<option value="">—</option>` + roles
+    .filter(r => r.id !== channelsGuild)
+    .sort((a, b) => (b.position || 0) - (a.position || 0))
+    .map(r => `<option value="${esc(r.id)}">${esc(r.name)}</option>`).join('');
+}
+
+function showPermForm(existing) {
+  const form = document.getElementById('perm-form');
+  const roleSel = document.getElementById('perm-role-select');
+  const memberIn = document.getElementById('perm-member-id');
+  form.classList.remove('hidden');
+  form.dataset.editId = existing ? existing.id : '';
+  form.dataset.editType = existing ? String(existing.type) : '';
+  roleSel.value = existing && String(existing.type) === '0' ? existing.id : '';
+  memberIn.value = existing && String(existing.type) === '1' ? existing.id : '';
+  const everyoneRow = roleSel.querySelector(`option[value="${channelsGuild}"]`);
+  if (everyoneRow) everyoneRow.textContent = t('perms.everyone');
+  renderPermBitsGrid(document.getElementById('perm-bits-grid'), existing?.allow, existing?.deny);
+}
+document.getElementById('perm-add').onclick = () => showPermForm(null);
+document.getElementById('perm-form-cancel').onclick = () => document.getElementById('perm-form').classList.add('hidden');
+
+async function savePermOverwrites() {
+  const errEl = document.getElementById('perm-error');
+  errEl.classList.add('hidden');
+  const btn = document.getElementById('perm-form-save');
+  btn.disabled = true;
+  const old = selToken;
+  selToken = channelsToken;
+  try {
+    await api('/channels/' + permChannel.id, {
+      method: 'PATCH',
+      body: JSON.stringify({ permission_overwrites: permOverwrites })
+    });
+    tt(t('perms.saved'));
+    document.getElementById('perm-form').classList.add('hidden');
+    await renderPermOverwrites();
+  } catch (e) {
+    errEl.textContent = friendlyError(e.message, 'perms');
+    errEl.classList.remove('hidden');
+  } finally { selToken = old; btn.disabled = false; }
+}
+document.getElementById('perm-form-save').onclick = () => {
+  const form = document.getElementById('perm-form');
+  const roleSel = document.getElementById('perm-role-select');
+  const memberIn = document.getElementById('perm-member-id').value.trim();
+  let id = roleSel.value;
+  let type = '0';
+  if (memberIn) { id = memberIn; type = '1'; }
+  if (!id) { tt(t('perms.empty')); return; }
+  let allow = 0n, deny = 0n;
+  document.querySelectorAll('#perm-bits-grid .perm-cell').forEach(row => {
+    const bit = BigInt(row.querySelector('.perm-allow-bit').dataset.bit);
+    if (row.querySelector('.perm-allow-bit').checked) allow |= bit;
+    if (row.querySelector('.perm-deny-bit').checked) deny |= bit;
+  });
+  const entry = { id, type, allow: allow.toString(), deny: deny.toString() };
+  const editId = form.dataset.editId, editType = form.dataset.editType;
+  if (editId && editType) {
+    permOverwrites = permOverwrites.map(o => (String(o.id) === editId && String(o.type) === editType) ? entry : o);
+  } else {
+    permOverwrites = permOverwrites.filter(o => !(String(o.id) === id && String(o.type) === type));
+    permOverwrites.push(entry);
+  }
+  savePermOverwrites();
+};
+document.getElementById('pm-close').onclick = () => document.getElementById('perm-modal').classList.add('hidden');
+document.getElementById('perm-modal').onclick = (e) => {
+  if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden');
+};
 
 /* ===== scheduler tab ===== */
 let editingJobId = null;
