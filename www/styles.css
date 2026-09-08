@@ -1332,6 +1332,16 @@ a.embed-title:hover { text-decoration: underline; }
 .ctx-menu button:hover { background: var(--bg-hover); }
 .ctx-menu button.danger { color: var(--danger); }
 .ctx-menu button.danger:hover { background: rgba(229, 72, 77, .1); }
+/* kebab triggers inside compact member rows (voice + members tabs):
+   fixed 28px square, never grow or let the row wrap/overflow on narrow phones */
+.session-item .ctx-menu-trigger {
+  flex-shrink: 0;
+  width: 28px;
+  min-width: 28px;
+  padding: 0;
+  line-height: 1;
+  white-space: nowrap;
+}
 
 /* ===== WEBHOOK PROFILE EDITOR ===== */
 .wp-preview {

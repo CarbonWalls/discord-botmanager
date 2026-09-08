@@ -3407,16 +3407,15 @@ async function updateVoiceMembers() {
       </div>
       <button class="btn btn-ghost btn-small v-mute" data-uid="${esc(s.user_id)}" data-state="${s.mute ? '0' : '1'}">${esc(s.mute ? t('voice.unmute') : t('voice.mute'))}</button>
       <button class="btn btn-ghost btn-small v-deaf" data-uid="${esc(s.user_id)}" data-state="${s.deaf ? '0' : '1'}">${esc(s.deaf ? t('voice.undeafen') : t('voice.deafen'))}</button>
-      <button class="btn btn-danger btn-small v-disconnect" data-uid="${esc(s.user_id)}">${esc(t('voice.disconnect'))}</button>
+      <button class="btn btn-ghost btn-small v-menu-btn ctx-menu-trigger" data-uid="${esc(s.user_id)}" data-uname="${esc(name)}" aria-haspopup="menu">⋯</button>
     </div>`;
   }).join('');
 
-  list.querySelectorAll('.v-mute, .v-deaf, .v-disconnect').forEach(btn => {
+  list.querySelectorAll('.v-mute, .v-deaf').forEach(btn => {
     btn.onclick = async () => {
       const uid = btn.dataset.uid;
       const payload = {};
-      if (btn.classList.contains('v-disconnect')) payload.channel_id = null;
-      else if (btn.classList.contains('v-mute')) payload.mute = btn.dataset.state === '1';
+      if (btn.classList.contains('v-mute')) payload.mute = btn.dataset.state === '1';
       else if (btn.classList.contains('v-deaf')) payload.deaf = btn.dataset.state === '1';
       btn.disabled = true;
       const old = selToken;
@@ -3434,6 +3433,36 @@ async function updateVoiceMembers() {
         selToken = old;
         btn.disabled = false;
       }
+    };
+  });
+
+  // kebab manager menu per member row: profile / timeout / disconnect / kick / ban
+  // (disconnect moved here from the row: 4 text buttons overflow a 360px phone)
+  list.querySelectorAll('.v-menu-btn').forEach(btn => {
+    btn.onclick = () => {
+      const uid = btn.dataset.uid;
+      const uname = btn.dataset.uname || uid;
+      const withVoiceToken = (fn) => async () => {
+        btn.disabled = true;
+        const old = selToken;
+        selToken = voiceToken;
+        try {
+          await fn();
+          setTimeout(updateVoiceMembers, 600);
+        } catch (e) {
+          tt(friendlyError(e.message, 'voice_mod'));
+        } finally {
+          selToken = old;
+          btn.disabled = false;
+        }
+      };
+      openCtxMenu(btn, [
+        { label: t('modal.user_profile'), action: () => openUserModal(uid, uname, voiceGuild) },
+        { label: t('modal.timeout'), action: () => openUserModal(uid, uname, voiceGuild) },
+        { label: t('voice.disconnect'), action: withVoiceToken(() => api(`/guilds/${voiceGuild}/members/${uid}`, { method: 'PATCH', body: JSON.stringify({ channel_id: null }) }).then(() => tt(t('voice.member_updated')))) },
+        { label: t('modal.kick'), danger: true, action: () => showConfirmModal(t('modal.kick'), t('members.kick_confirm').replace('{name}', uname), withVoiceToken(() => api(`/guilds/${voiceGuild}/members/${uid}`, { method: 'DELETE' }).then(() => tt(t('profile.user_kicked'))))) },
+        { label: t('modal.ban'), danger: true, action: () => showConfirmModal(t('modal.ban'), t('members.ban_confirm').replace('{name}', uname), withVoiceToken(() => api(`/guilds/${voiceGuild}/bans/${uid}`, { method: 'PUT', body: JSON.stringify({ delete_message_seconds: 0 }) }).then(() => tt(t('profile.user_banned'))))) }
+      ]);
     };
   });
 }
@@ -4674,6 +4703,7 @@ function filterMembers() {
           <div class="bold small">${esc(displayName)}</div>
           <div class="muted small">@${esc(m.user.username)} · ${(m.roles || []).length} ${esc(t('members.roles'))}</div>
         </div>
+        <button class="btn btn-ghost btn-small m-menu-btn ctx-menu-trigger" data-uid="${m.user.id}" data-uname="${esc(m.user.username)}" aria-haspopup="menu">⋯</button>
       </div>
     `;
   }).join('');
@@ -4682,6 +4712,34 @@ function filterMembers() {
 
   list.querySelectorAll('.msg-avatar').forEach(el => {
     el.onclick = () => openUserModal(el.dataset.uid, el.dataset.uname, el.dataset.guild);
+  });
+
+  // kebab manager menu per member row: profile / timeout / kick / ban
+  list.querySelectorAll('.m-menu-btn').forEach(btn => {
+    btn.onclick = () => {
+      const uid = btn.dataset.uid;
+      const uname = btn.dataset.uname || uid;
+      const withMembersToken = (fn) => async () => {
+        btn.disabled = true;
+        const old = selToken;
+        selToken = membersToken;
+        try {
+          await fn();
+          setTimeout(filterMembers, 300);
+        } catch (e) {
+          tt(friendlyError(e.message, 'members'));
+        } finally {
+          selToken = old;
+          btn.disabled = false;
+        }
+      };
+      openCtxMenu(btn, [
+        { label: t('modal.user_profile'), action: () => openUserModal(uid, uname, membersGuild) },
+        { label: t('modal.timeout'), action: () => openUserModal(uid, uname, membersGuild) },
+        { label: t('modal.kick'), danger: true, action: () => showConfirmModal(t('modal.kick'), t('members.kick_confirm').replace('{name}', uname), withMembersToken(() => api(`/guilds/${membersGuild}/members/${uid}`, { method: 'DELETE' }).then(() => tt(t('profile.user_kicked'))))) },
+        { label: t('modal.ban'), danger: true, action: () => showConfirmModal(t('modal.ban'), t('members.ban_confirm').replace('{name}', uname), withMembersToken(() => api(`/guilds/${membersGuild}/bans/${uid}`, { method: 'PUT', body: JSON.stringify({ delete_message_seconds: 0 }) }).then(() => tt(t('profile.user_banned'))))) }
+      ]);
+    };
   });
 }
 
