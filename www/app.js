@@ -3942,19 +3942,98 @@ document.getElementById('channels-refresh').onclick = () => loadChannelsList();
 
 /* ===== role manager (channels tab) ===== */
 // well-known discord permission bits used by both permission editors
+// bit, i18n key, scope: G=guild-only T=text V=voice S=stage (per Discord's
+// official bitwise permission flags table)
 const PERM_BITS = [
-  [1n, 'create_invite'], [2n, 'kick_members'], [4n, 'ban_members'], [8n, 'administrator'],
-  [16n, 'manage_channels'], [32n, 'manage_guild'], [64n, 'add_reactions'], [128n, 'view_audit_log'],
-  [256n, 'priority_speaker'], [1024n, 'view_channel'], [2048n, 'send_messages'], [4096n, 'send_tts'],
-  [8192n, 'manage_messages'], [16384n, 'embed_links'], [32768n, 'attach_files'],
-  [65536n, 'read_history'], [131072n, 'mention_everyone'], [262144n, 'external_emojis'],
-  [1048576n, 'connect'], [2097152n, 'speak'], [4194304n, 'mute_members'], [8388608n, 'deafen_members'],
-  [16777216n, 'move_members'], [33554432n, 'use_vad'], [67108864n, 'change_nickname'],
-  [134217728n, 'manage_nicknames'], [268435456n, 'manage_roles'], [536870912n, 'manage_webhooks'],
-  [1073741824n, 'manage_expressions'], [2147483648n, 'use_commands'],
-  [8589934592n, 'manage_events'], [1099511627776n, 'moderate_members']
+  [1n, 'create_invite', 'TVS'], [2n, 'kick_members', 'G'], [4n, 'ban_members', 'G'], [8n, 'administrator', 'G'],
+  [16n, 'manage_channels', 'TVS'], [32n, 'manage_guild', 'G'], [64n, 'add_reactions', 'TVS'], [128n, 'view_audit_log', 'G'],
+  [256n, 'priority_speaker', 'V'], [512n, 'stream', 'VS'], [1024n, 'view_channel', 'TVS'], [2048n, 'send_messages', 'TVS'],
+  [4096n, 'send_tts', 'TVS'], [8192n, 'manage_messages', 'TVS'], [16384n, 'embed_links', 'TVS'], [32768n, 'attach_files', 'TVS'],
+  [65536n, 'read_history', 'TVS'], [131072n, 'mention_everyone', 'TVS'], [262144n, 'external_emojis', 'TVS'],
+  [524288n, 'view_guild_insights', 'G'], [1048576n, 'connect', 'VS'], [2097152n, 'speak', 'V'], [4194304n, 'mute_members', 'VS'],
+  [8388608n, 'deafen_members', 'V'], [16777216n, 'move_members', 'VS'], [33554432n, 'use_vad', 'V'],
+  [67108864n, 'change_nickname', 'G'], [134217728n, 'manage_nicknames', 'G'], [268435456n, 'manage_roles', 'TVS'],
+  [536870912n, 'manage_webhooks', 'TVS'], [1073741824n, 'manage_expressions', 'G'], [2147483648n, 'use_commands', 'TVS'],
+  [4294967296n, 'request_to_speak', 'S'], [8589934592n, 'manage_events', 'VS'], [17179869184n, 'manage_threads', 'T'],
+  [34359738368n, 'create_public_threads', 'T'], [68719476736n, 'create_private_threads', 'T'],
+  [137438953472n, 'external_stickers', 'TVS'], [274877906944n, 'send_in_threads', 'T'],
+  [549755813888n, 'embedded_activities', 'TV'], [1099511627776n, 'moderate_members', 'G'],
+  [2199023255552n, 'view_monetization_analytics', 'G'], [4398046511104n, 'use_soundboard', 'V'],
+  [8796093022208n, 'create_guild_expressions', 'G'], [17592186044416n, 'create_events', 'VS'],
+  [35184372088832n, 'use_external_sounds', 'V'], [1n << 46n, 'send_voice_messages', 'TVS'],
+ [1n << 49n, 'send_polls', 'TVS'], [1n << 50n, 'use_external_apps', 'TVS'],
+ [1n << 51n, 'pin_messages', 'T'], [1n << 52n, 'bypass_slowmode', 'TVS']
 ];
 function hasBit(bits, bit) { return (BigInt(bits) & bit) === bit; }
+// map discord channel type -> scope letter; unknown/thread types show everything
+function permScopeForChannel(ch) {
+  switch (Number(ch?.type)) {
+    case 0: case 5: case 15: case 16: return 'T';
+    case 2: case 13: return 'V';
+    case 3: return 'S';
+    default: return 'TVS';
+  }
+}
+// grouped display: general / text / voice+stage (a bit lands in the first
+// category its scope touches; TVS bits read as text since that's the common case)
+function permCategory(scope) {
+  if (scope === 'G') return 'general';
+  if (scope.includes('T')) return 'text';
+  return 'voice';
+}
+// tristate row: none (inherit) -> allow -> deny, one tap cycles back.
+// state is a shared {allow, deny} BigInt holder: toggling mutates it, and
+// re-rendering with a filter never loses bits hidden by the filter.
+function renderPermBitsGrid(gridEl, state, opts = {}) {
+  const { deny = true, filter = '' } = opts;
+  const f = filter.trim().toLowerCase();
+  const groups = { general: [], text: [], voice: [] };
+  for (const [bit, key, scope] of PERM_BITS) {
+    // in overwrite mode (opts.scope = channel letter) guild-only bits are
+    // not overwritable, so scope.includes(letter) naturally filters them out
+    if (opts.scope && !scope.includes(opts.scope)) continue;
+    const label = t('perms.bit_' + key);
+    if (f && !label.toLowerCase().includes(f) && !key.includes(f)) continue;
+    groups[permCategory(scope)].push({ bit, key, label });
+  }
+  const catNames = { general: t('perms.cat_general'), text: t('perms.cat_text'), voice: t('perms.cat_voice') };
+  gridEl.innerHTML = Object.entries(groups).filter(([, items]) => items.length).map(([cat, items]) => `
+    ${items.length ? `<div class="perm-cat">${esc(catNames[cat])}</div>` : ''}
+    ${items.map(({ bit, key, label }) => {
+      const state_ = (state.allow & bit) === bit ? 'a' : ((state.deny & bit) === bit ? 'd' : '');
+      return `<div class="perm-cell${state_ ? ' is-' + state_ : ''}" data-bit="${bit}" data-key="${key}" role="group" aria-label="${esc(label)}">
+        <span class="perm-name">${esc(label)}</span>
+        <div class="perm-ctrl">
+          <button type="button" class="pt pt-a${state_ === 'a' ? ' on' : ''}" data-v="a" aria-pressed="${state_ === 'a'}" title="${esc(t('perms.allow'))}">✓</button>
+          ${deny ? `<button type="button" class="pt pt-d${state_ === 'd' ? ' on' : ''}" data-v="d" aria-pressed="${state_ === 'd'}" title="${esc(t('perms.deny'))}">✕</button>` : ''}
+        </div>
+      </div>`;
+    }).join('')}
+  `).join('');
+  if (!gridEl.querySelector('.perm-cell')) {
+    gridEl.innerHTML = '<div class="muted small" style="padding:8px 2px">' + esc(t('perms.no_match')) + '</div>';
+    return;
+  }
+  gridEl.querySelectorAll('.pt').forEach(btn => {
+    btn.onclick = () => {
+      const cell = btn.closest('.perm-cell');
+      const bit = BigInt(cell.dataset.bit);
+      const cur = cell.classList.contains('is-a') ? 'a' : cell.classList.contains('is-d') ? 'd' : '';
+      const next = cur === btn.dataset.v ? '' : btn.dataset.v;
+      state.allow &= ~bit;
+      state.deny &= ~bit;
+      if (next === 'a') state.allow |= bit;
+      if (next === 'd') state.deny |= bit;
+      cell.classList.toggle('is-a', next === 'a');
+      cell.classList.toggle('is-d', next === 'd');
+      cell.querySelectorAll('.pt').forEach(b => {
+        b.classList.toggle('on', b.dataset.v === next);
+        b.setAttribute('aria-pressed', String(b.dataset.v === next));
+      });
+      gridEl.dispatchEvent(new CustomEvent('permbits-change', { bubbles: true }));
+    };
+  });
+}
 
 let rolesManageCurrent = [];
 
@@ -4079,43 +4158,16 @@ document.getElementById('role-create').onclick = async () => {
 
 /* ===== role permission editor ===== */
 let rpmRole = null;
-function renderPermBitsGrid(gridEl, checkedAllow, checkedDeny) {
-  gridEl.innerHTML = PERM_BITS.map(([bit, key]) => `
-    <label class="perm-cell">
-      <input type="checkbox" class="perm-allow-bit" data-bit="${bit}" ${checkedAllow && hasBit(checkedAllow, bit) ? 'checked' : ''}>
-      <input type="checkbox" class="perm-deny-bit" data-bit="${bit}" ${checkedDeny && hasBit(checkedDeny, bit) ? 'checked' : ''}>
-      <span>${esc(t('perms.bit_' + key))}</span>
-    </label>`).join('');
-  gridEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-    cb.onchange = () => {
-      if (!cb.checked) return;
-      const row = cb.closest('.perm-cell');
-      const other = cb.classList.contains('perm-allow-bit')
-        ? row.querySelector('.perm-deny-bit')
-        : row.querySelector('.perm-allow-bit');
-      if (other && other.checked) other.checked = false;
-      updatePermConflict();
-    };
-  });
-  updatePermConflict();
-}
-function updatePermConflict() {
-  const el = document.getElementById('perm-conflict');
-  if (!el) return;
-  const rows = document.querySelectorAll('#perm-bits-grid .perm-cell');
-  let conflict = false;
-  rows.forEach(row => {
-    const a = row.querySelector('.perm-allow-bit').checked;
-    const d = row.querySelector('.perm-deny-bit').checked;
-    if (a && d) conflict = true;
-  });
-  el.classList.toggle('hidden', !conflict);
-}
-
+let rpmState = { allow: 0n, deny: 0n }; // live state: survives filter repaints
 function openRolePerms(role) {
   rpmRole = role;
+  rpmState = { allow: BigInt(role.permissions || 0), deny: 0n };
   document.getElementById('rpm-role-name').textContent = role.name;
-  renderPermBitsGrid(document.getElementById('role-perms-grid'), role.permissions, null);
+  const grid = document.getElementById('role-perms-grid');
+  const paint = (filter) => renderPermBitsGrid(grid, rpmState, { deny: false, filter });
+  const search = document.getElementById('rpm-search');
+  if (search) { search.value = ''; search.oninput = () => paint(search.value); }
+  paint('');
   const warn = document.getElementById('rpm-warn');
   warn.classList.add('hidden');
   warn.textContent = '';
@@ -4129,8 +4181,7 @@ document.getElementById('role-perms-modal').onclick = (e) => {
 };
 document.getElementById('rpm-save').onclick = async () => {
   if (!rpmRole) return;
-  let bits = 0n;
-  document.querySelectorAll('#role-perms-grid .perm-allow-bit').forEach(cb => { if (cb.checked) bits |= BigInt(cb.dataset.bit); });
+  const bits = rpmState.allow;
   const btn = document.getElementById('rpm-save');
   btn.disabled = true;
   const old = selToken;
@@ -4148,17 +4199,15 @@ document.getElementById('rpm-save').onclick = async () => {
   }
 };
 // admin warning surfaces live while editing role permissions
-document.addEventListener('change', (e) => {
-  if (e.target && e.target.closest && e.target.closest('#role-perms-grid')) {
-    const admin = document.querySelector('#role-perms-grid .perm-allow-bit[data-bit="8"]');
-    const warn = document.getElementById('rpm-warn');
-    if (admin && admin.checked) {
-      warn.textContent = t('roles.admin_warn');
-      warn.style.color = 'var(--danger)';
-      warn.classList.remove('hidden');
-    } else {
-      warn.classList.add('hidden');
-    }
+document.getElementById('role-perms-grid').addEventListener('permbits-change', () => {
+  const warn = document.getElementById('rpm-warn');
+  if (!warn) return;
+  if ((rpmState.allow & 8n) === 8n) {
+    warn.textContent = t('roles.admin_warn');
+    warn.style.color = 'var(--danger)';
+    warn.classList.remove('hidden');
+  } else {
+    warn.classList.add('hidden');
   }
 });
 
@@ -4269,7 +4318,17 @@ function showPermForm(existing) {
   memberIn.value = existing && String(existing.type) === '1' ? existing.id : '';
   const everyoneRow = roleSel.querySelector(`option[value="${channelsGuild}"]`);
   if (everyoneRow) everyoneRow.textContent = t('perms.everyone');
-  renderPermBitsGrid(document.getElementById('perm-bits-grid'), existing?.allow, existing?.deny);
+  const grid = document.getElementById('perm-bits-grid');
+  permFormState = { allow: BigInt(existing?.allow || 0), deny: BigInt(existing?.deny || 0) };
+  const search = document.getElementById('perm-search');
+  if (search) { search.value = ''; search.oninput = () => paintPermFormGrid(search.value); }
+  paintPermFormGrid('');
+  form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+let permFormState = { allow: 0n, deny: 0n }; // live state, survives filter repaints
+function paintPermFormGrid(filter) {
+  renderPermBitsGrid(document.getElementById('perm-bits-grid'), permFormState,
+    { deny: true, scope: permScopeForChannel(permChannel), filter });
 }
 document.getElementById('perm-add').onclick = () => showPermForm(null);
 document.getElementById('perm-form-cancel').onclick = () => document.getElementById('perm-form').classList.add('hidden');
@@ -4302,12 +4361,7 @@ document.getElementById('perm-form-save').onclick = () => {
   let type = '0';
   if (memberIn) { id = memberIn; type = '1'; }
   if (!id) { tt(t('perms.empty')); return; }
-  let allow = 0n, deny = 0n;
-  document.querySelectorAll('#perm-bits-grid .perm-cell').forEach(row => {
-    const bit = BigInt(row.querySelector('.perm-allow-bit').dataset.bit);
-    if (row.querySelector('.perm-allow-bit').checked) allow |= bit;
-    if (row.querySelector('.perm-deny-bit').checked) deny |= bit;
-  });
+  const { allow, deny } = permFormState;
   const entry = { id, type, allow: allow.toString(), deny: deny.toString() };
   const editId = form.dataset.editId, editType = form.dataset.editType;
   if (editId && editType) {
