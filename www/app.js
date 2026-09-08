@@ -2654,9 +2654,9 @@ function renderRolesManage(uid, member, roles, gid) {
   });
 }
 
-function renderProfileDetails(container, uid, user, member, roles, gid) {
-  const displayName = user?.global_name || user?.username || t('common.unknown');
-  const username = user?.username || t('common.unknown');
+function renderProfileDetails(container, uid, user, member, roles, gid, uname) {
+  const displayName = user?.global_name || member?.user?.global_name || uname || uid || t('common.unknown');
+  const username = user?.username || member?.user?.username || uid || t('common.unknown');
   const nick = member?.nick || null;
   const createdAt = snowflakeToDate(uid);
   const joinedAt = member?.joined_at ? new Date(member.joined_at) : null;
@@ -2759,8 +2759,9 @@ async function openUserModal(uid, uname, gid) {
     try { user = await fetchUser(uid, logToken); } catch {}
     let roles = [];
     try { roles = await fetchGuildRoles(gid, logToken); } catch {}
+    if (!user && member && member.user) user = member.user;
 
-    renderProfileDetails(details, uid, user, member, roles, gid);
+    renderProfileDetails(details, uid, user, member, roles, gid, uname);
     renderRolesManage(uid, member, roles, gid);
   } catch (e) {
     const details = document.getElementById('profile-details');
@@ -2835,8 +2836,6 @@ async function modAction(action) {
   const uid = document.getElementById('modal-uid').textContent;
   const oldToken = selToken;
   selToken = logToken;
-  const btn = document.getElementById(action === 'ban' ? 'btn-ban' : 'btn-kick');
-  btn.disabled = true;
   try {
     if (action === 'ban') {
       await api(`/guilds/${logGuild}/bans/${uid}`, {
@@ -2853,11 +2852,12 @@ async function modAction(action) {
     tt(friendlyError(e.message, action));
   } finally {
     selToken = oldToken;
-    btn.disabled = false;
   }
 }
-document.getElementById('btn-ban').onclick = () => modAction('ban');
-document.getElementById('btn-kick').onclick = () => modAction('kick');
+document.getElementById('btn-profile-manage').onclick = (e) => openCtxMenu(e.currentTarget, [
+  { label: t('modal.kick'), danger: true, action: () => modAction('kick') },
+  { label: t('modal.ban'), danger: true, action: () => modAction('ban') },
+]);
 
 /* ===== presence ===== */
 const presenceBotSel = document.getElementById('presence-bot-select');
