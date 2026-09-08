@@ -15,11 +15,11 @@ a self-hosted, local-first control panel for managing discord bots — token vau
 | ✉️ **send** | send messages to any channel of any server the bot is in. full markdown preview, rich embeds builder, interactive components (buttons + select menus with a live interaction panel), image/video attachments, voice messages (upload or browser recording), webhook sending with a profile editor. |
 | 🗄 **archive** | live capture of `MESSAGE_CREATE` / `UPDATE` / `DELETE` events over the gateway, plus on-demand fetch via rest. deleted messages are flagged, not lost. |
 | 🟢 **presence** | set online/idle/dnd/invisible status and custom activity over a persistent gateway websocket session. |
-| 🔊 **voice** | join voice channels, self-mute/deafen, auto-leave timer, play audio files directly into the channel (voice gateway + udp + opus, with DAVE end-to-end encryption), see who is in voice and mute/deafen/disconnect them. |
+| 🔊 **voice** | join voice channels, self-mute/deafen, auto-leave timer, play audio files directly into the channel (voice gateway + udp + opus, with DAVE end-to-end encryption), see who is in voice and mute/deafen/disconnect them — every member row also has a ⋯ menu (profile, timeout, disconnect, kick, ban). |
 | 🧹 **cleaner** | wipe all messages from a channel (bulk-delete for recent ones, one-by-one for older than 14 days) or clone-and-recreate a channel. |
-| #️⃣ **channels** | browse channels per server with icons/sorting; every channel has a ⋯ menu with rename, move (category + position), clone, backup and delete. |
+| #️⃣ **channels** | browse channels per server with icons/sorting; every channel has a ⋯ menu with rename, move (category + position), **permissions** (role/member overwrite editor with allow/deny bit grid), clone, backup and delete. the tab also hosts the **role manager**: create, rename, recolor, hoist, mentionable, delete, and a full permission-bit editor with a live administrator warning. |
 | ⏰ **scheduler** | recurring jobs (send message, change presence) running in the bridge with live status dots. |
-| 👥 **members** | full member list per server with search, role filters and profile links (needs the `guild members` intent). |
+| 👥 **members** | full member list per server with search, role filters, a ⋯ manage menu per row (profile, timeout, kick, ban) and profile links (needs the `guild members` intent). |
 | 🧩 **scripts** | sandboxed user scripts (web worker): explicit per-call permission prompts showing which bot acts, revocable scopes, 10 calls/min, per-script storage in the vault. |
 | ⚙️ **settings** | auto-lock timer, language (en/it/zh), theme (light/dark/auto/discord), master password change, script permission revocation, vault reset. |
 
